@@ -2,11 +2,12 @@ module gitlab.com/bon-ami/ezcomm
 
 go 1.18
 
-require gitee.com/bon-ami/eztools/v4 v4.1.0
+require (
+	fyne.io/fyne/v2 v2.1.4
+	gitee.com/bon-ami/eztools/v4 v4.1.0
+)
 
 require (
-	fyne.io/fyne v1.4.3 // indirect
-	fyne.io/fyne/v2 v2.1.4 // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20200615164410-66371956d46c // indirect
 	github.com/bon-ami/go-http-digest-auth-client v0.6.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect

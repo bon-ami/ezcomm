@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-7"?>
 <ezcommFlow>
-        <conn name="producer" protocol="udp" >
+        <conn name="consumer" protocol="udp" >
                 <step action="receive" loop="0" name="receiver" >
                         <step action="send" dest="%peer%" data="%receiver.data%" />
                 </step>
         </conn>
-        <conn protocol="udp" peer="%producer.listen%" >
+        <conn protocol="udp" peer="%consumer.listen%" >
                 <step action="send" dest="%peer%" data="Bonjour" />
         </conn>
 </ezcommFlow>

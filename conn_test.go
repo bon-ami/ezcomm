@@ -28,7 +28,7 @@ var (
 )
 
 func init() {
-	prot = flag.String("prot", "udp", "protocol, tcp, tcp4, tcp6, unix or unixpacket. default is udp.")
+	prot = flag.String("prot", "udp4", "protocol, tcp, tcp4, tcp6, unix or unixpacket. default is udp.")
 	lcl = flag.String("lcl", DEF_ADR /*"localhost:"*/, "local address")
 	rmt = flag.String("rmt", "", "remote address")
 	msg = flag.String("msg", "", "messages to send, separated by \""+separator+"\". \""+bye+"\" to end udp server")
@@ -126,7 +126,7 @@ func TestClient(t *testing.T) {
 		clntRdMsg <- struct{}{}
 	}
 	fin := make(chan struct{})
-	conn, err := ListenTcp(*prot, *rmt, func(conn net.Conn) {
+	conn, err := Client(*prot, *rmt, func(conn net.Conn) {
 		defer func() {
 			if *verbose > 1 {
 				t.Log("client dieing", clntId)
@@ -168,7 +168,7 @@ func TestClient(t *testing.T) {
 		if !strings.HasPrefix(*prot, "udp") {
 			sndNrcv(bye)
 		}
-	}, nil)
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
