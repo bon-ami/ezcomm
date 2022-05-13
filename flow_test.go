@@ -10,8 +10,9 @@ func TestFlow(t *testing.T) {
 	snd := make([]FlowStepStruc, 1)
 	snd[0] = FlowStepStruc{
 		Act:  FlowActSnd,
-		Dest: FlowVarSign + "peer" + FlowVarSign,
-		Data: FlowVarSign + "receiver" + FlowVarSign + "data" + FlowVarSign,
+		Name: "echo",
+		Dest: FlowVarSign + "receiver" + FlowVarSep + "dest" + FlowVarSign,
+		Data: FlowVarSign + "receiver" + FlowVarSep + "data" + FlowVarSign,
 	}
 	rcv := make([]FlowStepStruc, 1)
 	rcv[0] = FlowStepStruc{
@@ -31,6 +32,7 @@ func TestFlow(t *testing.T) {
 		Act:  FlowActSnd,
 		Dest: FlowVarSign + "peer" + FlowVarSign,
 		Data: "Bonjour",
+		Name: "sender",
 	}
 	flows.Conns[1] = FlowConnStruc{
 		Protocol: *prot,
