@@ -34,6 +34,7 @@ const (
 	FlowVarLst  = "listen"
 	FlowVarLcl  = "local"
 	FlowVarPee  = "peer"
+	FlowVarFil  = "file"
 
 	FlowRcvLen = 256
 	FlowComLen = 99
@@ -43,6 +44,7 @@ const (
 	FlowChnLst = iota
 	FlowChnMax
 
+	FlowChnEnd
 	FlowChnSnd
 	FlowChnSndFil
 	FlowChnRcv
@@ -121,26 +123,38 @@ type FlowStruc struct {
 	Vals  map[string]*FlowStepStruc
 }
 
+const (
+	// FlowParseValSimple is a sstring without <FlowVarSign>
+	FlowParseValSimple = iota
+	// FlowParseValSign is <FlowVarSign><string><FlowVarSign>
+	FlowParseValSign
+	// FlowParseValVar is <FlowVarSign><xml tag name of FlowConnStruc or FlowStepStruc><FlowVarSep><string><FlowVarSign>
+	FlowParseValVar
+)
+
 // ParseVar parses a string of a simple string or
-//   <FlowVarSign>[<FlowConnStruc.Name><FlowVarSep>]<string><FlowVarSign>
+//   <FlowVarSign>[<xml tag name of FlowConnStruc or FlowStepStruc><FlowVarSep>]<string><FlowVarSign>
 //   fun() is invoked for matched FlowConnStruc,
 //	with index of it in FlowStruc.Conns and <string>
-//   A simple string and false are returned.
-//   Otherwise, <string> and true are returned.
-//   Both <FlowVarSign>'s are stripped before returned.
+// Return values:
+//  1st.
+//   The simple string
+//   If FlowConnStruc is matched, the value of its member whose xml tag is <string>
+//   Otherwise, <string>
+//  2nd. FlowParseVal*
 func (flow FlowStruc) ParseVar(str string,
-	fun func(int, string)) (string, bool) {
+	fun func(int, string)) (string, int) {
 	if len(str) < 1 {
-		return "", false
+		return str, FlowParseValSimple
 	}
 	parts := strings.Split(str, FlowVarSign)
 	if len(parts) != 3 {
 		//eztools.LogWtTime("unrecognized var", str)
-		return str, false
+		return str, FlowParseValSimple
 	}
 	vars := strings.Split(parts[1], FlowVarSep)
 	if len(vars) != 2 {
-		return parts[1], true
+		return parts[1], FlowParseValSign
 	}
 	if fun != nil {
 		for i := range flow.Conns {
@@ -165,31 +179,51 @@ func (flow FlowStruc) ParseVar(str string,
 			if !ok {
 				break
 			}*/
-			return v.String(), true
+			return v.String(), FlowParseValVar
 		}
 	}
 
-	return parts[1], true
+	return parts[1], FlowParseValSign
+}
+
+// ParseData parses data in step
+// Return values:
+//  1st. is one of following
+//    data string in form of a simple string
+//    the value of a member of FlowConnStruc or FlowStepStruc for <string> in <FlowVarSign><xml tag name of FlowConnStruc or FlowStepStruc><FlowVarSep><string><FlowVarSign>
+//    file name for <string> in <FlowVarSign><FlowVarFil><FlowVarSep><string><FlowVarSign>
+//  2nd.
+//   1: a file name
+//   0: a string
+func (step FlowStepStruc) ParseData(flow FlowStruc, conn FlowConnStruc) (string, int) {
+	retWhole, parseRes := flow.ParseVar(step.Data, nil) // TODO: match a server
+	switch parseRes {
+	case FlowParseValSign:
+		switch {
+		case strings.HasPrefix(retWhole, FlowVarFil+FlowVarSep):
+			return strings.TrimPrefix(retWhole, FlowVarFil+FlowVarSep), 1
+		}
+	}
+	return retWhole, 0
 }
 
 func (step FlowStepStruc) ParseDest(flow FlowStruc, conn FlowConnStruc) *net.UDPAddr {
 	var ret string
-	retWhole, ok := flow.ParseVar(step.Dest, func(svrInd int, varStr string) {
+	retWhole, parseRes := flow.ParseVar(step.Dest, func(svrInd int, varStr string) {
 		switch varStr {
 		case FlowVarLcl:
 			ret = flow.Conns[svrInd].Addr
 		}
 	})
 	if len(ret) < 1 {
-		if !ok {
-			ret = retWhole
+		ret = retWhole
+		switch parseRes {
+		case FlowParseValSimple:
 			//eztools.Log("parsedest", ret)
-		} else {
+		default:
 			switch retWhole {
 			case FlowVarPee:
 				ret = conn.Peer
-			default:
-				ret = retWhole
 			}
 			//eztools.Log("parsedest by var", ret, conn)
 		}
@@ -203,7 +237,7 @@ func (step FlowStepStruc) ParseDest(flow FlowStruc, conn FlowConnStruc) *net.UDP
 	return addr
 }
 
-func (conn FlowConnStruc) Step1(flow FlowStruc, step FlowStepStruc) {
+func (conn FlowConnStruc) Step1(flow *FlowStruc, step *FlowStepStruc) {
 	if eztools.Verbose > 2 {
 		eztools.LogWtTime("step", step.Name, "action", step.Act)
 	}
@@ -211,20 +245,22 @@ func (conn FlowConnStruc) Step1(flow FlowStruc, step FlowStepStruc) {
 	var respStruc FlowCommStruc
 	switch step.Act {
 	case FlowActSnd:
-		dest := step.ParseDest(flow, conn)
+		dest := step.ParseDest(*flow, conn)
 		if dest == nil && eztools.Verbose > 1 {
 			eztools.LogWtTime("NO dest parsed for", step.Act, "as", step.Dest)
 		}
-		data, _ := flow.ParseVar(step.Data, nil)
+		data, fil := step.ParseData(*flow, conn)
 		conn.chanComm <- FlowCommStruc{
-			Act:  FlowChnSnd,
+			Act:  FlowChnSnd + fil,
 			Peer: dest,
 			Data: data,
 			Resp: respChn,
 		}
 	case FlowActRcv:
+		data, fil := step.ParseData(*flow, conn)
 		conn.chanComm <- FlowCommStruc{
-			Act:  FlowChnRcv,
+			Act:  FlowChnRcv + fil,
+			Data: data,
 			Resp: respChn,
 		}
 	}
@@ -242,7 +278,7 @@ func (conn FlowConnStruc) Step1(flow FlowStruc, step FlowStepStruc) {
 		step.Dest = respStruc.Peer.String()
 	}
 	if len(step.Name) > 0 {
-		flow.Vals[step.Name] = &step
+		flow.Vals[step.Name] = step
 	}
 	if eztools.Verbose > 2 {
 		eztools.LogWtTime("step done", step.Name, "action", step.Act,
@@ -251,18 +287,22 @@ func (conn FlowConnStruc) Step1(flow FlowStruc, step FlowStepStruc) {
 	conn.StepAll(flow, step.Steps)
 }
 
-func (conn FlowConnStruc) StepAll(flow FlowStruc, steps []FlowStepStruc) {
-	for _, s := range steps {
+func (conn FlowConnStruc) StepAll(flow *FlowStruc, steps []FlowStepStruc) {
+	for i, s := range steps {
 		if s.Block {
-			conn.Step1(flow, s)
+			conn.Step1(flow, &steps[i])
 		} else {
-			go conn.Step1(flow, s)
+			go conn.Step1(flow, &steps[i])
 		}
 		//svr.curr = i + 1
 	}
 }
 
 func (connStruc *FlowConnStruc) Connected(connTcp net.Conn) {
+	defer func() {
+		// duplcate for TCP server, but does not matter
+		connStruc.chanErrs <- eztools.ErrAbort
+	}()
 	for {
 		if eztools.Verbose > 2 {
 			eztools.LogWtTime(connStruc.Name, "waiting")
@@ -335,6 +375,11 @@ func (connStruc *FlowConnStruc) Connected(connTcp net.Conn) {
 			}
 		}
 		switch com.Act {
+		case FlowChnEnd:
+			if eztools.Verbose > 1 {
+				eztools.LogWtTime(connStruc.Name, "ending")
+			}
+			return
 		case FlowChnSnd:
 			com.Err = sndFunc([]byte(com.Data))
 		case FlowChnSndFil:
@@ -364,7 +409,8 @@ func (connStruc *FlowConnStruc) Connected(connTcp net.Conn) {
 				}
 			}
 		case FlowChnRcv:
-			// com.Data and com.Peer must be empty
+			// com.Peer must be empty
+			// com.Data is appended
 			var byteLen int
 			bytes := make([]byte, FlowRcvLen)
 			for {
@@ -382,8 +428,9 @@ func (connStruc *FlowConnStruc) Connected(connTcp net.Conn) {
 				//}
 			}
 		case FlowChnRcvFil:
-			fil, err := os.OpenFile(com.Data, os.O_WRONLY|os.O_TRUNC, eztools.FileCreatePermission)
+			fil, err := os.OpenFile(com.Data, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, eztools.FileCreatePermission)
 			if err != nil {
+				com.Err = err
 				break
 			}
 			defer fil.Close()
@@ -397,9 +444,13 @@ func (connStruc *FlowConnStruc) Connected(connTcp net.Conn) {
 					}
 					return nil
 				})
-				if err != nil {
-					break
+				if eztools.Verbose > 2 {
+					eztools.LogWtTime(connStruc.Name,
+						"saved", err, com.Data)
 				}
+				//if err != nil {
+				break
+				//}
 			}
 		}
 		if eztools.Verbose > 2 {
@@ -453,16 +504,20 @@ func (conn *FlowConnStruc) LockLog(nm string, lck bool) {
 	eztools.LogWtTime(conn.Name, str+" for", nm)
 }
 
-func (conn *FlowConnStruc) Run(flow FlowStruc) {
+func (conn *FlowConnStruc) Run(flow *FlowStruc) {
 	if conn.chanComm == nil {
 		conn.chanComm = make(chan FlowCommStruc, FlowComLen)
 	}
 	if len(conn.Peer) > 1 {
-		conn.RunCln(flow)
+		conn.RunCln(*flow)
 	} else {
-		conn.RunSvr(flow)
+		conn.RunSvr(*flow)
 	}
 	conn.StepAll(flow, conn.Steps)
+	if eztools.Verbose > 1 {
+		eztools.LogWtTime("connection", conn.Name, "ending")
+	}
+	conn.chanComm <- FlowCommStruc{Act: FlowChnEnd}
 }
 
 func (cln *FlowConnStruc) RunCln(flow FlowStruc) {
@@ -527,9 +582,6 @@ func (svr *FlowConnStruc) RunSvr(flow FlowStruc) {
 			svr.Connected(nil)
 		}()
 	} else {
-		if svr.chanErrs == nil {
-			svr.chanErrs = make(chan error, 1)
-		}
 		lstnr, err := ListenTcp(svr.Protocol,
 			svr.Addr, func(conn net.Conn) {
 				svr.Connected(conn)
@@ -568,13 +620,19 @@ func runFlow(flow FlowStruc) bool {
 
 	eztools.LogWtTime("flow begins")
 	for i := range flow.Conns {
+		if flow.Conns[i].chanErrs == nil {
+			flow.Conns[i].chanErrs = make(chan error, 1)
+		}
 		if flow.Conns[i].Block {
-			flow.Conns[i].Run(flow)
+			flow.Conns[i].Run(&flow)
 		} else {
-			go flow.Conns[i].Run(flow)
+			go flow.Conns[i].Run(&flow)
 		}
 	}
 	for _, conn := range flow.Conns {
+		/*if eztools.Verbose > 2 {
+			eztools.Log("waiting for", conn.Name, "to end")
+		}*/
 		<-conn.chanErrs
 	}
 	eztools.LogWtTime("flow ends")
