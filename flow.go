@@ -61,10 +61,14 @@ type FlowStepStruc struct {
 	// Name if not null, this structure will be mapped to Vals
 	Name string `xml:"name"`
 	// Dest will be updated upon UDP receive action, if it is a variable
-	Dest  string `xml:"dest"`
-	Data  string `xml:"data"`
-	Loop  int    `xml:"loop"`
-	Block bool   `xml:"block"`
+	Dest string `xml:"dest"`
+	Data string `xml:"data"`
+	// Loop rounds to repeat this step
+	// 0, 1: no loop
+	// > 1: number of rounds
+	// < 0: infinitely
+	Loop  int  `xml:"loop"`
+	Block bool `xml:"block"`
 	// Steps: sub steps triggered
 	Steps []FlowStepStruc `xml:"step"`
 	// curr: current sub step
@@ -238,53 +242,63 @@ func (step FlowStepStruc) ParseDest(flow FlowStruc, conn FlowConnStruc) *net.UDP
 }
 
 func (conn FlowConnStruc) Step1(flow *FlowStruc, step *FlowStepStruc) {
-	if eztools.Verbose > 2 {
-		eztools.LogWtTime("step", step.Name, "action", step.Act)
-	}
-	respChn := make(chan FlowCommStruc, FlowComLen)
-	var respStruc FlowCommStruc
-	switch step.Act {
-	case FlowActSnd:
-		dest := step.ParseDest(*flow, conn)
-		if dest == nil && eztools.Verbose > 1 {
-			eztools.LogWtTime("NO dest parsed for", step.Act, "as", step.Dest)
+	for {
+		if eztools.Verbose > 2 {
+			eztools.LogWtTime("step", step.Name, "action", step.Act)
 		}
-		data, fil := step.ParseData(*flow, conn)
-		conn.chanComm <- FlowCommStruc{
-			Act:  FlowChnSnd + fil,
-			Peer: dest,
-			Data: data,
-			Resp: respChn,
+		respChn := make(chan FlowCommStruc, FlowComLen)
+		var respStruc FlowCommStruc
+		switch step.Act {
+		case FlowActSnd:
+			dest := step.ParseDest(*flow, conn)
+			if dest == nil && eztools.Verbose > 1 {
+				eztools.LogWtTime("NO dest parsed for", step.Act, "as", step.Dest)
+			}
+			data, fil := step.ParseData(*flow, conn)
+			conn.chanComm <- FlowCommStruc{
+				Act:  FlowChnSnd + fil,
+				Peer: dest,
+				Data: data,
+				Resp: respChn,
+			}
+		case FlowActRcv:
+			data, fil := step.ParseData(*flow, conn)
+			conn.chanComm <- FlowCommStruc{
+				Act:  FlowChnRcv + fil,
+				Data: data,
+				Resp: respChn,
+			}
 		}
-	case FlowActRcv:
-		data, fil := step.ParseData(*flow, conn)
-		conn.chanComm <- FlowCommStruc{
-			Act:  FlowChnRcv + fil,
-			Data: data,
-			Resp: respChn,
+		respStruc = <-respChn
+		if respStruc.Err != nil {
+			eztools.LogWtTime(conn.Name, step.Act, respStruc.Err)
+		} else {
+			step.Data = respStruc.Data
+			if respStruc.Peer != nil {
+				if eztools.Verbose > 1 {
+					eztools.Log("refreshing dest of", step.Name,
+						"from", step.Dest, "to", respStruc.Peer.String())
+				}
+				step.Dest = respStruc.Peer.String()
+			}
+			if len(step.Name) > 0 {
+				flow.Vals[step.Name] = step
+			}
+			if eztools.Verbose > 2 {
+				eztools.LogWtTime("step done", step.Name, "action", step.Act,
+					"data", step.Data)
+			}
+			conn.StepAll(flow, step.Steps)
+		}
+		switch {
+		case (step.Loop == 0 || step.Loop == 1):
+			return
+		case step.Loop < 0:
+			continue
+		default:
+			step.Loop--
 		}
 	}
-	respStruc = <-respChn
-	if respStruc.Err != nil {
-		eztools.LogWtTime(conn.Name, step.Act, respStruc.Err)
-		return
-	}
-	step.Data = respStruc.Data
-	if respStruc.Peer != nil {
-		if eztools.Verbose > 1 {
-			eztools.Log("refreshing dest of", step.Name,
-				"from", step.Dest, "to", respStruc.Peer.String())
-		}
-		step.Dest = respStruc.Peer.String()
-	}
-	if len(step.Name) > 0 {
-		flow.Vals[step.Name] = step
-	}
-	if eztools.Verbose > 2 {
-		eztools.LogWtTime("step done", step.Name, "action", step.Act,
-			"data", step.Data)
-	}
-	conn.StepAll(flow, step.Steps)
 }
 
 func (conn FlowConnStruc) StepAll(flow *FlowStruc, steps []FlowStepStruc) {
