@@ -28,14 +28,14 @@ type RoutCommStruc struct {
 func ConnectedUdp(conn *net.UDPConn) {
 	buf := make([]byte, FlowRcvLen)
 	lcl := conn.LocalAddr().String()
-	var exiting bool
 	go func() {
 		if eztools.Debugging && eztools.Verbose > 1 {
-			defer guiFyneLog(true, "exiting", lcl)
+			defer guiFyneLog(true, "exiting routine", lcl)
 		}
-		for !exiting {
+		for {
 			n, addr, err := conn.ReadFromUDP(buf)
-			if exiting {
+			if err != nil &&
+				(errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed)) {
 				return
 			}
 			comm := RoutCommStruc{
@@ -43,7 +43,6 @@ func ConnectedUdp(conn *net.UDPConn) {
 				Err: err,
 			}
 			if err == nil {
-				//if !errors.Is(err, io.EOF) {
 				comm.Data = string(buf[:n])
 				comm.PeerUdp = addr
 			}
@@ -67,7 +66,6 @@ func ConnectedUdp(conn *net.UDPConn) {
 			for i := range chanComm {
 				chanComm[i] = nil
 			}
-			exiting = true
 			conn.Close()
 			if eztools.Debugging && eztools.Verbose > 1 {
 				guiFyneLog(true, "exiting", lcl)
@@ -100,16 +98,12 @@ func ConnectedTcp(conn net.Conn) {
 	peeMap[peer.String()] = chn
 	guiFyneConnected(conn.LocalAddr().String(), peer.String())
 	buf := make([]byte, FlowRcvLen)
-	//var exiting bool
 	go func() {
 		if eztools.Debugging && eztools.Verbose > 1 {
 			defer guiFyneLog(true, "exiting routine peer", peer.String())
 		}
-		for /*!exiting*/ {
+		for {
 			n, err := conn.Read(buf)
-			/*if exiting {
-				return
-			}*/
 			comm := RoutCommStruc{
 				Act:     FlowChnRcv,
 				PeerTcp: peer,
@@ -124,8 +118,6 @@ func ConnectedTcp(conn net.Conn) {
 					break
 				}
 			}
-			// if disconnected, exiting=true, chn <- comm.Act=FlowChnEnd
-			//chanComm[1] <- comm
 			guiFyneRcv(comm)
 		}
 	}()
@@ -143,10 +135,7 @@ func ConnectedTcp(conn net.Conn) {
 			comm.PeerTcp = peer
 			guiFyneSnt(comm)
 		case FlowChnEnd:
-			/*if !exiting {
-			exiting = true*/
 			conn.Close()
-			//}
 			if eztools.Debugging && eztools.Verbose > 1 {
 				guiFyneLog(true, "exiting peer", peer.String())
 			}
