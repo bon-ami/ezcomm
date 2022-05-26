@@ -75,15 +75,6 @@ type FlowStepStruc struct {
 	curr int
 }
 
-type FlowCommStruc struct {
-	// Act=FlowChn* (>FlowChnMax)
-	Act  int
-	Peer *net.UDPAddr
-	Data string
-	Resp chan FlowCommStruc
-	Err  error
-}
-
 type FlowConnStruc struct {
 	// Cmt = comments
 	Cmt string `xml:",comment"`
@@ -105,7 +96,7 @@ type FlowConnStruc struct {
 	// chanErrs is for Server()
 	chanErrs chan error
 	chanStrs [FlowChnMax]chan string
-	chanComm chan FlowCommStruc
+	chanComm chan RoutCommStruc
 	// TODO: for ending
 	//chanStrus [FlowChnStrMax]chan struct{}
 	//lock      sync.Mutex
@@ -246,8 +237,8 @@ func (conn FlowConnStruc) Step1(flow *FlowStruc, step *FlowStepStruc) {
 		if eztools.Verbose > 2 {
 			eztools.LogWtTime("step", step.Name, "action", step.Act)
 		}
-		respChn := make(chan FlowCommStruc, FlowComLen)
-		var respStruc FlowCommStruc
+		respChn := make(chan RoutCommStruc, FlowComLen)
+		var respStruc RoutCommStruc
 		switch step.Act {
 		case FlowActSnd:
 			dest := step.ParseDest(*flow, conn)
@@ -255,15 +246,15 @@ func (conn FlowConnStruc) Step1(flow *FlowStruc, step *FlowStepStruc) {
 				eztools.LogWtTime("NO dest parsed for", step.Act, "as", step.Dest)
 			}
 			data, fil := step.ParseData(*flow, conn)
-			conn.chanComm <- FlowCommStruc{
-				Act:  FlowChnSnd + fil,
-				Peer: dest,
-				Data: data,
-				Resp: respChn,
+			conn.chanComm <- RoutCommStruc{
+				Act:     FlowChnSnd + fil,
+				PeerUdp: dest,
+				Data:    data,
+				Resp:    respChn,
 			}
 		case FlowActRcv:
 			data, fil := step.ParseData(*flow, conn)
-			conn.chanComm <- FlowCommStruc{
+			conn.chanComm <- RoutCommStruc{
 				Act:  FlowChnRcv + fil,
 				Data: data,
 				Resp: respChn,
@@ -274,12 +265,12 @@ func (conn FlowConnStruc) Step1(flow *FlowStruc, step *FlowStepStruc) {
 			eztools.LogWtTime(conn.Name, step.Act, respStruc.Err)
 		} else {
 			step.Data = respStruc.Data
-			if respStruc.Peer != nil {
+			if respStruc.PeerUdp != nil {
 				if eztools.Verbose > 1 {
 					eztools.Log("refreshing dest of", step.Name,
-						"from", step.Dest, "to", respStruc.Peer.String())
+						"from", step.Dest, "to", respStruc.PeerUdp.String())
 				}
-				step.Dest = respStruc.Peer.String()
+				step.Dest = respStruc.PeerUdp.String()
 			}
 			if len(step.Name) > 0 {
 				flow.Vals[step.Name] = step
@@ -358,8 +349,8 @@ func (connStruc *FlowConnStruc) Connected(connTcp net.Conn) {
 			}
 			defer connUdp.Close()
 			sndFunc = func(buf []byte) (err error) {
-				if com.Peer != nil {
-					_, err = connUdp.WriteTo(buf, com.Peer)
+				if com.PeerUdp != nil {
+					_, err = connUdp.WriteTo(buf, com.PeerUdp)
 				} else { // TODO: default to current peer?
 					_, err = connUdp.Write(buf)
 				}
@@ -376,11 +367,11 @@ func (connStruc *FlowConnStruc) Connected(connTcp net.Conn) {
 					}
 				}
 				//eztools.LogPrintWtTime(connStruc.Name, "recv", err)
-				if com.Peer == nil {
-					com.Peer = addr
+				if com.PeerUdp == nil {
+					com.PeerUdp = addr
 					//eztools.Log("setting peer", com.Peer)
 				} else {
-					eztools.Log("peer not null", com.Peer)
+					eztools.Log("peer not null", com.PeerUdp)
 				}
 				if err := fun(buf, ln); err != nil {
 					return err
@@ -520,7 +511,7 @@ func (conn *FlowConnStruc) LockLog(nm string, lck bool) {
 
 func (conn *FlowConnStruc) Run(flow *FlowStruc) {
 	if conn.chanComm == nil {
-		conn.chanComm = make(chan FlowCommStruc, FlowComLen)
+		conn.chanComm = make(chan RoutCommStruc, FlowComLen)
 	}
 	if len(conn.Peer) > 1 {
 		conn.RunCln(*flow)
@@ -531,7 +522,7 @@ func (conn *FlowConnStruc) Run(flow *FlowStruc) {
 	if eztools.Verbose > 1 {
 		eztools.LogWtTime("connection", conn.Name, "ending")
 	}
-	conn.chanComm <- FlowCommStruc{Act: FlowChnEnd}
+	conn.chanComm <- RoutCommStruc{Act: FlowChnEnd}
 }
 
 func (cln *FlowConnStruc) RunCln(flow FlowStruc) {

@@ -24,7 +24,7 @@ func TestFlow(t *testing.T) {
 	}
 	flows.Conns = make([]FlowConnStruc, 2)
 	flows.Conns[0] = FlowConnStruc{
-		Protocol: *prot,
+		Protocol: *tstProt,
 		Name:     "consumer",
 		Steps:    rcv,
 	}
@@ -44,7 +44,7 @@ func TestFlow(t *testing.T) {
 		Steps: rcv1,
 	}
 	flows.Conns[1] = FlowConnStruc{
-		Protocol: *prot,
+		Protocol: *tstProt,
 		Name:     "producer",
 		Peer:     FlowVarSign + "consumer" + FlowVarSep + "listen" + FlowVarSign,
 		Steps:    snd1,

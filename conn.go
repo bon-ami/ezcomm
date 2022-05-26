@@ -1,23 +1,159 @@
 package main
 
 import (
+	"errors"
+	"io"
 	"net"
 
 	"gitee.com/bon-ami/eztools/v4"
 )
 
-/*const (
-	EZCOMM_CMD_END = iota
-	EZCOMM_CMD_SND
-	EZCOMM_CMD_FIL
+var (
+	chanComm        [2]chan RoutCommStruc
+	snd2Slc, rcvSlc [2][]string
+	/*sndMap,*/ rcvMap [2]map[string]struct{}
+	peeMap             map[string]chan RoutCommStruc
 )
 
-type Packs struct {
-	cmd int
-	str string
+type RoutCommStruc struct {
+	// Act=FlowChn* (>FlowChnMax)
+	Act     int
+	PeerUdp *net.UDPAddr
+	PeerTcp net.Addr
+	Data    string
+	Resp    chan RoutCommStruc
+	Err     error
 }
 
-var chnSvr, chnIn, chnOut chan Packs*/
+func ConnectedUdp(conn *net.UDPConn) {
+	buf := make([]byte, FlowRcvLen)
+	lcl := conn.LocalAddr().String()
+	var exiting bool
+	go func() {
+		if eztools.Debugging && eztools.Verbose > 1 {
+			defer guiFyneLog(true, "exiting", lcl)
+		}
+		for !exiting {
+			n, addr, err := conn.ReadFromUDP(buf)
+			if exiting {
+				return
+			}
+			comm := RoutCommStruc{
+				Act: FlowChnRcv,
+				Err: err,
+			}
+			if err == nil {
+				//if !errors.Is(err, io.EOF) {
+				comm.Data = string(buf[:n])
+				comm.PeerUdp = addr
+			}
+			//chanComm[1] <- comm
+			guiFyneRcv(comm)
+		}
+	}()
+	for {
+		cmd := <-chanComm[0]
+		switch cmd.Act {
+		case FlowChnSnd:
+			_, err := conn.WriteToUDP([]byte(cmd.Data), cmd.PeerUdp)
+			/*chanComm[1] <- FlowCommStruc{
+				Act: FlowChnSnd,
+				Err: err,
+			}*/
+			comm := cmd
+			cmd.Err = err
+			guiFyneSnt(comm)
+		case FlowChnEnd:
+			for i := range chanComm {
+				chanComm[i] = nil
+			}
+			exiting = true
+			conn.Close()
+			if eztools.Debugging && eztools.Verbose > 1 {
+				guiFyneLog(true, "exiting", lcl)
+			}
+			return
+		}
+	}
+}
+
+func ListeningTcp(lstnr net.Listener) {
+	if eztools.Debugging && eztools.Verbose > 1 {
+		defer guiFyneLog(true, "exiting server", lstnr.Addr().String())
+	}
+	for {
+		cmd := <-chanComm[0]
+		switch cmd.Act {
+		case FlowChnEnd:
+			lstnr.Close()
+			for i := range chanComm {
+				chanComm[i] = nil
+			}
+			return
+		}
+	}
+}
+
+func ConnectedTcp(conn net.Conn) {
+	chn := make(chan RoutCommStruc, FlowComLen)
+	peer := conn.RemoteAddr()
+	peeMap[peer.String()] = chn
+	guiFyneConnected(conn.LocalAddr().String(), peer.String())
+	buf := make([]byte, FlowRcvLen)
+	//var exiting bool
+	go func() {
+		if eztools.Debugging && eztools.Verbose > 1 {
+			defer guiFyneLog(true, "exiting routine peer", peer.String())
+		}
+		for /*!exiting*/ {
+			n, err := conn.Read(buf)
+			/*if exiting {
+				return
+			}*/
+			comm := RoutCommStruc{
+				Act:     FlowChnRcv,
+				PeerTcp: peer,
+				Err:     err,
+			}
+			if err == nil {
+				comm.Data = string(buf[:n])
+			} else {
+				if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) {
+					comm.Act = FlowChnEnd
+					guiFyneEnded(comm)
+					break
+				}
+			}
+			// if disconnected, exiting=true, chn <- comm.Act=FlowChnEnd
+			//chanComm[1] <- comm
+			guiFyneRcv(comm)
+		}
+	}()
+	for {
+		cmd := <-chn
+		switch cmd.Act {
+		case FlowChnSnd:
+			_, err := conn.Write([]byte(cmd.Data))
+			/*chanComm[1] <- FlowCommStruc{
+				Act: FlowChnSnd,
+				Err: err,
+			}*/
+			comm := cmd
+			comm.Err = err
+			comm.PeerTcp = peer
+			guiFyneSnt(comm)
+		case FlowChnEnd:
+			/*if !exiting {
+			exiting = true*/
+			conn.Close()
+			//}
+			if eztools.Debugging && eztools.Verbose > 1 {
+				guiFyneLog(true, "exiting peer", peer.String())
+			}
+			return
+		}
+	}
+}
 
 // Client is mainly for TCP and Unix(not -gram). It ends immediately.
 //   fun() needs to handle procedures afterwards.
