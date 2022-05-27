@@ -27,6 +27,8 @@ type EzComm struct {
 */
 
 const (
+	STR_INT = "interative"
+	STR_CFG = "config"
 	STR_LCL = "local"
 	STR_RMT = "remote"
 	STR_LST = "listen"
@@ -41,6 +43,7 @@ const (
 	STR_TO  = "send to"
 	STR_FRM = "received from"
 	DEF_ADR = "localhost:"
+	STR_FLW = "flow"
 )
 
 func main() {
@@ -104,6 +107,7 @@ func main() {
 			eztools.ShowStrln("config file NOT found for eztools")
 			eztools.Log(err)
 		}
+		err = nil // minor error, not affecting exit value
 	}
 	defer func() {
 		if db != nil {

@@ -4,6 +4,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"io"
+	"io/ioutil"
 	"net"
 	"os"
 	"reflect"
@@ -57,18 +58,18 @@ type FlowStepStruc struct {
 	// Txt is not used
 	Txt string `xml:",chardata"`
 
-	Act string `xml:"action"`
+	Act string `xml:"action,attr"`
 	// Name if not null, this structure will be mapped to Vals
-	Name string `xml:"name"`
+	Name string `xml:"name,attr"`
 	// Dest will be updated upon UDP receive action, if it is a variable
-	Dest string `xml:"dest"`
-	Data string `xml:"data"`
+	Dest string `xml:"dest,attr"`
+	Data string `xml:"data,attr"`
 	// Loop rounds to repeat this step
 	// 0, 1: no loop
 	// > 1: number of rounds
 	// < 0: infinitely
-	Loop  int  `xml:"loop"`
-	Block bool `xml:"block"`
+	Loop  int  `xml:"loop,attr"`
+	Block bool `xml:"block,attr"`
 	// Steps: sub steps triggered
 	Steps []FlowStepStruc `xml:"step"`
 	// curr: current sub step
@@ -81,14 +82,14 @@ type FlowConnStruc struct {
 	// Txt is not used
 	Txt string `xml:",chardata"`
 
-	Name     string `xml:"name"`
-	Protocol string `xml:"protocol"`
-	Addr     string `xml:"address"`
-	Peer     string `xml:"peer"`
-	Block    bool   `xml:"block"`
+	Name     string `xml:"name,attr"`
+	Protocol string `xml:"protocol,attr"`
+	Addr     string `xml:"address,attr"`
+	Peer     string `xml:"peer,attr"`
+	Block    bool   `xml:"block,attr"`
 	// TODO: use Wait?
-	Wait  string          `xml:"wait"`
-	Steps []FlowStepStruc `xml:"step"`
+	Wait  string          `xml:"wait,attr"`
+	Steps []FlowStepStruc `xml:"step,attr"`
 	// curr: current step
 	//curr  int
 	lstnr net.Listener
@@ -116,6 +117,15 @@ type FlowStruc struct {
 	Txt   string          `xml:",chardata"`
 	Conns []FlowConnStruc `xml:"conn"`
 	Vals  map[string]*FlowStepStruc
+}
+
+type STRU struct {
+	// Root of the XML
+	Root  xml.Name `xml:"ezcommFlow"`
+	Conns struct {
+		Name string `xml:"ef"`
+	} `xml:"abc"`
+	//Vals map[string]*FlowStepStruc
 }
 
 const (
@@ -619,11 +629,10 @@ func runFlow(flow FlowStruc) bool {
 	}
 	flow.Vals = make(map[string]*FlowStepStruc, 0)
 	for i := range flow.Conns {
-		//flow.Servers[i].flow = &flow
 		flow.Conns[i].ParsePeer(flow)
 	}
 
-	eztools.LogWtTime("flow begins")
+	eztools.LogWtTime("flow begins", flow)
 	for i := range flow.Conns {
 		if flow.Conns[i].chanErrs == nil {
 			flow.Conns[i].chanErrs = make(chan error, 1)
@@ -635,12 +644,31 @@ func runFlow(flow FlowStruc) bool {
 		}
 	}
 	for _, conn := range flow.Conns {
-		/*if eztools.Verbose > 2 {
+		if eztools.Verbose > 2 {
 			eztools.Log("waiting for", conn.Name, "to end")
-		}*/
+		}
 		<-conn.chanErrs
 	}
 	eztools.LogWtTime("flow ends")
+	return true
+}
+
+func runFlowReaderBG(rdr io.Reader, res chan bool) bool {
+	bytes, err := ioutil.ReadAll(rdr)
+	//n, err = uri.Read(bytes)
+	if err != nil {
+		eztools.LogPrint("read flow file", err)
+		return false
+	}
+	var flow FlowStruc
+	err = xml.Unmarshal(bytes, &flow)
+	if err != nil {
+		eztools.LogPrint("parse flow file", err)
+		return false
+	}
+	go func() {
+		res <- runFlow(flow)
+	}()
 	return true
 }
 

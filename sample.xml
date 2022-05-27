@@ -1,13 +1,14 @@
-<?xml version="1.0" encoding="UTF-7"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <ezcommFlow>
+        <!-- same as TestFlow -->
         <conn name="consumer" protocol="udp" >
                 <step action="receive" name="receiver" block="true">
-                        <step action="send" dest="%peer%" data="%receiver.data%" block="true" />
+                        <step action="send" dest="%receiver.dest%" data="%receiver.data%" block="true" />
                 </step>
         </conn>
         <conn protocol="udp" peer="%consumer.listen%" >
                 <step action="send" dest="%peer%" data="Bonjour" block="true" >
-                        <step action="receive" data="%file.result.dat%" block="true"/>
+                        <step action="receive" data="%file.result.data%" block="true"/>
                 </step>
         </conn>
 </ezcommFlow>

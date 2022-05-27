@@ -9,6 +9,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 	"gitee.com/bon-ami/eztools/v4"
 )
@@ -25,10 +26,12 @@ func guiFyne() {
 	contRmt := guiFyneMakeControlsRmt()
 
 	cont := container.NewGridWithColumns(2, contLcl, contRmt)
-	//lay.Layout(prot)
 
-	ezcWin.SetContent(cont) //prot)
-	//ezcWin.SetContent(widget.NewLabel("Hello"))
+	tabs := container.NewAppTabs(
+		container.NewTabItem(STR_INT, cont),
+		container.NewTabItem(STR_CFG, guiFyneMakeControlsCfg(ezcWin)),
+	)
+	ezcWin.SetContent(tabs)
 
 	/*selectCtrls = []*widget.SelectEntry{ sockLcl[0], sockLcl[1], //sockRmt[0], sockRmt[1],
 		//sockRcv[0], sockRcv[0], //recRmt,
@@ -567,4 +570,54 @@ func guiFyneMakeControlsRmt() *fyne.Container {
 	tops := container.NewVBox(rowLbl, rowTo, rowUdpSock2, rowTcpSock2,
 		rowFrm, rowUdpSockF, rowTcpSockF, rowRec)
 	return container.NewBorder(tops, rowLog, nil, nil, cntRmt)
+}
+
+func guiFyneMakeControlsCfg(ezcWin fyne.Window) *fyne.Container {
+	flowFnStt := widget.NewEntry()
+	flowFnStt.Disable()
+	flowFnTxt := widget.NewEntry()
+	flowFnTxt.SetText(STR_FLW)
+	flowFnTxt.Disable()
+	var flowFlBut *widget.Button
+	flowFlBut = widget.NewButton(STR_FLW, func() {
+		dialog.ShowFileOpen(func(uri fyne.URIReadCloser, err error) {
+			flowFnStt.SetText("")
+			defer flowFnStt.Refresh()
+			if err != nil {
+				eztools.LogWtTime("open flow file", err)
+				flowFnTxt.SetText(STR_FLW)
+				flowFnStt.SetText("flow file opened ERR")
+			}
+			if uri == nil {
+				flowFnStt.SetText("flow file NOT opened")
+				return
+			}
+			flowFlBut.Disable()
+			flowFnStt.SetText("flow file running...")
+			flowFnStt.Refresh()
+			fn := uri.URI().String()
+			flowFnTxt.SetText(fn)
+			flowFnTxt.Refresh()
+			resChn := make(chan bool)
+			if !runFlowReaderBG(uri, resChn) {
+				eztools.LogWtTime("flow file NOT run", fn)
+				flowFnStt.SetText("flow NOT run")
+				flowFnStt.Refresh()
+				flowFlBut.Enable()
+				return
+			}
+			go func() {
+				var resStr string
+				if <-resChn {
+					resStr = "OK"
+				} else {
+					resStr = "NG"
+				}
+				flowFnStt.SetText("flow file finished as " + resStr)
+				flowFnStt.Refresh()
+				flowFlBut.Enable()
+			}()
+		}, ezcWin)
+	})
+	return container.NewVBox(flowFnTxt, flowFlBut, flowFnStt)
 }
