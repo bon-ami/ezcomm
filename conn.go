@@ -9,10 +9,15 @@ import (
 )
 
 var (
-	chanComm        [2]chan RoutCommStruc
-	snd2Slc, rcvSlc [2][]string
-	/*sndMap,*/ rcvMap [2]map[string]struct{}
-	peeMap             map[string]chan RoutCommStruc
+	chanComm [2]chan RoutCommStruc
+	// snd2Slc is for UDP peer display
+	snd2Slc [2][]string
+	// sndMap is for UDP peer match
+	sndMap [2]map[string]struct{}
+	recMap map[string][]string
+	recSlc []string
+	rcvMap map[string]struct{}
+	peeMap map[string]chan RoutCommStruc
 )
 
 type RoutCommStruc struct {
