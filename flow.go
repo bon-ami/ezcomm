@@ -119,15 +119,6 @@ type FlowStruc struct {
 	Vals  map[string]*FlowStepStruc
 }
 
-type STRU struct {
-	// Root of the XML
-	Root  xml.Name `xml:"ezcommFlow"`
-	Conns struct {
-		Name string `xml:"ef"`
-	} `xml:"abc"`
-	//Vals map[string]*FlowStepStruc
-}
-
 const (
 	// FlowParseValSimple is a sstring without <FlowVarSign>
 	FlowParseValSimple = iota

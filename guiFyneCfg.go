@@ -8,6 +8,12 @@ import (
 	"gitee.com/bon-ami/eztools/v4"
 )
 
+var (
+	fyneCfgLogTxt                 *widget.Entry
+	fyneCfgLogBut, fyneCfgVerbose *widget.Button
+	fyneCfgLangSel                *widget.Select
+)
+
 func guiFyneMakeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 	flowFnStt := widget.NewEntry()
 	flowFnStt.Disable()

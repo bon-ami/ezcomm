@@ -18,39 +18,39 @@ const (
 )
 
 var (
-	sockLcl, sockRmt                      [2]*widget.SelectEntry
-	recRcv, recSnd, rowTcpSock2, rowSockF *widget.Select
+	fyneSockLcl, fyneSockRmt                              [2]*widget.SelectEntry
+	fyneRecRcv, fyneRecSnd, fyneRowTcpSock2, fyneRowSockF *widget.Select
 	//selectCtrls    []*widget.SelectEntry
-	rowUdpSock2            *fyne.Container
-	prot                   *widget.RadioGroup
-	lstBut, disBut, sndBut *widget.Button
-	cntLcl, cntRmt         *widget.Entry
-	rowLog                 *Entry // widget.Entry
+	fyneRowUdpSock2                    *fyne.Container
+	fyneProt                           *widget.RadioGroup
+	fyneLstBut, fyneDisBut, fyneSndBut *widget.Button
+	fyneCntLcl, fyneCntRmt             *widget.Entry
+	fyneRowLog                         *Entry // widget.Entry
 )
 
 func guiFyneEnable() {
 	//for _, i := range selectCtrls {
 	for i := 0; i < 2; i++ {
-		sockLcl[i].Enable()
+		fyneSockLcl[i].Enable()
 	}
-	prot.Enable()
-	lstBut.SetText(StrLst)
+	fyneProt.Enable()
+	fyneLstBut.SetText(StrLst)
 }
 
 func guiFyneDisable() {
 	//for _, i := range selectCtrls {
 	for i := 0; i < 2; i++ {
-		sockLcl[i].Disable()
+		fyneSockLcl[i].Disable()
 	}
-	prot.Disable()
-	lstBut.SetText(StrStp)
+	fyneProt.Disable()
+	fyneLstBut.SetText(StrStp)
 }
 
 func guiFyneLog(log2File bool, inf ...any) {
 	str := fmt.Sprintf("%s%v\n", time.Now().Format("01-02 15:04:05"), inf)
-	rowLog.SetText(rowLog.Text + //strconv.Itoa(rowLog.CursorRow) + ":" +
+	fyneRowLog.SetText(fyneRowLog.Text + //strconv.Itoa(rowLog.CursorRow) + ":" +
 		str)
-	rowLog.CursorRow++
+	fyneRowLog.CursorRow++
 	if log2File {
 		eztools.LogWtTime(inf)
 	}
@@ -58,16 +58,16 @@ func guiFyneLog(log2File bool, inf ...any) {
 
 func guiFyneSetLclSck(addr string) {
 	ind := strings.LastIndex(addr, ":")
-	sockLcl[0].SetText(addr[:ind])
-	sockLcl[1].SetText(addr[ind+1:])
+	fyneSockLcl[0].SetText(addr[:ind])
+	fyneSockLcl[1].SetText(addr[ind+1:])
 }
 
 func guiFyneGetRmtSckStr() string {
-	return sockRmt[0].Text + ":" + sockRmt[1].Text
+	return fyneSockRmt[0].Text + ":" + fyneSockRmt[1].Text
 }
 
 func guiFyneGetRmtSck() *net.UDPAddr {
-	ret, err := net.ResolveUDPAddr(prot.Selected, guiFyneGetRmtSckStr())
+	ret, err := net.ResolveUDPAddr(fyneProt.Selected, guiFyneGetRmtSckStr())
 	if err != nil {
 		guiFyneLog(false, err)
 		return nil
@@ -86,29 +86,29 @@ func guiFyneGetRmtSck() *net.UDPAddr {
 
 func guiFyneSockF(str string) {
 	if str != StrAll {
-		recRcv.Options = recMap[str]
+		fyneRecRcv.Options = recMap[str]
 		return
 	}
-	recRcv.Options = recSlc
+	fyneRecRcv.Options = recSlc
 }
 
 func guiFyneButSnd(snd bool) {
 	if snd {
-		sndBut.OnTapped = guiFyneSnd
-		sndBut.SetText(StrSnd)
+		fyneSndBut.OnTapped = guiFyneSnd
+		fyneSndBut.SetText(StrSnd)
 	} else {
-		sndBut.SetText(StrCon)
-		sndBut.OnTapped = guiFyneCon
+		fyneSndBut.SetText(StrCon)
+		fyneSndBut.OnTapped = guiFyneCon
 	}
 }
 
 func guiFyneSckRmt(single bool) {
 	if single {
-		rowUdpSock2.Hide()
-		rowTcpSock2.Show()
+		fyneRowUdpSock2.Hide()
+		fyneRowTcpSock2.Show()
 	} else {
-		rowUdpSock2.Show()
-		rowTcpSock2.Hide()
+		fyneRowUdpSock2.Show()
+		fyneRowTcpSock2.Hide()
 	}
 }
 
@@ -117,12 +117,12 @@ func guiFyneLst() {
 		err       error
 		addrStruc net.Addr
 	)
-	addr := sockLcl[0].Text + ":" + sockLcl[1].Text
+	addr := fyneSockLcl[0].Text + ":" + fyneSockLcl[1].Text
 	guiFyneDisable()
 	for i := range chanComm {
 		chanComm[i] = make(chan RoutCommStruc, FlowComLen)
 	}
-	switch prot.Selected {
+	switch fyneProt.Selected {
 	case StrUdp:
 		var udpConn *net.UDPConn
 		udpConn, err = ListenUdp(StrUdp, addr)
@@ -145,7 +145,7 @@ func guiFyneLst() {
 		addrStruc = lstnr.Addr()
 		guiFyneSetLclSck(addrStruc.String())
 		guiFyneButSnd(true)
-		sndBut.Disable()
+		fyneSndBut.Disable()
 		guiFyneSckRmt(true)
 		go ListeningTcp(lstnr)
 	}
@@ -156,7 +156,7 @@ func guiFyneLst() {
 		guiFyneEnable()
 		guiFyneLog(true, err)
 	} else {
-		lstBut.OnTapped = guiFyneStp
+		fyneLstBut.OnTapped = guiFyneStp
 		guiFyneLog(true, "listening on", addrStruc.String())
 	}
 }
@@ -168,7 +168,7 @@ func guiFyneCon() {
 	chn := make(chan RoutCommStruc, FlowComLen)
 	peeMap[pr] = chn
 	guiFyneDisable()
-	/*conn*/ _, err := Client(prot.Selected, pr, ConnectedTcp)
+	/*conn*/ _, err := Client(fyneProt.Selected, pr, ConnectedTcp)
 	if err != nil {
 		guiFyneEnable()
 		guiFyneLog(true, "fail to connect to "+pr, err)
@@ -181,28 +181,28 @@ func guiFyneCon() {
 
 // guiFyneConnected is for TCP only
 func guiFyneConnected(lcl, rmt string) {
-	sndBut.OnTapped = guiFyneSnd
+	fyneSndBut.OnTapped = guiFyneSnd
 	if chanComm[0] == nil { //client
-		lstBut.Hide()
-		disBut.Show()
+		fyneLstBut.Hide()
+		fyneDisBut.Show()
 	}
 	guiFyneButSnd(true)
-	disBut.Show()
-	sndBut.Enable()
+	fyneDisBut.Show()
+	fyneSndBut.Enable()
 	guiFyneSetLclSck(lcl)
-	rowTcpSock2.Options = append(rowTcpSock2.Options, rmt)
-	if len(rowTcpSock2.Selected) < 1 {
-		rowTcpSock2.SetSelectedIndex(0)
+	fyneRowTcpSock2.Options = append(fyneRowTcpSock2.Options, rmt)
+	if len(fyneRowTcpSock2.Selected) < 1 {
+		fyneRowTcpSock2.SetSelectedIndex(0)
 	}
 	guiFyneLog(true, lcl, "<->", rmt, "connected")
-	rowTcpSock2.Refresh()
+	fyneRowTcpSock2.Refresh()
 }
 
 // guiFyneDisconnected is for TCP only
 func guiFyneDisconnected(rmt string) {
 	indx := -1
-	ln := len(rowTcpSock2.Options)
-	for i, v := range rowTcpSock2.Options {
+	ln := len(fyneRowTcpSock2.Options)
+	for i, v := range fyneRowTcpSock2.Options {
 		if v == rmt {
 			indx = i
 			break
@@ -213,38 +213,38 @@ func guiFyneDisconnected(rmt string) {
 		guiFyneLog(true, "disconnected", rmt, "NOT in record!")
 		return
 	case ln == 1:
-		rowTcpSock2.Options = nil
-		rowTcpSock2.Selected = ""
-		rowTcpSock2.Refresh()
-		disBut.Hide()
-		if lstBut.Hidden { //client
-			lstBut.Show()
+		fyneRowTcpSock2.Options = nil
+		fyneRowTcpSock2.Selected = ""
+		fyneRowTcpSock2.Refresh()
+		fyneDisBut.Hide()
+		if fyneLstBut.Hidden { //client
+			fyneLstBut.Show()
 			guiFyneEnable()
 			//guiFyneSckRmt(false)
 			guiFyneButSnd(false)
-			sndBut.Enable()
+			fyneSndBut.Enable()
 			guiFyneLog(true, rmt, "disconnected")
 		} else { //server
-			sndBut.Disable()
+			fyneSndBut.Disable()
 			guiFyneLog(true, rmt, "disconnected", ". server idle.")
 		}
 		return
 	}
 	// reorder the records
 	if indx != ln-1 {
-		rowTcpSock2.Options[indx] = rowTcpSock2.Options[ln-1]
+		fyneRowTcpSock2.Options[indx] = fyneRowTcpSock2.Options[ln-1]
 	}
-	rowTcpSock2.Options = rowTcpSock2.Options[:ln-1]
+	fyneRowTcpSock2.Options = fyneRowTcpSock2.Options[:ln-1]
 	if eztools.Debugging && eztools.Verbose > 2 {
-		guiFyneLog(true, "clients left", rowTcpSock2.Options)
+		guiFyneLog(true, "clients left", fyneRowTcpSock2.Options)
 	}
-	rowTcpSock2.SetSelectedIndex(0)
-	rowTcpSock2.Refresh()
+	fyneRowTcpSock2.SetSelectedIndex(0)
+	fyneRowTcpSock2.Refresh()
 }
 
 // guiFyneDis disconnect 1 peer TCP
 func guiFyneDis() {
-	rmtTcp := rowTcpSock2.Selected
+	rmtTcp := fyneRowTcpSock2.Selected
 	chn, ok := peeMap[rmtTcp]
 	if !ok {
 		guiFyneLog(true, "NO peer found for", rmtTcp)
@@ -261,14 +261,14 @@ func guiFyneStp() {
 	chanComm[0] <- RoutCommStruc{
 		Act: FlowChnEnd,
 	}
-	if !disBut.Hidden { //clients still running
-		lstBut.Hide()
+	if !fyneDisBut.Hidden { //clients still running
+		fyneLstBut.Hide()
 	} else {
 		guiFyneSckRmt(false)
 		guiFyneEnable()
 		guiFyneButSnd(false)
 	}
-	lstBut.OnTapped = guiFyneLst
+	fyneLstBut.OnTapped = guiFyneLst
 	guiFyneLog(true, "stopped listening")
 }
 
@@ -285,7 +285,7 @@ func guiFyneAdd2Rmt(indx int, txt string) {
 	}
 	sndMap[indx][txt] = struct{}{}
 	snd2Slc[indx] = append(snd2Slc[indx], txt)
-	sockRmt[indx].SetOptions(snd2Slc[indx])
+	fyneSockRmt[indx].SetOptions(snd2Slc[indx])
 }
 
 func guiFyneSnd() {
@@ -293,25 +293,25 @@ func guiFyneSnd() {
 		rmtUdp *net.UDPAddr
 		rmtTcp string
 	)
-	if !prot.Disabled() {
-		switch prot.Selected {
+	if !fyneProt.Disabled() {
+		switch fyneProt.Selected {
 		case StrUdp: // listen before sending
 			rmtUdp = guiFyneGetRmtSck()
 			if rmtUdp == nil {
 				return
 			}
 			for i := 0; i < 2; i++ {
-				guiFyneAdd2Rmt(i, sockRmt[i].Text)
+				guiFyneAdd2Rmt(i, fyneSockRmt[i].Text)
 			}
 			guiFyneLst()
-			if !prot.Disabled() { // failed
+			if !fyneProt.Disabled() { // failed
 				return
 			}
 		case StrTcp:
 			panic("NOT listening when sending")
 		}
 	}
-	switch prot.Selected {
+	switch fyneProt.Selected {
 	case StrUdp: // listen before sending
 		rmtUdp = guiFyneGetRmtSck()
 		if rmtUdp == nil {
@@ -319,11 +319,11 @@ func guiFyneSnd() {
 		}
 		chanComm[0] <- RoutCommStruc{
 			Act:     FlowChnSnd,
-			Data:    cntLcl.Text,
+			Data:    fyneCntLcl.Text,
 			PeerUdp: rmtUdp,
 		}
 	case StrTcp:
-		rmtTcp = rowTcpSock2.Selected
+		rmtTcp = fyneRowTcpSock2.Selected
 		chn, ok := peeMap[rmtTcp]
 		if !ok {
 			guiFyneLog(true, "NO peer found for", rmtTcp)
@@ -331,7 +331,7 @@ func guiFyneSnd() {
 		}
 		chn <- RoutCommStruc{
 			Act:  FlowChnSnd,
-			Data: cntLcl.Text,
+			Data: fyneCntLcl.Text,
 		}
 	}
 }
@@ -343,7 +343,7 @@ func guiFyneRcv(comm RoutCommStruc) {
 			guiFyneLog(true, "failed to receive", comm.Err)
 			break
 		}
-		cntRmt.SetText(comm.Data)
+		fyneCntRmt.SetText(comm.Data)
 		var peer string
 		if comm.PeerUdp != nil {
 			peer = comm.PeerUdp.String()
@@ -358,17 +358,17 @@ func guiFyneRcv(comm RoutCommStruc) {
 		if len(peer) > 0 {
 			if _, ok := rcvMap[peer]; !ok {
 				rcvMap[peer] = struct{}{}
-				rowSockF.Options = append(rowSockF.Options, peer)
+				fyneRowSockF.Options = append(fyneRowSockF.Options, peer)
 			}
-			rowSockF.SetSelected(peer)
-			rowSockF.Refresh()
+			fyneRowSockF.SetSelected(peer)
+			fyneRowSockF.Refresh()
 			recMap[peer] = append(recMap[peer], comm.Data)
 			if eztools.Debugging && eztools.Verbose > 2 {
 				eztools.LogWtTime("<-", peer, comm.Data)
 			}
 			guiFyneLog(true, "got from", peer)
 		}
-		recRcv.Options = append(recRcv.Options, comm.Data)
+		fyneRecRcv.Options = append(fyneRecRcv.Options, comm.Data)
 		recSlc = append(recSlc, comm.Data)
 	}
 }
@@ -409,12 +409,12 @@ func guiFyneSnt(comm RoutCommStruc) {
 			eztools.LogWtTime(">-", peer, comm.Data)
 		}
 		guiFyneLog(true, "sent to", peer)
-		recSnd.Options = append(recSnd.Options, comm.Data)
+		fyneRecSnd.Options = append(fyneRecSnd.Options, comm.Data)
 		if comm.PeerUdp != nil {
 			addrStr := comm.PeerUdp.String()
 			ind := strings.LastIndex(addrStr, ":")
-			sockRmt[0].SetText(addrStr[:ind])
-			sockRmt[1].SetText(addrStr[ind+1:])
+			fyneSockRmt[0].SetText(addrStr[:ind])
+			fyneSockRmt[1].SetText(addrStr[ind+1:])
 		}
 	}
 }
@@ -425,20 +425,20 @@ func guiFyneMakeControlsLcl() *fyne.Container {
 	addrLbl := widget.NewLabel(StrAdr)
 	portLbl := widget.NewLabel(StrPrt)
 	for i := 0; i < 2; i++ {
-		sockLcl[i] = widget.NewSelectEntry(nil)
+		fyneSockLcl[i] = widget.NewSelectEntry(nil)
 	}
-	sockLcl[0].PlaceHolder = DefAdr
+	fyneSockLcl[0].PlaceHolder = DefAdr
 	rowSock := container.NewGridWithRows(2,
-		addrLbl, sockLcl[0], portLbl, sockLcl[1])
+		addrLbl, fyneSockLcl[0], portLbl, fyneSockLcl[1])
 
-	prot = widget.NewRadioGroup([]string{StrUdp, StrTcp}, nil)
-	prot.Horizontal = true
-	prot.SetSelected("udp")
-	lstBut = widget.NewButton(StrLst, guiFyneLst)
-	disBut = widget.NewButton(StrDis, guiFyneDis)
-	disBut.Hide()
-	rowProt := container.NewHBox(prot, lstBut, disBut)
-	prot.OnChanged = func(str string) {
+	fyneProt = widget.NewRadioGroup([]string{StrUdp, StrTcp}, nil)
+	fyneProt.Horizontal = true
+	fyneProt.SetSelected("udp")
+	fyneLstBut = widget.NewButton(StrLst, guiFyneLst)
+	fyneDisBut = widget.NewButton(StrDis, guiFyneDis)
+	fyneDisBut.Hide()
+	rowProt := container.NewHBox(fyneProt, fyneLstBut, fyneDisBut)
+	fyneProt.OnChanged = func(str string) {
 		switch str {
 		case StrUdp:
 			guiFyneButSnd(true)
@@ -450,33 +450,33 @@ func guiFyneMakeControlsLcl() *fyne.Container {
 				sndBut.OnTapped = guiFyneSnd
 			}*/
 		}
-		sndBut.Refresh()
+		fyneSndBut.Refresh()
 	}
 
 	recLbl := container.NewCenter(widget.NewLabel(StrRec))
-	recSnd = widget.NewSelect(nil, func(str string) {
-		cntLcl.SetText(str)
+	fyneRecSnd = widget.NewSelect(nil, func(str string) {
+		fyneCntLcl.SetText(str)
 		escaped := url.PathEscape(str)
 		if len(escaped) > MaxRecLen {
-			recSnd.Selected = escaped[0:MaxRecLen]
-			recSnd.Refresh()
+			fyneRecSnd.Selected = escaped[0:MaxRecLen]
+			fyneRecSnd.Refresh()
 		} else {
 			if escaped != str {
-				recSnd.Selected = escaped
-				recSnd.Refresh()
+				fyneRecSnd.Selected = escaped
+				fyneRecSnd.Refresh()
 			}
 		}
 	})
 	cntLbl := container.NewCenter(widget.NewLabel(StrCnt))
-	rowRec := container.NewGridWithRows(3, recLbl, recSnd, cntLbl)
+	rowRec := container.NewGridWithRows(3, recLbl, fyneRecSnd, cntLbl)
 
-	cntLcl = widget.NewMultiLineEntry()
+	fyneCntLcl = widget.NewMultiLineEntry()
 
-	sndBut = widget.NewButton(StrSnd, guiFyneSnd)
-	sndBut.Disable()
+	fyneSndBut = widget.NewButton(StrSnd, guiFyneSnd)
+	fyneSndBut.Disable()
 
 	tops := container.NewVBox(rowLbl, rowSock, rowProt, rowRec)
-	return container.NewBorder(tops, sndBut, nil, nil, cntLcl)
+	return container.NewBorder(tops, fyneSndBut, nil, nil, fyneCntLcl)
 }
 
 func guiFyneMakeControlsRmt() *fyne.Container {
@@ -484,21 +484,21 @@ func guiFyneMakeControlsRmt() *fyne.Container {
 	rowTo := container.NewCenter(widget.NewLabel(StrTo))
 
 	for i := 0; i < 2; i++ {
-		sockRmt[i] = widget.NewSelectEntry(nil)
+		fyneSockRmt[i] = widget.NewSelectEntry(nil)
 	}
-	sockRmt[0].PlaceHolder = StrLcl
-	sockRmt[1].OnChanged = func(str string) {
+	fyneSockRmt[0].PlaceHolder = StrLcl
+	fyneSockRmt[1].OnChanged = func(str string) {
 		if len(str) > 0 { //&& len(sockRmt[0].Text) > -1 {
-			sndBut.Enable()
+			fyneSndBut.Enable()
 		} else {
-			sndBut.Disable()
+			fyneSndBut.Disable()
 		}
-		sndBut.Refresh()
+		fyneSndBut.Refresh()
 	}
-	rowUdpSock2 = container.NewGridWithColumns(2, sockRmt[0], sockRmt[1])
-	rowTcpSock2 = widget.NewSelect(nil, func(str string) {
+	fyneRowUdpSock2 = container.NewGridWithColumns(2, fyneSockRmt[0], fyneSockRmt[1])
+	fyneRowTcpSock2 = widget.NewSelect(nil, func(str string) {
 	})
-	rowTcpSock2.Hide()
+	fyneRowTcpSock2.Hide()
 
 	rowFrm := container.NewCenter(widget.NewLabel(StrFrm))
 
@@ -506,33 +506,33 @@ func guiFyneMakeControlsRmt() *fyne.Container {
 		sndMap[i] = make(map[string]struct{})
 	}
 	rcvMap = make(map[string]struct{})
-	rowSockF = widget.NewSelect(nil, guiFyneSockF)
-	rowSockF.Options = []string{StrAll}
+	fyneRowSockF = widget.NewSelect(nil, guiFyneSockF)
+	fyneRowSockF.Options = []string{StrAll}
 
 	recLbl := container.NewCenter(widget.NewLabel(StrRec))
-	recRcv = widget.NewSelect(nil, func(str string) {
-		cntRmt.SetText(str)
+	fyneRecRcv = widget.NewSelect(nil, func(str string) {
+		fyneCntRmt.SetText(str)
 		escaped := url.PathEscape(str)
 		if len(escaped) > MaxRecLen {
-			recRcv.Selected = escaped[0:MaxRecLen]
-			recRcv.Refresh()
+			fyneRecRcv.Selected = escaped[0:MaxRecLen]
+			fyneRecRcv.Refresh()
 		} else {
 			if escaped != str {
-				recRcv.Selected = escaped
-				recRcv.Refresh()
+				fyneRecRcv.Selected = escaped
+				fyneRecRcv.Refresh()
 			}
 		}
 	})
 	recMap = make(map[string][]string)
 	cntLbl := container.NewCenter(widget.NewLabel(StrCnt))
-	rowRec := container.NewGridWithRows(3, recLbl, recRcv, cntLbl)
+	rowRec := container.NewGridWithRows(3, recLbl, fyneRecRcv, cntLbl)
 
-	cntRmt = widget.NewMultiLineEntry()
+	fyneCntRmt = widget.NewMultiLineEntry()
 
-	rowLog = /*widget.*/ NewMultiLineEntry() //.NewList.NewTextGrid()
-	rowLog.Disable()
+	fyneRowLog = /*widget.*/ NewMultiLineEntry() //.NewList.NewTextGrid()
+	fyneRowLog.Disable()
 
-	tops := container.NewVBox(rowLbl, rowTo, rowUdpSock2, rowTcpSock2,
-		rowFrm, rowSockF, rowRec)
-	return container.NewBorder(tops, rowLog, nil, nil, cntRmt)
+	tops := container.NewVBox(rowLbl, rowTo, fyneRowUdpSock2, fyneRowTcpSock2,
+		rowFrm, fyneRowSockF, rowRec)
+	return container.NewBorder(tops, fyneRowLog, nil, nil, fyneCntRmt)
 }
