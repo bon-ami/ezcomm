@@ -15,7 +15,7 @@ var (
 	Ver, Bld string
 )
 
-const (
+var (
 	StrInt = "interative"
 	StrCfg = "config"
 	StrLcl = "local"
@@ -31,9 +31,12 @@ const (
 	StrSnd = "send"
 	StrTo  = "send to"
 	StrFrm = "received from"
-	DefAdr = "localhost:"
 	StrFlw = "flow"
 	StrAll = "select all"
+)
+
+const (
+	DefAdr = "localhost:"
 	StrUdp = "udp"
 	StrTcp = "tcp"
 )
@@ -53,6 +56,9 @@ type Cfg struct {
 var cfg Cfg
 
 func main() {
+	initStr()
+	loadStrCurr()
+
 	var (
 		paramLog, paramFlw string
 		// paramVer bool

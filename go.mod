@@ -5,6 +5,11 @@ go 1.18
 require (
 	fyne.io/fyne/v2 v2.1.4
 	gitee.com/bon-ami/eztools/v4 v4.1.0
+	github.com/BurntSushi/toml v1.0.0
+	github.com/Xuanwo/go-locale v1.1.0
+	github.com/nicksnyder/go-i18n/v2 v2.2.0
+	github.com/shibukawa/configdir v0.0.0-20170330084843-e180dbdc8da0
+	golang.org/x/text v0.3.7
 )
 
 require (
@@ -26,14 +31,13 @@ require (
 	github.com/sanbornm/go-selfupdate v0.0.0-20190330003341-f041b81ae5e6 // indirect
 	github.com/srwiley/oksvg v0.0.0-20200311192757-870daf9aa564 // indirect
 	github.com/srwiley/rasterx v0.0.0-20200120212402-85cb7272f5e9 // indirect
-	github.com/stretchr/testify v1.5.1 // indirect
+	github.com/stretchr/testify v1.7.0 // indirect
 	github.com/yuin/goldmark v1.3.8 // indirect
 	golang.org/x/crypto v0.0.0-20201016220609-9e8e0b390897 // indirect
 	golang.org/x/exp v0.0.0-20220325121720-054d8573a5d8 // indirect
 	golang.org/x/image v0.0.0-20200430140353-33d19683fad8 // indirect
 	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4 // indirect
-	golang.org/x/sys v0.0.0-20211019181941-9d821ace8654 // indirect
-	golang.org/x/text v0.3.3 // indirect
+	golang.org/x/sys v0.0.0-20211023085530-d6a326fbbf70 // indirect
 	gopkg.in/inconshreveable/go-update.v0 v0.0.0-20150814200126-d8b0b1d421aa // indirect
-	gopkg.in/yaml.v2 v2.2.8 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
 )

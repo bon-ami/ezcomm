@@ -6,6 +6,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 	"gitee.com/bon-ami/eztools/v4"
+	"golang.org/x/text/language/display"
 )
 
 var (
@@ -20,6 +21,15 @@ func guiFyneMakeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 	flowFnTxt := widget.NewEntry()
 	flowFnTxt.SetText(StrFlw)
 	flowFnTxt.Disable()
+	langMap := make(map[string]string)
+	fyneCfgLangSel = widget.NewSelect(nil, func(str string) {
+		//loadStr(langMap[str])
+	})
+	for _, tag := range i18nBundle.LanguageTags() {
+		text := display.Self.Name(tag)
+		langMap[text] = tag.String()
+		fyneCfgLangSel.Options = append(fyneCfgLangSel.Options, text)
+	}
 	var flowFlBut *widget.Button
 	flowFlBut = widget.NewButton(StrFlw, func() {
 		dialog.ShowFileOpen(func(uri fyne.URIReadCloser, err error) {
@@ -61,5 +71,5 @@ func guiFyneMakeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 			}()
 		}, ezcWin)
 	})
-	return container.NewVBox(flowFnTxt, flowFlBut, flowFnStt)
+	return container.NewVBox(flowFnTxt, flowFlBut, flowFnStt, fyneCfgLangSel)
 }
