@@ -6,12 +6,17 @@ import (
 	"gitee.com/bon-ami/eztools/v4"
 )
 
+var thm theme4Fonts
+
 func guiFyne() {
+	//eztools.Log("setting font=", cfgStruc.font)
+	thm.SetFont(cfgStruc.font)
 	ezcApp := app.New()
-	/*icon, err := LoadResourceFromPath("icon.ico")
-	if err == nil {
-		ezcApp.SetIcon(icon)
-	}*/
+	ezcApp.Settings().SetTheme(&thm)
+	/*icon, err := fyne.LoadResource("Icon.png")
+	if err == nil {*/
+	ezcApp.SetIcon(resourceIconPng)
+	//}
 	ezcWin := ezcApp.NewWindow(ezcName)
 
 	contLcl := guiFyneMakeControlsLcl()

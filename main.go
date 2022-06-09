@@ -1,9 +1,8 @@
 package main
 
 import (
-	"encoding/xml"
 	"flag"
-	"os"
+	"time"
 
 	"gitee.com/bon-ami/eztools/v4"
 )
@@ -11,28 +10,7 @@ import (
 const ezcName = "EZComm"
 
 var (
-	// Ver & Bld are stored in toml in Fyne
 	Ver, Bld string
-)
-
-var (
-	StrInt = "interative"
-	StrCfg = "config"
-	StrLcl = "local"
-	StrRmt = "remote"
-	StrLst = "listen"
-	StrDis = "disconnect peer"
-	StrStp = "stop listening"
-	StrCon = "connect"
-	StrAdr = "address"
-	StrPrt = "port"
-	StrRec = "content records"
-	StrCnt = "content"
-	StrSnd = "send"
-	StrTo  = "send to"
-	StrFrm = "received from"
-	StrFlw = "flow"
-	StrAll = "select all"
 )
 
 const (
@@ -41,32 +19,14 @@ const (
 	StrTcp = "tcp"
 )
 
-type Cfg struct {
-	// Root of the XML
-	Root xml.Name `xml:"ezcommCfg"`
-	// Cmt = comments
-	Cmt string `xml:",comment"`
-	// Txt is not used
-	Txt      string `xml:",chardata"`
-	Verbose  int
-	LogFile  string
-	Language string
-}
-
-var cfg Cfg
-
 func main() {
-	initStr()
-	loadStrCurr()
-
 	var (
-		paramLog, paramFlw string
-		// paramVer bool
+		paramLog, paramFlw                string
+		paramVer                          bool
 		paramH, paramV, paramVV, paramVVV bool
 	)
-	// version info is tracked in toml by Fyne
-	/*flag.BoolVar(&paramVer, "version", false, "version info")
-	flag.BoolVar(&paramVer, "ver", false, "version info")*/
+	flag.BoolVar(&paramVer, "version", false, "version info")
+	flag.BoolVar(&paramVer, "ver", false, "version info")
 	flag.BoolVar(&paramH, "h", false, "help info")
 	flag.BoolVar(&paramH, "help", false, "help info")
 	flag.BoolVar(&paramV, "v", false, "log connection events")
@@ -75,21 +35,16 @@ func main() {
 	flag.StringVar(&paramLog, "log", "", "log file name")
 	flag.StringVar(&paramFlw, "flow", "", "input file name to control flow/interactions.")
 	flag.Parse()
-	/*if len(Ver) < 1 {
-			Ver = "dev"
-		}
-		if len(Bld) < 1 {
-			Bld = time.Now().Format("2006-01-02_15:04:05")
-		}
+	if len(Ver) < 1 {
+		Ver = "dev"
+	}
+	if len(Bld) < 1 {
+		Bld = time.Now().Format("2006-01-02_15:04:05")
+	}
 	if paramVer {
-			eztools.ShowStrln("version " + Ver + " build " + Bld)
-			return
-		}*/
-	if paramH {
-		flag.Usage()
+		eztools.ShowStrln("version " + Ver + " build " + Bld)
 		return
 	}
-	eztools.Debugging = paramV || paramVV || paramVVV
 	switch {
 	case paramV:
 		eztools.Verbose = 1
@@ -99,38 +54,11 @@ func main() {
 		eztools.Verbose = 3
 	}
 
-	_, err := eztools.XMLReadDefault("", ezcName, &cfg)
-	if err == nil {
-		if len(cfg.LogFile) > 0 {
-			if len(paramLog) < 1 {
-				paramLog = cfg.LogFile
-			}
-		}
-		if cfg.Verbose > 0 {
-			if eztools.Verbose < cfg.Verbose {
-				eztools.Verbose = cfg.Verbose
-			}
-		}
-		if len(cfg.Language) > 0 {
+	readCfg(paramLog)
 
-		}
-	}
-
-	if eztools.Debugging {
-		if len(paramLog) < 1 {
-			paramLog = ezcName + ".log"
-		}
-	}
-	if len(paramLog) > 0 {
-		logger, err := os.OpenFile(paramLog,
-			os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-		if err == nil {
-			if err = eztools.InitLogger(logger); err != nil {
-				eztools.LogPrint(err)
-			}
-		} else {
-			eztools.LogPrint("Failed to open log file "+paramLog, err)
-		}
+	if paramH {
+		flag.Usage()
+		return
 	}
 
 	// db is only for app upgrade
