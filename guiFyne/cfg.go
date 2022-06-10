@@ -1,4 +1,4 @@
-package main
+package guiFyne
 
 import (
 	"fyne.io/fyne/v2"
@@ -6,24 +6,25 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
 	"gitee.com/bon-ami/eztools/v4"
+	"gitlab.com/bon-ami/ezcomm"
 )
 
 func guiFyneMakeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 	// flow part begins
 	flowFnStt := widget.NewEntry()
-	flowFnStt.PlaceHolder = StrStb
+	flowFnStt.PlaceHolder = ezcomm.StrStb
 	flowFnStt.Disable()
 	flowFnTxt := widget.NewEntry()
-	flowFnTxt.SetText(StrFlw)
+	flowFnTxt.SetText(ezcomm.StrFlw)
 	flowFnTxt.Disable()
 	var flowFlBut *widget.Button
-	flowFlBut = widget.NewButton(StrFlw, func() {
+	flowFlBut = widget.NewButton(ezcomm.StrFlw, func() {
 		dialog.ShowFileOpen(func(uri fyne.URIReadCloser, err error) {
 			flowFnStt.SetText("")
 			defer flowFnStt.Refresh()
 			if err != nil {
 				eztools.LogWtTime("open flow file", err)
-				flowFnTxt.SetText(StrFlw)
+				flowFnTxt.SetText(ezcomm.StrFlw)
 				flowFnStt.SetText("flow file opened ERR")
 			}
 			if uri == nil {
@@ -37,7 +38,7 @@ func guiFyneMakeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 			flowFnTxt.SetText(fn)
 			flowFnTxt.Refresh()
 			resChn := make(chan bool)
-			if !runFlowReaderBG(uri, resChn) {
+			if !ezcomm.RunFlowReaderBG(uri, resChn) {
 				eztools.LogWtTime("flow file NOT run", fn)
 				flowFnStt.SetText("flow NOT run")
 				flowFnStt.Refresh()
@@ -61,13 +62,13 @@ func guiFyneMakeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 
 	langMap := make(map[string]string)
 	logTxt := widget.NewEntry()
-	if len(cfgStruc.LogFile) > 0 {
-		logTxt.SetText(cfgStruc.LogFile)
+	if len(ezcomm.CfgStruc.LogFile) > 0 {
+		logTxt.SetText(ezcomm.CfgStruc.LogFile)
 	} else {
-		logTxt.SetText(StrLog)
+		logTxt.SetText(ezcomm.StrLog)
 	}
 	logTxt.Disable()
-	logBut := widget.NewButton(StrLog, func() {
+	logBut := widget.NewButton(ezcomm.StrLog, func() {
 		dialog.ShowFileSave(func(uri fyne.URIWriteCloser, err error) {
 			/*fyneCfgLogTxt.SetText("")
 			defer fyneCfgLogTxt.Refresh()*/
@@ -80,32 +81,32 @@ func guiFyneMakeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 			}
 			fn := uri.URI().Path()
 			if eztools.InitLogger(uri) == nil {
-				cfgStruc.LogFile = fn
-				writeCfg()
+				ezcomm.CfgStruc.LogFile = fn
+				ezcomm.WriteCfg()
 				logTxt.SetText(fn)
 				logTxt.Refresh()
 			}
 		}, ezcWin)
 	})
-	rowVerbose := container.NewCenter(widget.NewLabel(StrVbs))
+	rowVerbose := container.NewCenter(widget.NewLabel(ezcomm.StrVbs))
 	verboseSel := widget.NewSelect(nil, func(lvl string) {
 		newLvl := verboseFrmStr(lvl)
-		if newLvl == cfgStruc.Verbose {
+		if newLvl == ezcomm.CfgStruc.Verbose {
 			return
 		}
 		eztools.Verbose = newLvl
-		cfgStruc.Verbose = newLvl
-		writeCfg()
+		ezcomm.CfgStruc.Verbose = newLvl
+		ezcomm.WriteCfg()
 	})
 	verboseSel.Options = []string{
-		StrHgh, StrMdm, StrLow, StrNon,
+		ezcomm.StrHgh, ezcomm.StrMdm, ezcomm.StrLow, ezcomm.StrNon,
 	}
 	verboseSel.SetSelected(verbose2Str())
 
 	fontSel := widget.NewSelect(nil, nil)
-	fontSel.PlaceHolder = StrFnt
-	fontSel.Options = listSystemFonts()
-	currIndx := matchSystemFontsFromPath(cfgStruc.font)
+	fontSel.PlaceHolder = ezcomm.StrFnt
+	fontSel.Options = ezcomm.ListSystemFonts()
+	currIndx := ezcomm.MatchSystemFontsFromPath(ezcomm.CfgStruc.GetFont())
 	if currIndx >= 0 {
 		fontSel.SetSelectedIndex(currIndx)
 	}
@@ -113,16 +114,16 @@ func guiFyneMakeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 	langSel := widget.NewSelect(nil, func(str string) {
 		//eztools.LogWtTime("selecting", str)
 		//loadStr(langMap[str])
-		if cfgStruc.Language == langMap[str] {
+		if ezcomm.CfgStruc.Language == langMap[str] {
 			return
 		}
-		cfgStruc.Language = langMap[str]
-		writeCfg()
+		ezcomm.CfgStruc.Language = langMap[str]
+		ezcomm.WriteCfg()
 
-		i18nLoad(cfgStruc.Language)
-		matchFontFromLanguage()
-		thm.SetFont(cfgStruc.font)
-		indx := matchSystemFontsFromPath(cfgStruc.font)
+		ezcomm.I18nLoad(ezcomm.CfgStruc.Language)
+		ezcomm.MatchFontFromLanguage()
+		thm.SetFont(ezcomm.CfgStruc.GetFont())
+		indx := ezcomm.MatchSystemFontsFromPath(ezcomm.CfgStruc.GetFont())
 		if indx != eztools.InvalidID {
 			fontSel.SetSelectedIndex(indx)
 			//eztools.Log("font", indx)
@@ -130,80 +131,80 @@ func guiFyneMakeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 			fontSel.ClearSelected()
 			//eztools.Log("font cleared")
 		}
-		dialog.ShowInformation(StrLang, StrReboot4Change, ezcWin)
+		dialog.ShowInformation(ezcomm.StrLang, ezcomm.StrReboot4Change, ezcWin)
 	})
-	langSel.PlaceHolder = StrLang
+	langSel.PlaceHolder = ezcomm.StrLang
 	eztools.ListLanguages(func(name, id string) {
 		full := id + "_" + name
 		langMap[full] = id
 		langSel.Options = append(langSel.Options, full)
-		if cfgStruc.Language == id {
+		if ezcomm.CfgStruc.Language == id {
 			langSel.SetSelected(full)
 		}
 	})
-	indx := matchSystemFontsFromPath(cfgStruc.font)
+	indx := ezcomm.MatchSystemFontsFromPath(ezcomm.CfgStruc.GetFont())
 	if indx != eztools.InvalidID {
 		fontSel.SetSelectedIndex(indx)
 	}
 
-	fontBut := widget.NewButton(StrFnt4Lang, func() {
+	fontBut := widget.NewButton(ezcomm.StrFnt4Lang, func() {
 		lang := langMap[langSel.Selected]
 		if len(lang) < 1 {
 			return
 		}
-		font := matchSystemFontsFromIndex(fontSel.SelectedIndex())
+		font := ezcomm.MatchSystemFontsFromIndex(fontSel.SelectedIndex())
 		if len(font) < 1 {
 			return
 		}
 		// check whether already in config file
 		found := false
-		for i := range cfgStruc.Fonts {
-			if cfgStruc.Fonts[i].Locale == lang {
-				if len(font) > 0 && cfgStruc.Fonts[i].Font != font {
-					cfgStruc.Fonts[i].Font = font
+		for i := range ezcomm.CfgStruc.Fonts {
+			if ezcomm.CfgStruc.Fonts[i].Locale == lang {
+				if len(font) > 0 && ezcomm.CfgStruc.Fonts[i].Font != font {
+					ezcomm.CfgStruc.Fonts[i].Font = font
 					found = true
 					break
 				}
 			}
 		}
 		if !found {
-			cfgStruc.Fonts = append(cfgStruc.Fonts, ezcommFonts{
+			ezcomm.CfgStruc.Fonts = append(ezcomm.CfgStruc.Fonts, ezcomm.EzcommFonts{
 				Locale: lang,
 				Font:   font})
 
 		}
-		writeCfg()
+		ezcomm.WriteCfg()
 	})
 
-	abtRow := container.NewCenter(widget.NewLabel(Ver + "." + Bld))
+	abtRow := container.NewCenter(widget.NewLabel(ezcomm.Ver + "." + ezcomm.Bld))
 	return container.NewVBox(flowFnTxt, flowFlBut, flowFnStt,
 		logTxt, logBut, rowVerbose, verboseSel,
 		langSel, fontSel, fontBut, abtRow)
 }
 
 func verbose2Str() string {
-	switch cfgStruc.Verbose {
+	switch ezcomm.CfgStruc.Verbose {
 	case 0:
-		return StrNon
+		return ezcomm.StrNon
 	case 1:
-		return StrLow
+		return ezcomm.StrLow
 	case 2:
-		return StrMdm
+		return ezcomm.StrMdm
 	case 3:
-		return StrHgh
+		return ezcomm.StrHgh
 	}
 	return ""
 }
 
 func verboseFrmStr(str string) int {
 	switch str {
-	case StrHgh:
+	case ezcomm.StrHgh:
 		return 3
-	case StrMdm:
+	case ezcomm.StrMdm:
 		return 2
-	case StrLow:
+	case ezcomm.StrLow:
 		return 1
-	case StrNon:
+	case ezcomm.StrNon:
 		return 0
 	}
 	return 0

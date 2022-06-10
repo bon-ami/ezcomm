@@ -1,23 +1,31 @@
-package main
+package guiFyne
 
 import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"gitee.com/bon-ami/eztools/v4"
+	"gitlab.com/bon-ami/ezcomm"
+	"gitlab.com/bon-ami/ezcomm/res"
 )
 
 var thm theme4Fonts
 
-func guiFyne() {
+func UI() {
+	ezcomm.GuiConnected = GuiConnected
+	ezcomm.GuiEnded = GuiEnded
+	ezcomm.GuiLog = GuiLog
+	ezcomm.GuiRcv = GuiRcv
+	ezcomm.GuiSnt = GuiSnt
+
 	//eztools.Log("setting font=", cfgStruc.font)
-	thm.SetFont(cfgStruc.font)
+	thm.SetFont(ezcomm.CfgStruc.GetFont())
 	ezcApp := app.New()
 	ezcApp.Settings().SetTheme(&thm)
 	/*icon, err := fyne.LoadResource("Icon.png")
 	if err == nil {*/
-	ezcApp.SetIcon(resourceIconPng)
+	ezcApp.SetIcon(res.ResourceIconPng)
 	//}
-	ezcWin := ezcApp.NewWindow(ezcName)
+	ezcWin := ezcApp.NewWindow(ezcomm.EzcName)
 
 	contLcl := guiFyneMakeControlsLcl()
 	contRmt := guiFyneMakeControlsRmt()
@@ -25,8 +33,8 @@ func guiFyne() {
 	cont := container.NewGridWithColumns(2, contLcl, contRmt)
 
 	tabs := container.NewAppTabs(
-		container.NewTabItem(StrInt, cont),
-		container.NewTabItem(StrCfg, guiFyneMakeControlsCfg(ezcWin)),
+		container.NewTabItem(ezcomm.StrInt, cont),
+		container.NewTabItem(ezcomm.StrCfg, guiFyneMakeControlsCfg(ezcWin)),
 	)
 	ezcWin.SetContent(tabs)
 

@@ -1,4 +1,4 @@
-package main
+package ezcomm
 
 import (
 	"encoding/xml"
@@ -644,7 +644,7 @@ func runFlow(flow FlowStruc) bool {
 	return true
 }
 
-func runFlowReaderBG(rdr io.Reader, res chan bool) bool {
+func RunFlowReaderBG(rdr io.Reader, res chan bool) bool {
 	bytes, err := ioutil.ReadAll(rdr)
 	//n, err = uri.Read(bytes)
 	if err != nil {
@@ -663,7 +663,7 @@ func runFlowReaderBG(rdr io.Reader, res chan bool) bool {
 	return true
 }
 
-func runFlowFile(file string) bool {
+func RunFlowFile(file string) bool {
 	var flow FlowStruc
 	if err := eztools.XMLRead(file, &flow); err != nil {
 		eztools.LogPrint(file, "failed to be read/parsed", err)

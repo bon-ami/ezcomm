@@ -1,4 +1,4 @@
-package main
+package ezcomm
 
 import (
 	"os"
@@ -6,7 +6,18 @@ import (
 	"gitee.com/bon-ami/eztools/v4"
 )
 
-type ezcommFonts struct {
+const (
+	EzcName = "EZComm"
+	DefAdr  = "localhost:"
+	StrUdp  = "udp"
+	StrTcp  = "tcp"
+)
+
+var (
+	Ver, Bld string
+)
+
+type EzcommFonts struct {
 	Cmt    string `xml:",comment"`
 	Locale string `xml:"locale,attr"`
 	Font   string `xml:"font,attr"`
@@ -19,25 +30,29 @@ type ezcommCfg struct {
 	Verbose  int
 	LogFile  string
 	Language string
-	Fonts    []ezcommFonts
+	Fonts    []EzcommFonts
 	font     string
 }
 
+func (c ezcommCfg) GetFont() string {
+	return c.font
+}
+
 var (
-	cfgStruc ezcommCfg
+	CfgStruc ezcommCfg
 	cfgPath  string
 )
 
-func writeCfg() error {
+func WriteCfg() error {
 	var err error
 	if len(cfgPath) > 0 {
-		err = eztools.XMLWriteNoCreate(cfgPath, cfgStruc, "\t")
+		err = eztools.XMLWriteNoCreate(cfgPath, CfgStruc, "\t")
 	} else {
-		cfgPath, err = eztools.XMLWriteDefault(ezcName, cfgStruc, "\t")
+		cfgPath, err = eztools.XMLWriteDefault(EzcName, CfgStruc, "\t")
 	}
 	if eztools.Debugging && eztools.Verbose > 1 {
 		eztools.LogWtTime("writing config", cfgPath,
-			cfgStruc, "with error", err)
+			CfgStruc, "with error", err)
 	}
 	if err != nil {
 		return err
@@ -45,19 +60,19 @@ func writeCfg() error {
 	return nil
 }
 
-func readCfg(paramLogI string) {
+func ReadCfg(paramLogI string) {
 	paramLogO := paramLogI
 	var err error
-	cfgPath, err = eztools.XMLReadDefault("", ezcName, &cfgStruc)
+	cfgPath, err = eztools.XMLReadDefault("", EzcName, &CfgStruc)
 	if err == nil {
-		if len(cfgStruc.LogFile) > 0 {
+		if len(CfgStruc.LogFile) > 0 {
 			if len(paramLogI) < 1 {
-				paramLogO = cfgStruc.LogFile
+				paramLogO = CfgStruc.LogFile
 			}
 		}
-		if cfgStruc.Verbose > 0 {
-			if eztools.Verbose < cfgStruc.Verbose {
-				eztools.Verbose = cfgStruc.Verbose
+		if CfgStruc.Verbose > 0 {
+			if eztools.Verbose < CfgStruc.Verbose {
+				eztools.Verbose = CfgStruc.Verbose
 			}
 		}
 	}
@@ -66,15 +81,15 @@ func readCfg(paramLogI string) {
 	}
 	if eztools.Debugging {
 		if len(paramLogO) < 1 {
-			paramLogO = ezcName + ".log"
+			paramLogO = EzcName + ".log"
 		}
 		//if eztools.Verbose > 1 {
 		eztools.LogPrint("verbose", eztools.Verbose, ",log file =", paramLogO)
 		//}
 	}
 	i18nInit()
-	i18nLoad(cfgStruc.Language)
-	matchFontFromLanguage()
+	I18nLoad(CfgStruc.Language)
+	MatchFontFromLanguage()
 
 	if len(paramLogO) > 0 {
 		setLog(paramLogO)
@@ -82,19 +97,19 @@ func readCfg(paramLogI string) {
 	return
 }
 
-func matchFontFromLanguage() {
-	if len(cfgStruc.Language) < 1 {
+func MatchFontFromLanguage() {
+	if len(CfgStruc.Language) < 1 {
 		return
 	}
 
-	for _, font1 := range cfgStruc.Fonts {
-		if font1.Locale == cfgStruc.Language {
-			cfgStruc.font = font1.Font
+	for _, font1 := range CfgStruc.Fonts {
+		if font1.Locale == CfgStruc.Language {
+			CfgStruc.font = font1.Font
 			//eztools.Log("font formerly set", font1.Font)
 			return
 		}
 	}
-	cfgStruc.font = ""
+	CfgStruc.font = ""
 	return
 }
 

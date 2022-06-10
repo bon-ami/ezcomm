@@ -5,18 +5,11 @@ import (
 	"time"
 
 	"gitee.com/bon-ami/eztools/v4"
+	"gitlab.com/bon-ami/ezcomm"
 )
-
-const ezcName = "EZComm"
 
 var (
 	Ver, Bld string
-)
-
-const (
-	DefAdr = "localhost:"
-	StrUdp = "udp"
-	StrTcp = "tcp"
 )
 
 func main() {
@@ -41,6 +34,8 @@ func main() {
 	if len(Bld) < 1 {
 		Bld = time.Now().Format("2006-01-02_15:04:05")
 	}
+	ezcomm.Ver = Ver
+	ezcomm.Bld = Bld
 	if paramVer {
 		eztools.ShowStrln("version " + Ver + " build " + Bld)
 		return
@@ -54,7 +49,7 @@ func main() {
 		eztools.Verbose = 3
 	}
 
-	readCfg(paramLog)
+	ezcomm.ReadCfg(paramLog)
 
 	if paramH {
 		flag.Usage()
@@ -100,12 +95,11 @@ func main() {
 	}()
 	if db != nil {
 		upch = make(chan bool, 2)
-		go db.AppUpgrade("", ezcName, Ver, nil, upch)
+		go db.AppUpgrade("", ezcomm.EzcName, Ver, nil, upch)
 	}
 	// db ends
 
-	if len(paramFlw) < 1 || !runFlowFile(paramFlw) {
-		guiFyne()
+	if len(paramFlw) > 0 {
+		ezcomm.RunFlowFile(paramFlw)
 	}
-
 }

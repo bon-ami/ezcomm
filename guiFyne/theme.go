@@ -1,4 +1,4 @@
-package main
+package guiFyne
 
 import (
 	"image/color"
