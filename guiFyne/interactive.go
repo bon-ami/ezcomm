@@ -158,7 +158,7 @@ func guiFyneLst() {
 		GuiLog(true, err)
 	} else {
 		fyneLstBut.OnTapped = guiFyneStp
-		GuiLog(true, "listening on", addrStruc.String())
+		GuiLog(true, ezcomm.StrListeningOn, addrStruc.String())
 	}
 }
 
@@ -172,7 +172,7 @@ func guiFyneCon() {
 	/*conn*/ _, err := ezcomm.Client(fyneProt.Selected, pr, ezcomm.ConnectedTcp)
 	if err != nil {
 		guiFyneEnable()
-		GuiLog(true, "fail to connect to "+pr, err)
+		GuiLog(true, ezcomm.StrConnFail+pr, err)
 		return
 	}
 	//lstBut.OnTapped = guiFyneStp
@@ -195,7 +195,7 @@ func GuiConnected(lcl, rmt string) {
 	if len(fyneRowTcpSock2.Selected) < 1 {
 		fyneRowTcpSock2.SetSelectedIndex(0)
 	}
-	GuiLog(true, lcl, "<->", rmt, "connected")
+	GuiLog(true, lcl, "<->", rmt, ezcomm.StrConnected)
 	fyneRowTcpSock2.Refresh()
 }
 
@@ -211,7 +211,7 @@ func guiFyneDisconnected(rmt string) {
 	}
 	switch {
 	case indx == -1:
-		GuiLog(true, "disconnected", rmt, "NOT in record!")
+		GuiLog(true, ezcomm.StrDisconnected, rmt, ezcomm.StrNotInRec)
 		return
 	case ln == 1:
 		fyneRowTcpSock2.Options = nil
@@ -224,10 +224,10 @@ func guiFyneDisconnected(rmt string) {
 			//guiFyneSckRmt(false)
 			guiFyneButSnd(false)
 			fyneSndBut.Enable()
-			GuiLog(true, rmt, "disconnected")
+			GuiLog(true, rmt, ezcomm.StrDisconnected)
 		} else { //server
 			fyneSndBut.Disable()
-			GuiLog(true, rmt, "disconnected", ". server idle.")
+			GuiLog(true, rmt, ezcomm.StrDisconnected, ".", ezcomm.StrSvrIdle)
 		}
 		return
 	}
@@ -237,7 +237,7 @@ func guiFyneDisconnected(rmt string) {
 	}
 	fyneRowTcpSock2.Options = fyneRowTcpSock2.Options[:ln-1]
 	if eztools.Debugging && eztools.Verbose > 2 {
-		GuiLog(true, "clients left", fyneRowTcpSock2.Options)
+		GuiLog(true, ezcomm.StrClntLft, fyneRowTcpSock2.Options)
 	}
 	fyneRowTcpSock2.SetSelectedIndex(0)
 	fyneRowTcpSock2.Refresh()
@@ -248,10 +248,10 @@ func guiFyneDis() {
 	rmtTcp := fyneRowTcpSock2.Selected
 	chn, ok := ezcomm.PeeMap[rmtTcp]
 	if !ok {
-		GuiLog(true, "NO peer found for", rmtTcp)
+		GuiLog(true, ezcomm.StrNoPeer4, rmtTcp)
 		return
 	}
-	GuiLog(true, "disconnecting", rmtTcp)
+	GuiLog(true, ezcomm.StrDisconnecting, rmtTcp)
 	chn <- ezcomm.RoutCommStruc{
 		Act: ezcomm.FlowChnEnd,
 	}
@@ -270,7 +270,7 @@ func guiFyneStp() {
 		guiFyneButSnd(false)
 	}
 	fyneLstBut.OnTapped = guiFyneLst
-	GuiLog(true, "stopped listening")
+	GuiLog(true, ezcomm.StrStopLstn)
 }
 
 func guiFyneAdd2Rmt(indx int, txt string) {
@@ -327,7 +327,7 @@ func guiFyneSnd() {
 		rmtTcp = fyneRowTcpSock2.Selected
 		chn, ok := ezcomm.PeeMap[rmtTcp]
 		if !ok {
-			GuiLog(true, "NO peer found for", rmtTcp)
+			GuiLog(true, ezcomm.StrNoPeer4, rmtTcp)
 			break
 		}
 		chn <- ezcomm.RoutCommStruc{
@@ -341,7 +341,7 @@ func GuiRcv(comm ezcomm.RoutCommStruc) {
 	switch comm.Act {
 	case ezcomm.FlowChnRcv:
 		if comm.Err != nil {
-			GuiLog(true, "failed to receive", comm.Err)
+			GuiLog(true, ezcomm.StrFl2Rcv, comm.Err)
 			break
 		}
 		fyneCntRmt.SetText(comm.Data)
@@ -354,7 +354,7 @@ func GuiRcv(comm ezcomm.RoutCommStruc) {
 		} else if comm.PeerTcp != nil {
 			peer = comm.PeerTcp.String()
 		} else {
-			GuiLog(true, "got from somewhere")
+			GuiLog(true, ezcomm.StrGotFromSw)
 		}
 		if len(peer) > 0 {
 			if _, ok := ezcomm.RcvMap[peer]; !ok {
@@ -367,7 +367,7 @@ func GuiRcv(comm ezcomm.RoutCommStruc) {
 			if eztools.Debugging && eztools.Verbose > 2 {
 				eztools.LogWtTime("<-", peer, comm.Data)
 			}
-			GuiLog(true, "got from", peer)
+			GuiLog(true, ezcomm.StrGotFrom, peer)
 		}
 		fyneRecRcv.Options = append(fyneRecRcv.Options, comm.Data)
 		ezcomm.RecSlc = append(ezcomm.RecSlc, comm.Data)
@@ -381,7 +381,7 @@ func GuiEnded(comm ezcomm.RoutCommStruc) {
 		if comm.PeerTcp != nil {
 			peer := comm.PeerTcp.String()
 			if ch, ok := ezcomm.PeeMap[peer]; !ok {
-				GuiLog(true, "UNKNOWN peer disconnected", peer)
+				GuiLog(true, ezcomm.StrUnknownDsc, peer)
 			} else {
 				ch <- comm
 			}
@@ -394,7 +394,7 @@ func GuiSnt(comm ezcomm.RoutCommStruc) {
 	switch comm.Act {
 	case ezcomm.FlowChnSnd:
 		if comm.Err != nil {
-			GuiLog(true, "failed to send", comm.Err)
+			GuiLog(true, ezcomm.StrFl2Snd, comm.Err)
 			break
 		}
 		var peer string
@@ -404,12 +404,12 @@ func GuiSnt(comm ezcomm.RoutCommStruc) {
 		case comm.PeerTcp != nil:
 			peer = comm.PeerTcp.String()
 		default:
-			peer = "somewhere"
+			peer = ezcomm.StrSw
 		}
 		if eztools.Debugging && eztools.Verbose > 2 {
 			eztools.LogWtTime(">-", peer, comm.Data)
 		}
-		GuiLog(true, "sent to", peer)
+		GuiLog(true, ezcomm.StrSnt2, peer)
 		fyneRecSnd.Options = append(fyneRecSnd.Options, comm.Data)
 		if comm.PeerUdp != nil {
 			addrStr := comm.PeerUdp.String()

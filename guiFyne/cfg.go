@@ -25,14 +25,14 @@ func guiFyneMakeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 			if err != nil {
 				eztools.LogWtTime("open flow file", err)
 				flowFnTxt.SetText(ezcomm.StrFlw)
-				flowFnStt.SetText("flow file opened ERR")
+				flowFnStt.SetText(ezcomm.StrFlowOpenErr)
 			}
 			if uri == nil {
-				flowFnStt.SetText("flow file NOT opened")
+				flowFnStt.SetText(ezcomm.StrFlowOpenNot)
 				return
 			}
 			flowFlBut.Disable()
-			flowFnStt.SetText("flow file running...")
+			flowFnStt.SetText(ezcomm.StrFlowRunning)
 			flowFnStt.Refresh()
 			fn := uri.URI().String()
 			flowFnTxt.SetText(fn)
@@ -40,7 +40,7 @@ func guiFyneMakeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 			resChn := make(chan bool)
 			if !ezcomm.RunFlowReaderBG(uri, resChn) {
 				eztools.LogWtTime("flow file NOT run", fn)
-				flowFnStt.SetText("flow NOT run")
+				flowFnStt.SetText(ezcomm.StrFlowRunNot)
 				flowFnStt.Refresh()
 				flowFlBut.Enable()
 				return
@@ -48,11 +48,11 @@ func guiFyneMakeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 			go func() {
 				var resStr string
 				if <-resChn {
-					resStr = "OK"
+					resStr = ezcomm.StrOK
 				} else {
-					resStr = "NG"
+					resStr = ezcomm.StrNG
 				}
-				flowFnStt.SetText("flow file finished as " + resStr)
+				flowFnStt.SetText(ezcomm.StrFlowFinAs + resStr)
 				flowFnStt.Refresh()
 				flowFlBut.Enable()
 			}()

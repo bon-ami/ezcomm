@@ -18,15 +18,15 @@ func main() {
 		paramVer                          bool
 		paramH, paramV, paramVV, paramVVV bool
 	)
-	flag.BoolVar(&paramVer, "version", false, "version info")
-	flag.BoolVar(&paramVer, "ver", false, "version info")
-	flag.BoolVar(&paramH, "h", false, "help info")
-	flag.BoolVar(&paramH, "help", false, "help info")
-	flag.BoolVar(&paramV, "v", false, "log connection events")
-	flag.BoolVar(&paramVV, "vv", false, "also log connetion termination details")
-	flag.BoolVar(&paramVVV, "vvv", false, "also log I/O details")
-	flag.StringVar(&paramLog, "log", "", "log file name")
-	flag.StringVar(&paramFlw, "flow", "", "input file name to control flow/interactions.")
+	flag.BoolVar(&paramVer, "version", false, ezcomm.StrVer)
+	flag.BoolVar(&paramVer, "ver", false, ezcomm.StrVer)
+	flag.BoolVar(&paramH, "h", false, ezcomm.StrHlp)
+	flag.BoolVar(&paramH, "help", false, ezcomm.StrHlp)
+	flag.BoolVar(&paramV, "v", false, ezcomm.StrV)
+	flag.BoolVar(&paramVV, "vv", false, ezcomm.StrVV)
+	flag.BoolVar(&paramVVV, "vvv", false, ezcomm.StrVVV)
+	flag.StringVar(&paramLog, "log", "", ezcomm.StrLogFn)
+	flag.StringVar(&paramFlw, "flow", "", ezcomm.StrFlowFnInf)
 	flag.Parse()
 	if len(Ver) < 1 {
 		Ver = "dev"
