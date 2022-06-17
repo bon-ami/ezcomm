@@ -1,8 +1,6 @@
 package main
 
 import (
-	"time"
-
 	"gitlab.com/bon-ami/ezcomm"
 	"gitlab.com/bon-ami/ezcomm/guiFyne"
 
@@ -10,18 +8,22 @@ import (
 )
 
 var (
+	// Ver & Bld may or may not be useful
 	Ver, Bld string
 )
 
+type Guis interface {
+	// GuiSetGlbPrm is run at the beginning,
+	//   to initialize following for ezcomm.
+	//   Ver, Bld, GuiConnected, GuiEnded, GuiLog, GuiRcv, GuiSnt
+	GuiSetGlbPrm(Ver, Bld string)
+	// GuiRun is run at the end to handle UI in the main thread
+	GuiRun()
+}
+
 func main() {
-	if len(Ver) < 1 {
-		Ver = "dev"
-	}
-	if len(Bld) < 1 {
-		Bld = time.Now().Format("2006-01-02_15:04:05")
-	}
-	ezcomm.Ver = Ver
-	ezcomm.Bld = Bld
+	var gui guiFyne.GuiFyne
+	gui.GuiSetGlbPrm(Ver, Bld)
 
 	ezcomm.ReadCfg("")
 
@@ -68,5 +70,5 @@ func main() {
 	}
 	// db ends
 
-	guiFyne.UI()
+	gui.GuiRun()
 }
