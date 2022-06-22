@@ -47,7 +47,7 @@ func guiFyneDisable() {
 }
 
 func GuiLog(log2File bool, inf ...any) {
-	str := fmt.Sprintf("%s\n%v\n", time.Now().Format("01-02 15:04:05"), inf)
+	str := fmt.Sprintf("%s%v\n", time.Now().Format("01-02 15:04:05"), inf)
 	fyneRowLog.SetText(fyneRowLog.Text + //strconv.Itoa(rowLog.CursorRow) + ":" +
 		str)
 	fyneRowLog.CursorRow++
@@ -67,7 +67,11 @@ func guiFyneSetLclSck(addr string) {
 }
 
 func guiFyneGetRmtSckStr() string {
-	return fyneSockRmt[0].Text + ":" + fyneSockRmt[1].Text
+	addr := fyneSockRmt[0].Text
+	if len(addr) < 1 {
+		addr = ezcomm.DefAdr
+	}
+	return addr + ":" + fyneSockRmt[1].Text
 }
 
 func guiFyneGetRmtSck() *net.UDPAddr {
@@ -97,6 +101,7 @@ func guiFyneSockF(str string) {
 }
 
 func guiFyneButSnd(snd bool) {
+	//GuiLog(true, "but snd", snd)
 	if snd {
 		fyneSndBut.OnTapped = guiFyneSnd
 		fyneSndBut.SetText(ezcomm.StringTran["StrSnd"])
@@ -158,7 +163,7 @@ func guiFyneLst() {
 			ezcomm.ChanComm[i] = nil
 		}
 		guiFyneEnable()
-		GuiLog(true, err)
+		GuiLog(true, ezcomm.StringTran["StrListeningOn"], err)
 	} else {
 		fyneLstBut.OnTapped = guiFyneStp
 		GuiLog(true, ezcomm.StringTran["StrListeningOn"], addrStruc.String())
@@ -185,7 +190,6 @@ func guiFyneCon() {
 
 // GuiConnected is for TCP only
 func GuiConnected(lcl, rmt string) {
-	fyneSndBut.OnTapped = guiFyneSnd
 	if ezcomm.ChanComm[0] == nil { //client
 		fyneLstBut.Hide()
 		fyneDisBut.Show()
@@ -251,7 +255,7 @@ func guiFyneDis() {
 	rmtTcp := fyneRowTcpSock2.Selected
 	chn, ok := ezcomm.PeeMap[rmtTcp]
 	if !ok {
-		GuiLog(true, ezcomm.StringTran["StrNoPeer3"], rmtTcp)
+		GuiLog(true, ezcomm.StringTran["StrNoPeer4"], rmtTcp)
 		return
 	}
 	GuiLog(true, ezcomm.StringTran["StrDisconnecting"], rmtTcp)
@@ -270,7 +274,9 @@ func guiFyneStp() {
 	} else {
 		guiFyneSckRmt(false)
 		guiFyneEnable()
-		guiFyneButSnd(false)
+		//guiFyneButSnd(false)
+		fyneSndBut.OnTapped = guiFyneSnd
+		fyneSndBut.SetText(ezcomm.StringTran["StrCon"])
 	}
 	fyneLstBut.OnTapped = guiFyneLst
 	GuiLog(true, ezcomm.StringTran["StrStopLstn"])
@@ -297,6 +303,7 @@ func guiFyneSnd() {
 		rmtUdp *net.UDPAddr
 		rmtTcp string
 	)
+	//GuiLog(true, "to send")
 	if !fyneProt.Disabled() {
 		switch fyneProt.Selected {
 		case ezcomm.StrUdp: // listen before sending
@@ -317,20 +324,23 @@ func guiFyneSnd() {
 	}
 	switch fyneProt.Selected {
 	case ezcomm.StrUdp: // listen before sending
+		//GuiLog(true, "to send UDP")
 		rmtUdp = guiFyneGetRmtSck()
 		if rmtUdp == nil {
 			return
 		}
+		//GuiLog(true, "requesting to send UDP", ezcomm.ChanComm[0])
 		ezcomm.ChanComm[0] <- ezcomm.RoutCommStruc{
 			Act:     ezcomm.FlowChnSnd,
 			Data:    fyneCntLcl.Text,
 			PeerUdp: rmtUdp,
 		}
+		//GuiLog(true, "requested to send UDP")
 	case ezcomm.StrTcp:
 		rmtTcp = fyneRowTcpSock2.Selected
 		chn, ok := ezcomm.PeeMap[rmtTcp]
 		if !ok {
-			GuiLog(true, ezcomm.StringTran["StrNoPeer3"], rmtTcp)
+			GuiLog(true, ezcomm.StringTran["StrNoPeer4"], rmtTcp)
 			break
 		}
 		chn <- ezcomm.RoutCommStruc{
@@ -341,10 +351,11 @@ func guiFyneSnd() {
 }
 
 func GuiRcv(comm ezcomm.RoutCommStruc) {
+	//GuiLog(true, "recv", comm)
 	switch comm.Act {
 	case ezcomm.FlowChnRcv:
 		if comm.Err != nil {
-			GuiLog(true, ezcomm.StringTran["StrFl1Rcv"], comm.Err)
+			GuiLog(true, ezcomm.StringTran["StrFl2Rcv"], comm.Err)
 			break
 		}
 		fyneCntRmt.SetText(comm.Data)
@@ -394,10 +405,11 @@ func GuiEnded(comm ezcomm.RoutCommStruc) {
 }
 
 func GuiSnt(comm ezcomm.RoutCommStruc) {
+	//GuiLog(true, "sent", comm)
 	switch comm.Act {
 	case ezcomm.FlowChnSnd:
 		if comm.Err != nil {
-			GuiLog(true, ezcomm.StringTran["StrFl1Snd"], comm.Err)
+			GuiLog(true, ezcomm.StringTran["StrFl2Snd"], comm.Err)
 			break
 		}
 		var peer string
@@ -412,7 +424,7 @@ func GuiSnt(comm ezcomm.RoutCommStruc) {
 		if eztools.Debugging && eztools.Verbose > 2 {
 			eztools.LogWtTime(">-", peer, comm.Data)
 		}
-		GuiLog(true, ezcomm.StringTran["StrSnt1"], peer)
+		GuiLog(true, ezcomm.StringTran["StrSnt2"], peer)
 		fyneRecSnd.Options = append(fyneRecSnd.Options, comm.Data)
 		if comm.PeerUdp != nil {
 			addrStr := comm.PeerUdp.String()
@@ -490,7 +502,7 @@ func guiFyneMakeControlsRmt() *fyne.Container {
 	for i := 0; i < 2; i++ {
 		fyneSockRmt[i] = widget.NewSelectEntry(nil)
 	}
-	fyneSockRmt[0].PlaceHolder = ezcomm.StringTran["StrLcl"]
+	fyneSockRmt[0].PlaceHolder = ezcomm.DefAdr
 	fyneSockRmt[1].OnChanged = func(str string) {
 		if len(str) > 0 { //&& len(sockRmt[0].Text) > -1 {
 			fyneSndBut.Enable()

@@ -43,7 +43,9 @@ func ConnectedUdp(conn *net.UDPConn) {
 			defer GuiLog(true, "exiting routine", lcl)
 		}
 		for {
+			//GuiLog(true, "receiving UDP", conn.LocalAddr())
 			n, addr, err := conn.ReadFromUDP(buf)
+			//GuiLog(true, "received UDP", n, addr, err)
 			if err != nil &&
 				(errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed)) {
 				return
@@ -60,10 +62,14 @@ func ConnectedUdp(conn *net.UDPConn) {
 			GuiRcv(comm)
 		}
 	}()
+	//GuiLog(true, "listening on UDP", ChanComm[0])
 	for {
 		cmd := <-ChanComm[0]
 		switch cmd.Act {
 		case FlowChnSnd:
+			/*if eztools.Debugging && eztools.Verbose > 2 {
+				GuiLog(true, "sending", cmd)
+			}*/
 			_, err := conn.WriteToUDP([]byte(cmd.Data), cmd.PeerUdp)
 			/*chanComm[1] <- FlowCommStruc{
 				Act: FlowChnSnd,
@@ -72,6 +78,7 @@ func ConnectedUdp(conn *net.UDPConn) {
 			comm := cmd
 			cmd.Err = err
 			GuiSnt(comm)
+			//GuiLog(true, "UDP sent", comm)
 		case FlowChnEnd:
 			for i := range ChanComm {
 				ChanComm[i] = nil

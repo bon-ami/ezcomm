@@ -10,7 +10,7 @@ import (
 
 const (
 	EzcName = "EZComm"
-	DefAdr  = "localhost:"
+	DefAdr  = "localhost"
 	StrUdp  = "udp"
 	StrTcp  = "tcp"
 )

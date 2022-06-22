@@ -29,7 +29,7 @@ var (
 
 func init() {
 	tstProt = flag.String("prot", "udp4", "protocol, tcp, tcp4, tcp6, unix or unixpacket. default is udp.")
-	tstLcl = flag.String("lcl", DefAdr /*"localhost:"*/, "local address")
+	tstLcl = flag.String("lcl", DefAdr+":" /*"localhost:"*/, "local address")
 	tstRmt = flag.String("rmt", "", "remote address")
 	tstMsg = flag.String("msg", "", "messages to send, separated by \""+tstSeparator+"\". \""+tstBye+"\" to end udp server")
 	tstMsgCount = flag.Int("msgCount", 0, "number of messages to send per client for TestSvrCln. default=all greek")
