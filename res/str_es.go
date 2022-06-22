@@ -33,6 +33,7 @@ func I18n_es() { // by bing.com
 		StrNon  = "ninguno"
 		StrFnt      = "fuentes"
 		StrFnt4Lang = "establecer esta fuente para este idioma"
+		StrFntRch   = "the quick brown fox jumps over the lazy dog"
 		StrReboot4Change     = "el reinicio de esta aplicación mostrará el cambio"
 
 		StrVer       = "información de la versión"
@@ -41,6 +42,7 @@ func I18n_es() { // by bing.com
 		StrVV        = "También registre los detalles de terminación de la conexión"
 		StrVVV       = "También registre los detalles de E/S"
 		StrLogFn     = "nombre del archivo de registro"
+		StrCfgFn     = "nombre del archivo de configuración"
 		StrFlowFnInf = "nombre del archivo de entrada para controlar el flujo/las interacciones."
 
 		StrFlowOpenErr   = "error de archivo de flujo abierto"
@@ -72,5 +74,6 @@ func I18n_es() { // by bing.com
 		StrFl2Snd        = "error al enviar"
 		StrSw            = "algún lado"
 		StrSnt2          = "enviado a"
+		StrInfLog        = "registro"
 	`)
 }

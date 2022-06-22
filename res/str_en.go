@@ -33,6 +33,7 @@ func I18n_en() {
 		StrNon  = "none"
 		StrFnt      = "fonts"
 		StrFnt4Lang = "set this font for this language"
+		StrFntRch   = "the quick brown fox jumps over the lazy dog"
 		StrReboot4Change     = "restart of this application will show the change"
 
 		StrVer       = "version info"
@@ -41,6 +42,7 @@ func I18n_en() {
 		StrVV        = "also log connetion termination details"
 		StrVVV       = "also log I/O details"
 		StrLogFn     = "log file name"
+		StrCfgFn     = "cfg file name"
 		StrFlowFnInf = "input file name to control flow/interactions."
 
 		StrFlowOpenErr   = "flow file opened ERR"
@@ -72,5 +74,6 @@ func I18n_en() {
 		StrFl2Snd        = "failed to send"
 		StrSw            = "somewhere"
 		StrSnt2          = "sent to"
+		StrInfLog        = "log"
 	`)
 }

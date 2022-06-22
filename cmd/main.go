@@ -14,7 +14,7 @@ var (
 
 func main() {
 	var (
-		paramLog, paramFlw                string
+		paramCfg, paramLog, paramFlw      string
 		paramVer                          bool
 		paramH, paramV, paramVV, paramVVV bool
 	)
@@ -26,6 +26,7 @@ func main() {
 	flag.BoolVar(&paramVV, "vv", false, ezcomm.StrVV)
 	flag.BoolVar(&paramVVV, "vvv", false, ezcomm.StrVVV)
 	flag.StringVar(&paramLog, "log", "", ezcomm.StrLogFn)
+	flag.StringVar(&paramCfg, "cfg", "", ezcomm.StrCfg)
 	flag.StringVar(&paramFlw, "flow", "", ezcomm.StrFlowFnInf)
 	flag.Parse()
 	if len(Ver) < 1 {
@@ -49,7 +50,8 @@ func main() {
 		eztools.Verbose = 3
 	}
 
-	ezcomm.ReadCfg(paramLog)
+	ezcomm.LogPrintFunc = eztools.LogPrint
+	ezcomm.ReadCfg(paramCfg, paramLog)
 
 	if paramH {
 		flag.Usage()
@@ -71,16 +73,16 @@ func main() {
 		if db != nil {
 			if !(<-upch) {
 				if eztools.Debugging {
-					eztools.LogPrint("wrong server for update check")
+					ezcomm.LogPrintFunc("wrong server for update check")
 				}
 			} else {
 				if !(<-upch) {
 					if eztools.Debugging {
-						eztools.LogPrint("update check failed")
+						ezcomm.LogPrintFunc("update check failed")
 					}
 				} else {
 					if eztools.Debugging {
-						eztools.LogPrint("update check done/skipped")
+						ezcomm.LogPrintFunc("update check done/skipped")
 					}
 				}
 			}

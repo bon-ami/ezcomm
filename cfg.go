@@ -1,7 +1,9 @@
 package ezcomm
 
 import (
+	"io"
 	"os"
+	"runtime"
 
 	"gitee.com/bon-ami/eztools/v4"
 )
@@ -39,41 +41,71 @@ func (c ezcommCfg) GetFont() string {
 }
 
 var (
-	CfgStruc ezcommCfg
-	cfgPath  string
+	CfgStruc     ezcommCfg
+	cfgPath      string
+	LogWtTime    bool
+	LogPrintFunc func(...any)
 )
 
 func WriteCfg() error {
-	var err error
+	err := eztools.ErrNoValidResults
 	if len(cfgPath) > 0 {
-		err = eztools.XMLWriteNoCreate(cfgPath, CfgStruc, "\t")
-	} else {
-		cfgPath, err = eztools.XMLWriteDefault(EzcName, CfgStruc, "\t")
-	}
-	if eztools.Debugging && eztools.Verbose > 1 {
-		eztools.LogWtTime("writing config", cfgPath,
-			CfgStruc, "with error", err)
+		err = eztools.XMLWrite(cfgPath, CfgStruc, "\t")
 	}
 	if err != nil {
+		if eztools.Debugging && eztools.Verbose > 1 {
+			LogPrintFunc("failed to write config", cfgPath, err)
+		}
+		cfgPath, err = eztools.XMLWriteDefault(EzcName, CfgStruc, "\t")
+	}
+	resWriteCfg(err)
+	if err != nil {
+		cfgPath = ""
 		return err
 	}
-	return nil
+	return err
 }
 
-func ReadCfg(paramLogI string) {
+func resWriteCfg(err error) {
+	if eztools.Debugging && eztools.Verbose > 1 {
+		eztools.LogWtTime("writing config", cfgPath,
+			CfgStruc, "with (no?) error", err)
+	}
+}
+
+func WriterCfg(wrt io.WriteCloser) error {
+	err := eztools.XMLWriter(wrt, CfgStruc, "\t")
+	resWriteCfg(err)
+	return err
+}
+
+func ReaderCfg(rdr io.ReadCloser, paramLogI string) error {
+	if rdr != nil {
+		eztools.XMLReader(rdr, &CfgStruc)
+		rdr.Close()
+	}
+	return procCfg(paramLogI)
+}
+
+func ReadCfg(cfg, paramLogI string) error {
+	cfgPath, _ = eztools.XMLReadDefault(cfg, EzcName, &CfgStruc)
+	if len(cfgPath) < 1 && len(cfg) > 0 {
+		// not exist yet?
+		cfgPath = cfg
+	}
+	return procCfg(paramLogI)
+}
+
+func procCfg(paramLogI string) error {
 	paramLogO := paramLogI
-	var err error
-	cfgPath, err = eztools.XMLReadDefault("", EzcName, &CfgStruc)
-	if err == nil {
-		if len(CfgStruc.LogFile) > 0 {
-			if len(paramLogI) < 1 {
-				paramLogO = CfgStruc.LogFile
-			}
+	if len(CfgStruc.LogFile) > 0 {
+		if len(paramLogI) < 1 {
+			paramLogO = CfgStruc.LogFile
 		}
-		if CfgStruc.Verbose > 0 {
-			if eztools.Verbose < CfgStruc.Verbose {
-				eztools.Verbose = CfgStruc.Verbose
-			}
+	}
+	if CfgStruc.Verbose > 0 {
+		if eztools.Verbose < CfgStruc.Verbose {
+			eztools.Verbose = CfgStruc.Verbose
 		}
 	}
 	if eztools.Verbose > 0 {
@@ -81,20 +113,39 @@ func ReadCfg(paramLogI string) {
 	}
 	if eztools.Debugging {
 		if len(paramLogO) < 1 {
-			paramLogO = EzcName + ".log"
+			switch runtime.GOOS {
+			case "android":
+				// logcat
+				break
+			default:
+				paramLogO = EzcName + ".log"
+			}
 		}
-		//if eztools.Verbose > 1 {
-		eztools.LogPrint("verbose", eztools.Verbose, ",log file =", paramLogO)
-		//}
+		if eztools.Verbose > 2 {
+			LogPrintFunc("verbose", eztools.Verbose, ",log file =", paramLogO)
+		}
 	}
-	i18nInit()
-	I18nLoad(CfgStruc.Language)
-	MatchFontFromLanguage()
-
 	if len(paramLogO) > 0 {
 		setLog(paramLogO)
+		LogWtTime = true
 	}
-	return
+
+	i18nInit()
+	var (
+		err  error
+		lang string
+	)
+	if len(CfgStruc.Language) < 1 {
+		// to avoid no fonts for current env, though I18nLoad can get system language from empty input
+		lang, err = I18nLoad("en")
+	} else {
+		lang, err = I18nLoad(CfgStruc.Language)
+	}
+	if err == nil {
+		CfgStruc.Language = lang
+		MatchFontFromLanguage()
+	}
+	return err
 }
 
 func MatchFontFromLanguage() {
@@ -102,11 +153,13 @@ func MatchFontFromLanguage() {
 		return
 	}
 
-	for _, font1 := range CfgStruc.Fonts {
-		if font1.Locale == CfgStruc.Language {
-			CfgStruc.font = font1.Font
-			//eztools.Log("font formerly set", font1.Font)
-			return
+	if CfgStruc.Fonts != nil {
+		for _, font1 := range CfgStruc.Fonts {
+			if font1.Locale == CfgStruc.Language {
+				CfgStruc.font = font1.Font
+				//eztools.Log("font formerly set", font1.Font)
+				return
+			}
 		}
 	}
 	CfgStruc.font = ""
@@ -118,10 +171,10 @@ func setLog(fil string) error {
 		os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err == nil {
 		if err = eztools.InitLogger(logger); err != nil {
-			eztools.LogPrint(err)
+			LogPrintFunc(err)
 		}
 	} else {
-		eztools.LogPrint("Failed to open log file "+fil, err)
+		LogPrintFunc("Failed to open log file "+fil, err)
 	}
 	return err
 }

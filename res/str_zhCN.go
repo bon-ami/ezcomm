@@ -33,6 +33,7 @@ func I18n_zhCN() {
 		StrNon  = "无"
 		StrFnt      = "字体"
 		StrFnt4Lang = "为此语言设置此字体"
+		StrFntRch   = "世界你好"
 		StrReboot4Change     = "应用重新启动后变化生效"
 
 		StrVer       = "版本信息"
@@ -41,6 +42,7 @@ func I18n_zhCN() {
 		StrVV        = "并记录断连详情"
 		StrVVV       = "再记录收发详情"
 		StrLogFn     = "日志文件名"
+		StrCfgFn     = "设置文件名"
 		StrFlowFnInf = "输入文件名能控制流程"
 
 		StrFlowOpenErr   = "打开流程文件出错"
@@ -72,5 +74,6 @@ func I18n_zhCN() {
 		StrFl2Snd        = "无法发送"
 		StrSw            = "某处"
 		StrSnt2          = "已发送到"
+		StrInfLog        = "日志"
 	`)
 }

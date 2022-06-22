@@ -26,7 +26,6 @@ var (
 	fyneProt                           *widget.RadioGroup
 	fyneLstBut, fyneDisBut, fyneSndBut *widget.Button
 	fyneCntLcl, fyneCntRmt             *widget.Entry
-	fyneRowLog                         *Entry // widget.Entry
 )
 
 func guiFyneEnable() {
@@ -534,12 +533,7 @@ func guiFyneMakeControlsRmt() *fyne.Container {
 
 	fyneCntRmt = widget.NewMultiLineEntry()
 
-	fyneRowLog = /*widget.*/ NewMultiLineEntry() //.NewList.NewTextGrid()
-	fyneRowLog.Disable()
-	/*eztools.SetLogFunc(func(p ...any) {
-		GuiLog(false, p)
-	})*/
 	tops := container.NewVBox(rowLbl, rowTo, fyneRowUdpSock2, fyneRowTcpSock2,
 		rowFrm, fyneRowSockF, rowRec)
-	return container.NewBorder(tops, fyneRowLog, nil, nil, fyneCntRmt)
+	return container.NewBorder(tops, nil, nil, nil, fyneCntRmt)
 }

@@ -99,6 +99,7 @@ func (GuiFyne) GuiRun() {
 
 	tabs := container.NewAppTabs(
 		container.NewTabItem(ezcomm.StringTran["StrInt"], cont),
+		container.NewTabItem(ezcomm.StringTran["StrInfLog"], guiFyneMakeControlsInfLog()),
 		container.NewTabItem(ezcomm.StringTran["StrCfg"], guiFyneMakeControlsCfg(ezcWin)),
 	)
 	ezcWin.SetContent(tabs)
