@@ -63,19 +63,19 @@ func (e *Entry) TappedSecondary(pe *fyne.PointEvent) {
 	clipboard := fyne.CurrentApp().Driver().AllWindows()[0].Clipboard()
 	//super := e.super()
 
-	cutItem := fyne.NewMenuItem(ezcomm.StrCut, func() {
+	cutItem := fyne.NewMenuItem(ezcomm.StringTran["StrCut"], func() {
 		e.Entry.TypedShortcut(&fyne.ShortcutCut{Clipboard: clipboard})
 		//super.(fyne.Shortcutable).TypedShortcut(&fyne.ShortcutCut{Clipboard: clipboard})
 	})
-	copyItem := fyne.NewMenuItem(ezcomm.StrCpy, func() {
+	copyItem := fyne.NewMenuItem(ezcomm.StringTran["StrCpy"], func() {
 		e.Entry.TypedShortcut(&fyne.ShortcutCopy{Clipboard: clipboard})
 	})
-	pasteItem := fyne.NewMenuItem(ezcomm.StrPst, func() {
+	pasteItem := fyne.NewMenuItem(ezcomm.StringTran["StrPst"], func() {
 		e.Entry.TypedShortcut(&fyne.ShortcutPaste{Clipboard: clipboard})
 	})
 	//selectAllItem := fyne.NewMenuItem("Select all", e.selectAll)
-	copyAllItem := fyne.NewMenuItem(ezcomm.StrCpyAll, e.copyAll)
-	clearItem := fyne.NewMenuItem(ezcomm.StrClr, e.clearAll)
+	copyAllItem := fyne.NewMenuItem(ezcomm.StringTran["StrCpyAll"], e.copyAll)
+	clearItem := fyne.NewMenuItem(ezcomm.StringTran["StrClr"], e.clearAll)
 
 	entryPos := fyne.CurrentApp().Driver().AbsolutePositionForObject(e /*super*/)
 	popUpPos := entryPos.Add(fyne.NewPos(pe.Position.X, pe.Position.Y))

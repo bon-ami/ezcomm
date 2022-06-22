@@ -1,6 +1,10 @@
 package guiFyne
 
 import (
+	"strconv"
+	"time"
+
+	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"gitee.com/bon-ami/eztools/v4"
@@ -8,23 +12,84 @@ import (
 	"gitlab.com/bon-ami/ezcomm/res"
 )
 
-var thm theme4Fonts
+var (
+	thm        theme4Fonts
+	appStorage fyne.Storage
+)
 
-func UI() {
+type GuiFyne struct{}
+
+func (GuiFyne) GuiSetGlbPrm(Ver, Bld string) {
+	// Ver & Bld will be overwritten by GuiRun()
+	if len(Ver) < 1 {
+		Ver = "dev"
+	}
+	if len(Bld) < 1 {
+		Bld = time.Now().Format("2006-01-02_15:04:05")
+	}
+	ezcomm.Ver = Ver
+	ezcomm.Bld = Bld
+
+	ezcomm.LogPrintFunc = eztools.Log
 	ezcomm.GuiConnected = GuiConnected
 	ezcomm.GuiEnded = GuiEnded
 	ezcomm.GuiLog = GuiLog
 	ezcomm.GuiRcv = GuiRcv
 	ezcomm.GuiSnt = GuiSnt
+}
 
+func (GuiFyne) GuiRun() {
 	//eztools.Log("setting font=", cfgStruc.font)
-	thm.SetFont(ezcomm.CfgStruc.GetFont())
-	ezcApp := app.New()
-	ezcApp.Settings().SetTheme(&thm)
+	fontStr := ezcomm.CfgStruc.GetFont()
+	if len(fontStr) > 0 {
+		err := thm.SetFont(fontStr)
+		if err != nil {
+			eztools.Log("failed to set font", fontStr, err)
+		} else {
+			if eztools.Debugging && eztools.Verbose > 2 {
+				eztools.Log("font set", fontStr)
+			}
+		}
+	}
+	ezcApp := app.NewWithID(ezcomm.EzcName)
+	/*uri, err := storage.Child(ezcApp.Storage().RootURI(), ezcomm.EzcName+".xml")
+	var cfg string
+	if err == nil {
+		cfg = uri.String()
+	}
+	v, err := storage.CanWrite(uri)
+	if v == false || err != nil {
+		log.Println("Error E1: ", err)
+		return
+	}
+	storer, err := storage.Writer(uri)
+	defer storer.Close()
+	_, err = storer.Write([]byte("o"))
+	if err != nil {
+		log.Println("write fail", err)
+	} else {
+		log.Println("write ok", uri)
+	}*/
+	appStorage = ezcApp.Storage()
+	cfgFileName := ezcomm.EzcName + ".xml"
+	rdr, err := appStorage.Open(cfgFileName)
+	if err != nil {
+		eztools.Log("failed to open config file", err)
+	}
+	ezcomm.ReaderCfg(rdr, "")
+
+	meta := ezcApp.Metadata()
+	if len(meta.Version) > 0 && meta.Version != "0.0.0.0" {
+		ezcomm.Ver = meta.Version
+	}
+	if meta.Build > 0 {
+		ezcomm.Bld = strconv.Itoa(meta.Build)
+	}
 	/*icon, err := fyne.LoadResource("Icon.png")
 	if err == nil {*/
 	ezcApp.SetIcon(res.ResourceIconPng)
 	//}
+	ezcApp.Settings().SetTheme(&thm)
 	ezcWin := ezcApp.NewWindow(ezcomm.EzcName)
 
 	contLcl := guiFyneMakeControlsLcl()
@@ -33,8 +98,8 @@ func UI() {
 	cont := container.NewGridWithColumns(2, contLcl, contRmt)
 
 	tabs := container.NewAppTabs(
-		container.NewTabItem(ezcomm.StrInt, cont),
-		container.NewTabItem(ezcomm.StrCfg, guiFyneMakeControlsCfg(ezcWin)),
+		container.NewTabItem(ezcomm.StringTran["StrInt"], cont),
+		container.NewTabItem(ezcomm.StringTran["StrCfg"], guiFyneMakeControlsCfg(ezcWin)),
 	)
 	ezcWin.SetContent(tabs)
 
@@ -49,5 +114,8 @@ func UI() {
 	ezcApp.Run()
 	if eztools.Debugging && eztools.Verbose > 2 {
 		eztools.Log("UI done")
+	}
+	if cfgWriter != nil {
+		cfgWriter.Close()
 	}
 }
