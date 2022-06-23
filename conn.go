@@ -8,22 +8,36 @@ import (
 	"gitee.com/bon-ami/eztools/v4"
 )
 
+type Guis interface {
+	/*// GuiSetGlbPrm is run at the beginning,
+	//   to initialize following for ezcomm.
+	//   Ver, Bld, GuiConnected, GuiEnded, GuiLog, GuiRcv, GuiSnt
+	GuiSetGlbPrm
+	// Run is run at the end to handle UI in the main thread*/
+	Run(Ver, Bld string)
+	Log(bool, ...any)
+	Rcv(RoutCommStruc)
+	Snt(RoutCommStruc)
+	Connected(string, string)
+	Ended(RoutCommStruc)
+}
+
 var (
 	ChanComm [2]chan RoutCommStruc
 	// Snd2Slc is for UDP peer display
 	Snd2Slc [2][]string
 	// SndMap is for UDP peer match
-	SndMap       [2]map[string]struct{}
-	RecMap       map[string][]string
-	RecSlc       []string
-	RcvMap       map[string]struct{}
-	PeeMap       map[string]chan RoutCommStruc
-	GuiLog       func(bool, ...any)
-	GuiRcv       func(RoutCommStruc)
-	GuiSnt       func(RoutCommStruc)
-	GuiConnected func(string, string)
-	GuiEnded     func(RoutCommStruc)
+	SndMap [2]map[string]struct{}
+	RecMap map[string][]string
+	RecSlc []string
+	RcvMap map[string]struct{}
+	PeeMap map[string]chan RoutCommStruc
+	gui    Guis
 )
+
+func SetGui(g Guis) {
+	gui = g
+}
 
 type RoutCommStruc struct {
 	// Act=FlowChn* (>FlowChnMax)
@@ -39,8 +53,8 @@ func ConnectedUdp(conn *net.UDPConn) {
 	buf := make([]byte, FlowRcvLen)
 	lcl := conn.LocalAddr().String()
 	go func() {
-		if eztools.Debugging && eztools.Verbose > 1 {
-			defer GuiLog(true, "exiting routine", lcl)
+		if gui != nil && eztools.Debugging && eztools.Verbose > 1 {
+			defer gui.Log(true, "exiting routine", lcl)
 		}
 		for {
 			//GuiLog(true, "receiving UDP", conn.LocalAddr())
@@ -59,7 +73,9 @@ func ConnectedUdp(conn *net.UDPConn) {
 				comm.PeerUdp = addr
 			}
 			//chanComm[1] <- comm
-			GuiRcv(comm)
+			if gui != nil {
+				gui.Rcv(comm)
+			}
 		}
 	}()
 	//GuiLog(true, "listening on UDP", ChanComm[0])
@@ -77,15 +93,17 @@ func ConnectedUdp(conn *net.UDPConn) {
 			}*/
 			comm := cmd
 			cmd.Err = err
-			GuiSnt(comm)
+			if gui != nil {
+				gui.Snt(comm)
+			}
 			//GuiLog(true, "UDP sent", comm)
 		case FlowChnEnd:
 			for i := range ChanComm {
 				ChanComm[i] = nil
 			}
 			conn.Close()
-			if eztools.Debugging && eztools.Verbose > 1 {
-				GuiLog(true, "exiting", lcl)
+			if gui != nil && eztools.Debugging && eztools.Verbose > 1 {
+				gui.Log(true, "exiting", lcl)
 			}
 			return
 		}
@@ -93,8 +111,8 @@ func ConnectedUdp(conn *net.UDPConn) {
 }
 
 func ListeningTcp(lstnr net.Listener) {
-	if eztools.Debugging && eztools.Verbose > 1 {
-		defer GuiLog(true, "exiting server", lstnr.Addr().String())
+	if gui != nil && eztools.Debugging && eztools.Verbose > 1 {
+		defer gui.Log(true, "exiting server", lstnr.Addr().String())
 	}
 	for {
 		cmd := <-ChanComm[0]
@@ -113,11 +131,13 @@ func ConnectedTcp(conn net.Conn) {
 	chn := make(chan RoutCommStruc, FlowComLen)
 	peer := conn.RemoteAddr()
 	PeeMap[peer.String()] = chn
-	GuiConnected(conn.LocalAddr().String(), peer.String())
+	if gui != nil {
+		gui.Connected(conn.LocalAddr().String(), peer.String())
+	}
 	buf := make([]byte, FlowRcvLen)
 	go func() {
-		if eztools.Debugging && eztools.Verbose > 1 {
-			defer GuiLog(true, "exiting routine peer", peer.String())
+		if gui != nil && eztools.Debugging && eztools.Verbose > 1 {
+			defer gui.Log(true, "exiting routine peer", peer.String())
 		}
 		for {
 			n, err := conn.Read(buf)
@@ -131,11 +151,15 @@ func ConnectedTcp(conn net.Conn) {
 			} else {
 				if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) {
 					comm.Act = FlowChnEnd
-					GuiEnded(comm)
+					if gui != nil {
+						gui.Ended(comm)
+					}
 					break
 				}
 			}
-			GuiRcv(comm)
+			if gui != nil {
+				gui.Rcv(comm)
+			}
 		}
 	}()
 	for {
@@ -150,11 +174,13 @@ func ConnectedTcp(conn net.Conn) {
 			comm := cmd
 			comm.Err = err
 			comm.PeerTcp = peer
-			GuiSnt(comm)
+			if gui != nil {
+				gui.Snt(comm)
+			}
 		case FlowChnEnd:
 			conn.Close()
-			if eztools.Debugging && eztools.Verbose > 1 {
-				GuiLog(true, "exiting peer", peer.String())
+			if gui != nil && eztools.Debugging && eztools.Verbose > 1 {
+				gui.Log(true, "exiting peer", peer.String())
 			}
 			return
 		}

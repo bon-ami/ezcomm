@@ -82,7 +82,7 @@ var (
 	}
 )
 
-func i18nInit() {
+func I18nInit() {
 	eztools.InitLanguages()
 	res.I18n_en()
 	res.I18n_es()

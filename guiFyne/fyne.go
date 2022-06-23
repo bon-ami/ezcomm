@@ -15,30 +15,26 @@ import (
 var (
 	thm        theme4Fonts
 	appStorage fyne.Storage
+	f          GuiFyne
 )
 
+// GuiFyne implements Guis
 type GuiFyne struct{}
 
-func (GuiFyne) GuiSetGlbPrm(Ver, Bld string) {
+func (g GuiFyne) Run(ver, bld string) {
+	f = g
 	// Ver & Bld will be overwritten by GuiRun()
-	if len(Ver) < 1 {
-		Ver = "dev"
+	if len(ver) < 1 {
+		ver = "dev"
 	}
-	if len(Bld) < 1 {
-		Bld = time.Now().Format("2006-01-02_15:04:05")
+	if len(bld) < 1 {
+		bld = time.Now().Format("2006-01-02_15:04:05")
 	}
-	ezcomm.Ver = Ver
-	ezcomm.Bld = Bld
+	ezcomm.Ver = ver
+	ezcomm.Bld = bld
 
 	ezcomm.LogPrintFunc = eztools.Log
-	ezcomm.GuiConnected = Connected
-	ezcomm.GuiEnded = Ended
-	ezcomm.GuiLog = Log
-	ezcomm.GuiRcv = Rcv
-	ezcomm.GuiSnt = Snt
-}
 
-func (GuiFyne) GuiRun() {
 	//eztools.Log("setting font=", cfgStruc.font)
 	fontStr := ezcomm.CfgStruc.GetFont()
 	if len(fontStr) > 0 {
@@ -99,8 +95,8 @@ func (GuiFyne) GuiRun() {
 
 	tabs := container.NewAppTabs(
 		container.NewTabItem(ezcomm.StringTran["StrInt"], cont),
-		container.NewTabItem(ezcomm.StringTran["StrInfLog"], guiFyneMakeControlsInfLog()),
-		container.NewTabItem(ezcomm.StringTran["StrCfg"], guiFyneMakeControlsCfg(ezcWin)),
+		container.NewTabItem(ezcomm.StringTran["StrInfLog"], makeControlsInfLog()),
+		container.NewTabItem(ezcomm.StringTran["StrCfg"], makeControlsCfg(ezcWin)),
 	)
 	ezcWin.SetContent(tabs)
 

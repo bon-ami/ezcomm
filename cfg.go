@@ -130,7 +130,7 @@ func procCfg(paramLogI string) error {
 		LogWtTime = true
 	}
 
-	i18nInit()
+	I18nInit()
 	var (
 		err  error
 		lang string

@@ -11,7 +11,7 @@ import (
 
 var cfgWriter fyne.URIWriteCloser
 
-func guiFyneWriteCfg() {
+func writeCfg() {
 	if cfgWriter == nil {
 		cfgFileName := ezcomm.EzcName + ".xml"
 		var err error
@@ -33,7 +33,7 @@ func guiFyneWriteCfg() {
 	ezcomm.WriterCfg(cfgWriter)
 }
 
-func guiFyneMakeControlsCfg(ezcWin fyne.Window) *fyne.Container {
+func makeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 	// flow part begins
 	flowFnStt := widget.NewEntry()
 	flowFnStt.PlaceHolder = ezcomm.StringTran["StrStb"]
@@ -106,7 +106,7 @@ func guiFyneMakeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 			fn := uri.URI().Path()
 			if eztools.InitLogger(uri) == nil {
 				ezcomm.CfgStruc.LogFile = fn
-				guiFyneWriteCfg()
+				writeCfg()
 				logTxt.SetText(fn)
 				logTxt.Refresh()
 			}
@@ -120,7 +120,7 @@ func guiFyneMakeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 		}
 		eztools.Verbose = newLvl
 		ezcomm.CfgStruc.Verbose = newLvl
-		guiFyneWriteCfg()
+		writeCfg()
 	})
 	verboseSel.Options = []string{
 		ezcomm.StringTran["StrHh"], ezcomm.StringTran["StrMdm"], ezcomm.StringTran["StrLow"], ezcomm.StringTran["StrNon"],
@@ -144,11 +144,11 @@ func guiFyneMakeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 			return
 		}
 		ezcomm.CfgStruc.Language = langMap[str]
-		guiFyneWriteCfg()
+		writeCfg()
 
 		lang, err := ezcomm.I18nLoad(ezcomm.CfgStruc.Language)
 		if err != nil {
-			Log(true, "cannot set language", ezcomm.CfgStruc.Language, err)
+			f.Log(true, "cannot set language", ezcomm.CfgStruc.Language, err)
 			return
 		}
 		ezcomm.CfgStruc.Language = lang
@@ -163,7 +163,7 @@ func guiFyneMakeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 			//eztools.Log("font cleared")
 		}
 		for _, v := range fontRch.Segments {
-			ezcomm.GuiLog(true, "richtext seg", v.Textual())
+			f.Log(true, "richtext seg", v.Textual())
 		}
 		dialog.ShowInformation(ezcomm.StringTran["StrLang"], ezcomm.StringTran["StrReboot4Change"], ezcWin)
 	})
@@ -207,7 +207,7 @@ func guiFyneMakeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 				Font:   font})
 
 		}
-		guiFyneWriteCfg()
+		writeCfg()
 	})
 
 	abtRow := container.NewCenter(widget.NewLabel(ezcomm.Ver + " - " + ezcomm.Bld))

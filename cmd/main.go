@@ -18,16 +18,20 @@ func main() {
 		paramVer                          bool
 		paramH, paramV, paramVV, paramVVV bool
 	)
-	flag.BoolVar(&paramVer, "version", false, ezcomm.StrVer)
-	flag.BoolVar(&paramVer, "ver", false, ezcomm.StrVer)
-	flag.BoolVar(&paramH, "h", false, ezcomm.StrHlp)
-	flag.BoolVar(&paramH, "help", false, ezcomm.StrHlp)
-	flag.BoolVar(&paramV, "v", false, ezcomm.StrV)
-	flag.BoolVar(&paramVV, "vv", false, ezcomm.StrVV)
-	flag.BoolVar(&paramVVV, "vvv", false, ezcomm.StrVVV)
-	flag.StringVar(&paramLog, "log", "", ezcomm.StrLogFn)
-	flag.StringVar(&paramCfg, "cfg", "", ezcomm.StrCfg)
-	flag.StringVar(&paramFlw, "flow", "", ezcomm.StrFlowFnInf)
+	ezcomm.LogPrintFunc = eztools.LogPrint
+	// read current OS language
+	ezcomm.I18nInit()
+	_, err := ezcomm.I18nLoad("")
+	flag.BoolVar(&paramVer, "version", false, ezcomm.StringTran["StrVer"])
+	flag.BoolVar(&paramVer, "ver", false, ezcomm.StringTran["StrVer"])
+	flag.BoolVar(&paramH, "h", false, ezcomm.StringTran["StrHlp"])
+	flag.BoolVar(&paramH, "help", false, ezcomm.StringTran["StrHlp"])
+	flag.BoolVar(&paramV, "v", false, ezcomm.StringTran["StrV"])
+	flag.BoolVar(&paramVV, "vv", false, ezcomm.StringTran["StrVV"])
+	flag.BoolVar(&paramVVV, "vvv", false, ezcomm.StringTran["StrVVV"])
+	flag.StringVar(&paramLog, "log", "", ezcomm.StringTran["StrLogFn"])
+	flag.StringVar(&paramCfg, "cfg", "", ezcomm.StringTran["StrCfg"])
+	flag.StringVar(&paramFlw, "flow", "", ezcomm.StringTran["StrFlowFnInf"])
 	flag.Parse()
 	if len(Ver) < 1 {
 		Ver = "dev"
@@ -50,7 +54,6 @@ func main() {
 		eztools.Verbose = 3
 	}
 
-	ezcomm.LogPrintFunc = eztools.LogPrint
 	ezcomm.ReadCfg(paramCfg, paramLog)
 
 	if paramH {
