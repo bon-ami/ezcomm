@@ -35,18 +35,6 @@ func (g GuiFyne) Run(ver, bld string) {
 
 	ezcomm.LogPrintFunc = eztools.Log
 
-	//eztools.Log("setting font=", cfgStruc.font)
-	fontStr := ezcomm.CfgStruc.GetFont()
-	if len(fontStr) > 0 {
-		err := thm.SetFont(fontStr)
-		if err != nil {
-			eztools.Log("failed to set font", fontStr, err)
-		} else {
-			if eztools.Debugging && eztools.Verbose > 2 {
-				eztools.Log("font set", fontStr)
-			}
-		}
-	}
 	ezcApp := app.NewWithID(ezcomm.EzcName)
 	/*uri, err := storage.Child(ezcApp.Storage().RootURI(), ezcomm.EzcName+".xml")
 	var cfg string
@@ -73,6 +61,19 @@ func (g GuiFyne) Run(ver, bld string) {
 		eztools.Log("failed to open config file", err)
 	}
 	ezcomm.ReaderCfg(rdr, "")
+
+	//eztools.Log("setting font=", cfgStruc.font)
+	fontStr := ezcomm.CfgStruc.GetFont()
+	if len(fontStr) > 0 {
+		err := thm.SetFont(fontStr)
+		if err != nil {
+			eztools.Log("failed to set font", fontStr, err)
+		} else {
+			if eztools.Debugging && eztools.Verbose > 2 {
+				eztools.Log("font set", fontStr)
+			}
+		}
+	}
 
 	meta := ezcApp.Metadata()
 	if len(meta.Version) > 0 && meta.Version != "0.0.0.0" {
