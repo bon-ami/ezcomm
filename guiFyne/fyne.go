@@ -31,11 +31,11 @@ func (GuiFyne) GuiSetGlbPrm(Ver, Bld string) {
 	ezcomm.Bld = Bld
 
 	ezcomm.LogPrintFunc = eztools.Log
-	ezcomm.GuiConnected = GuiConnected
-	ezcomm.GuiEnded = GuiEnded
-	ezcomm.GuiLog = GuiLog
-	ezcomm.GuiRcv = GuiRcv
-	ezcomm.GuiSnt = GuiSnt
+	ezcomm.GuiConnected = Connected
+	ezcomm.GuiEnded = Ended
+	ezcomm.GuiLog = Log
+	ezcomm.GuiRcv = Rcv
+	ezcomm.GuiSnt = Snt
 }
 
 func (GuiFyne) GuiRun() {
@@ -92,8 +92,8 @@ func (GuiFyne) GuiRun() {
 	ezcApp.Settings().SetTheme(&thm)
 	ezcWin := ezcApp.NewWindow(ezcomm.EzcName)
 
-	contLcl := guiFyneMakeControlsLcl()
-	contRmt := guiFyneMakeControlsRmt()
+	contLcl := makeControlsLcl()
+	contRmt := makeControlsRmt()
 
 	cont := container.NewGridWithColumns(2, contLcl, contRmt)
 

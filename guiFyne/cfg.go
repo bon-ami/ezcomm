@@ -148,7 +148,7 @@ func guiFyneMakeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 
 		lang, err := ezcomm.I18nLoad(ezcomm.CfgStruc.Language)
 		if err != nil {
-			GuiLog(true, "cannot set language", ezcomm.CfgStruc.Language, err)
+			Log(true, "cannot set language", ezcomm.CfgStruc.Language, err)
 			return
 		}
 		ezcomm.CfgStruc.Language = lang
