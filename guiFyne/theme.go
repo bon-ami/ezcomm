@@ -12,7 +12,11 @@ type theme4Fonts struct {
 	fontRes fyne.Resource
 }
 
-func (m *theme4Fonts) SetFont(font string) error {
+func (m *theme4Fonts) SetFontByRes(font fyne.Resource) {
+	m.fontRes = font
+}
+
+func (m *theme4Fonts) SetFontByDir(font string) error {
 	if len(font) < 1 {
 		return eztools.ErrInvalidInput
 	}

@@ -9,7 +9,6 @@ import (
 	"fyne.io/fyne/v2/container"
 	"gitee.com/bon-ami/eztools/v4"
 	"gitlab.com/bon-ami/ezcomm"
-	"gitlab.com/bon-ami/ezcomm/res"
 )
 
 var (
@@ -62,18 +61,7 @@ func (g GuiFyne) Run(ver, bld string) {
 	}
 	ezcomm.ReaderCfg(rdr, "")
 
-	//eztools.Log("setting font=", cfgStruc.font)
-	fontStr := ezcomm.CfgStruc.GetFont()
-	if len(fontStr) > 0 {
-		err := thm.SetFont(fontStr)
-		if err != nil {
-			eztools.Log("failed to set font", fontStr, err)
-		} else {
-			if eztools.Debugging && eztools.Verbose > 2 {
-				eztools.Log("font set", fontStr)
-			}
-		}
-	}
+	useFontFromCfg(true)
 
 	meta := ezcApp.Metadata()
 	if len(meta.Version) > 0 && meta.Version != "0.0.0.0" {
@@ -84,7 +72,7 @@ func (g GuiFyne) Run(ver, bld string) {
 	}
 	/*icon, err := fyne.LoadResource("Icon.png")
 	if err == nil {*/
-	ezcApp.SetIcon(res.ResourceIconPng)
+	ezcApp.SetIcon(Icon)
 	//}
 	ezcApp.Settings().SetTheme(&thm)
 	ezcWin := ezcApp.NewWindow(ezcomm.EzcName)
@@ -106,14 +94,11 @@ func (g GuiFyne) Run(ver, bld string) {
 	}*/
 
 	ezcWin.Show()
-	if eztools.Debugging && eztools.Verbose > 2 {
+	/*if eztools.Debugging && eztools.Verbose > 2 {
 		eztools.Log("to show UI")
-	}
+	}*/
 	ezcApp.Run()
-	if eztools.Debugging && eztools.Verbose > 2 {
+	/*if eztools.Debugging && eztools.Verbose > 2 {
 		eztools.Log("UI done")
-	}
-	if cfgWriter != nil {
-		cfgWriter.Close()
-	}
+	}*/
 }

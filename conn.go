@@ -15,7 +15,7 @@ type Guis interface {
 	GuiSetGlbPrm
 	// Run is run at the end to handle UI in the main thread*/
 	Run(Ver, Bld string)
-	Log(bool, ...any)
+	Log(...any)
 	Rcv(RoutCommStruc)
 	Snt(RoutCommStruc)
 	Connected(string, string)
@@ -54,7 +54,7 @@ func ConnectedUdp(conn *net.UDPConn) {
 	lcl := conn.LocalAddr().String()
 	go func() {
 		if gui != nil && eztools.Debugging && eztools.Verbose > 1 {
-			defer gui.Log(true, "exiting routine", lcl)
+			defer gui.Log("exiting routine", lcl)
 		}
 		for {
 			//GuiLog(true, "receiving UDP", conn.LocalAddr())
@@ -103,7 +103,7 @@ func ConnectedUdp(conn *net.UDPConn) {
 			}
 			conn.Close()
 			if gui != nil && eztools.Debugging && eztools.Verbose > 1 {
-				gui.Log(true, "exiting", lcl)
+				gui.Log("exiting", lcl)
 			}
 			return
 		}
@@ -112,7 +112,7 @@ func ConnectedUdp(conn *net.UDPConn) {
 
 func ListeningTcp(lstnr net.Listener) {
 	if gui != nil && eztools.Debugging && eztools.Verbose > 1 {
-		defer gui.Log(true, "exiting server", lstnr.Addr().String())
+		defer gui.Log("exiting server", lstnr.Addr().String())
 	}
 	for {
 		cmd := <-ChanComm[0]
@@ -137,7 +137,7 @@ func ConnectedTcp(conn net.Conn) {
 	buf := make([]byte, FlowRcvLen)
 	go func() {
 		if gui != nil && eztools.Debugging && eztools.Verbose > 1 {
-			defer gui.Log(true, "exiting routine peer", peer.String())
+			defer gui.Log("exiting routine peer", peer.String())
 		}
 		for {
 			n, err := conn.Read(buf)
@@ -180,7 +180,7 @@ func ConnectedTcp(conn net.Conn) {
 		case FlowChnEnd:
 			conn.Close()
 			if gui != nil && eztools.Debugging && eztools.Verbose > 1 {
-				gui.Log(true, "exiting peer", peer.String())
+				gui.Log("exiting peer", peer.String())
 			}
 			return
 		}

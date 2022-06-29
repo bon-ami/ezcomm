@@ -9,26 +9,26 @@ import (
 	"gitlab.com/bon-ami/ezcomm"
 )
 
-var cfgWriter fyne.URIWriteCloser
+var (
+	fontSel         *widget.Select
+	fontsNumBuiltin int
+)
 
 func writeCfg() {
-	if cfgWriter == nil {
-		cfgFileName := ezcomm.EzcName + ".xml"
-		var err error
-		cfgWriter, err = appStorage.Save(cfgFileName)
+	cfgFileName := ezcomm.EzcName + ".xml"
+	cfgWriter, err := appStorage.Save(cfgFileName)
+	if err != nil {
+		/* TODO: fyne returns customized errors so I cannot check it now
+		if !errors.Is(err, os.ErrNotExist) {
+			eztools.Log("failed to write to config file", err)
+			return
+		}*/
+		cfgWriter, err = appStorage.Create(cfgFileName)
 		if err != nil {
-			/* TODO: fyne returns customized errors so I cannot check it now
-			if !errors.Is(err, os.ErrNotExist) {
-				eztools.Log("failed to write to config file", err)
-				return
-			}*/
-			cfgWriter, err = appStorage.Create(cfgFileName)
-			if err != nil {
-				eztools.Log("failed to create to config file", err)
-				return
-			}
+			eztools.Log("failed to create to config file", err)
 			return
 		}
+		return
 	}
 	ezcomm.WriterCfg(cfgWriter)
 }
@@ -127,15 +127,17 @@ func makeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 	}
 	verboseSel.SetSelected(verbose2Str())
 
-	fontSel := widget.NewSelect(nil, nil)
+	fontSel = widget.NewSelect(nil, nil)
 	fontSel.PlaceHolder = ezcomm.StringTran["StrFnt"]
-	fontSel.Options = ezcomm.ListSystemFonts()
-	currIndx := ezcomm.MatchSystemFontsFromPath(ezcomm.CfgStruc.GetFont())
-	if currIndx >= 0 {
-		fontSel.SetSelectedIndex(currIndx)
+	for _, font := range FontsBuiltin {
+		fontSel.Options = append(fontSel.Options, font.locale)
 	}
+	fontsNumBuiltin = len(fontSel.Options)
+	for _, font := range ezcomm.ListSystemFonts([]string{".ttf"}) {
+		fontSel.Options = append(fontSel.Options, font)
+	}
+	//matchFontFromCfg()
 
-	eztools.Log("rich ", ezcomm.StringTran["StrFntRch"])
 	fontRch := widget.NewRichTextWithText(ezcomm.StringTran["StrFntRch"])
 	langSel := widget.NewSelect(nil, func(str string) {
 		//eztools.LogWtTime("selecting", str)
@@ -148,22 +150,14 @@ func makeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 
 		lang, err := ezcomm.I18nLoad(ezcomm.CfgStruc.Language)
 		if err != nil {
-			f.Log(true, "cannot set language", ezcomm.CfgStruc.Language, err)
+			f.Log("cannot set language", ezcomm.CfgStruc.Language, err)
 			return
 		}
 		ezcomm.CfgStruc.Language = lang
 		ezcomm.MatchFontFromLanguage()
-		thm.SetFont(ezcomm.CfgStruc.GetFont())
-		indx := ezcomm.MatchSystemFontsFromPath(ezcomm.CfgStruc.GetFont())
-		if indx != eztools.InvalidID {
-			fontSel.SetSelectedIndex(indx)
-			//eztools.Log("font", indx)
-		} else {
-			fontSel.ClearSelected()
-			//eztools.Log("font cleared")
-		}
+		matchFontFromCfg(useFontFromCfg(true))
 		for _, v := range fontRch.Segments {
-			f.Log(true, "richtext seg", v.Textual())
+			f.Log("richtext seg", v.Textual())
 		}
 		dialog.ShowInformation(ezcomm.StringTran["StrLang"], ezcomm.StringTran["StrReboot4Change"], ezcWin)
 	})
@@ -176,44 +170,95 @@ func makeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 			langSel.SetSelected(full)
 		}
 	})
-	indx := ezcomm.MatchSystemFontsFromPath(ezcomm.CfgStruc.GetFont())
-	if indx != eztools.InvalidID {
-		fontSel.SetSelectedIndex(indx)
-	}
+	matchFontFromCfg(useFontFromCfg(false))
 
 	fontBut := widget.NewButton(ezcomm.StringTran["StrFnt4Lang"], func() {
 		lang := langMap[langSel.Selected]
 		if len(lang) < 1 {
 			return
 		}
-		font := ezcomm.MatchSystemFontsFromIndex(fontSel.SelectedIndex())
-		if len(font) < 1 {
-			return
-		}
-		// check whether already in config file
-		found := false
-		for i := range ezcomm.CfgStruc.Fonts {
-			if ezcomm.CfgStruc.Fonts[i].Locale == lang {
-				if len(font) > 0 && ezcomm.CfgStruc.Fonts[i].Font != font {
-					ezcomm.CfgStruc.Fonts[i].Font = font
-					found = true
-					break
-				}
-			}
-		}
-		if !found {
-			ezcomm.CfgStruc.Fonts = append(ezcomm.CfgStruc.Fonts, ezcomm.EzcommFonts{
-				Locale: lang,
-				Font:   font})
-
-		}
-		writeCfg()
+		saveFontFromIndx(lang)
+		dialog.ShowInformation(ezcomm.StringTran["StrLang"], ezcomm.StringTran["StrReboot4Change"], ezcWin)
 	})
 
 	abtRow := container.NewCenter(widget.NewLabel(ezcomm.Ver + " - " + ezcomm.Bld))
 	return container.NewVBox(flowFnTxt, flowFlBut, flowFnStt,
 		logTxt, logBut, rowVerbose, verboseSel,
 		langSel, fontSel /*fontRch,*/, fontBut, abtRow)
+}
+
+func saveFontFromIndx(lang string) {
+	var font string
+	indx := fontSel.SelectedIndex()
+	if indx < fontsNumBuiltin {
+		font = FontsBuiltin[indx].locale
+	} else {
+		font = ezcomm.MatchSystemFontsFromIndex(indx)
+	}
+	if len(font) < 1 {
+		f.Log("NO font found!", lang)
+		return
+	}
+	// check whether already in config file
+	found := false
+	for i := range ezcomm.CfgStruc.Fonts {
+		if ezcomm.CfgStruc.Fonts[i].Locale == lang {
+			if len(ezcomm.CfgStruc.Fonts[i].Font) > 0 {
+				if ezcomm.CfgStruc.Fonts[i].Font != font {
+					ezcomm.CfgStruc.Fonts[i].Font = font
+				}
+				found = true
+				break
+			}
+		}
+	}
+	if !found {
+		ezcomm.CfgStruc.Fonts = append(ezcomm.CfgStruc.Fonts, ezcomm.EzcommFonts{
+			Locale: lang,
+			Font:   font})
+
+	}
+	writeCfg()
+}
+
+func useFontFromCfg(setTheme bool) (fontPath string, fontStaticIndx int) {
+	cfg := ezcomm.CfgStruc.GetFont()
+	if len(cfg) < 1 {
+		return "", eztools.InvalidID
+	}
+	//eztools.Log("setting font=", cfg)
+	for i, fontBuiltin := range FontsBuiltin {
+		if cfg == fontBuiltin.locale {
+			if setTheme {
+				thm.SetFontByRes(fontBuiltin.res)
+			}
+			return "", i
+		}
+	}
+	if !setTheme {
+		return cfg, eztools.InvalidID
+	}
+	err := thm.SetFontByDir(cfg)
+	if err != nil {
+		eztools.Log("failed to set font", cfg, err)
+	} else {
+		if eztools.Debugging && eztools.Verbose > 2 {
+			eztools.Log("font set", cfg)
+		}
+	}
+	return cfg, eztools.InvalidID
+}
+
+func matchFontFromCfg(dir string, indx int) {
+	if indx < 0 {
+		indx = ezcomm.MatchSystemFontsFromPath(dir) + fontsNumBuiltin
+	}
+	if indx >= 0 {
+		fontSel.SetSelectedIndex(indx)
+	} else {
+		fontSel.ClearSelected()
+		//eztools.Log("font cleared")
+	}
 }
 
 func verbose2Str() string {

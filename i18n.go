@@ -118,8 +118,9 @@ var (
 	fontMap  map[string]int
 )
 
-func ListSystemFonts() []string {
-	fontList[0] = findfont.List()
+// ListSystemFonts get all system fonts with extensions
+func ListSystemFonts(exts []string) []string {
+	fontList[0] = findfont.ListWtSuffixes(exts)
 	if len(fontList[0]) < 1 {
 		return nil
 	}

@@ -75,6 +75,7 @@ func resWriteCfg(err error) {
 
 func WriterCfg(wrt io.WriteCloser) error {
 	err := eztools.XMLWriter(wrt, CfgStruc, "\t")
+	wrt.Close()
 	resWriteCfg(err)
 	return err
 }

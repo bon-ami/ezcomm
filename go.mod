@@ -5,7 +5,7 @@ go 1.18
 require (
 	fyne.io/fyne/v2 v2.2.1
 	gitee.com/bon-ami/eztools/v4 v4.3.0
-	github.com/bon-ami/go-findfont v0.2.1
+	github.com/bon-ami/go-findfont v0.3.0
 )
 
 require (
