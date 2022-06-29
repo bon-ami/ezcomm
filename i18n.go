@@ -93,18 +93,16 @@ func I18nInit() {
 func I18nLoad(lang string) (string, error) {
 	langOut, err := eztools.LoadLanguage(lang)
 	if err != nil {
-		eztools.Log("failed to load language for", lang, err)
+		Log("failed to load language for", lang, err)
 		return lang, err
 	}
-	if eztools.Debugging {
-		LogPrintFunc("loading language", lang, langOut)
-	}
+	Log("loading language", lang, langOut)
 	for _, i := range StringIndx {
-		//LogPrintFunc("loading", i)
+		//Log("loading", i)
 		str, err := eztools.GetLanguageStr(i)
-		//LogPrintFunc("loading", str, err)
+		//Log("loading", str, err)
 		if err != nil {
-			LogPrintFunc("no translation for", i)
+			Log("no translation for", i)
 			continue
 		}
 		StringTran[i] = str
@@ -138,7 +136,7 @@ func ListSystemFonts(exts []string) []string {
 func MatchSystemFontsFromIndex(indx int) string {
 	/*ret, err := findfont.Find(font)
 	if err != nil {
-		eztools.Log("failed to find font", font, err)
+		Log("failed to find font", font, err)
 	}*/
 	return fontList[0][indx]
 }

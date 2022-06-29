@@ -18,7 +18,6 @@ func main() {
 		paramVer                          bool
 		paramH, paramV, paramVV, paramVVV bool
 	)
-	ezcomm.LogPrintFunc = eztools.LogPrint
 	// read current OS language
 	ezcomm.I18nInit()
 	_, err := ezcomm.I18nLoad("")
@@ -75,18 +74,12 @@ func main() {
 	defer func() {
 		if db != nil {
 			if !(<-upch) {
-				if eztools.Debugging {
-					ezcomm.LogPrintFunc("wrong server for update check")
-				}
+				ezcomm.Log("wrong server for update check")
 			} else {
 				if !(<-upch) {
-					if eztools.Debugging {
-						ezcomm.LogPrintFunc("update check failed")
-					}
+					ezcomm.Log("update check failed")
 				} else {
-					if eztools.Debugging {
-						ezcomm.LogPrintFunc("update check done/skipped")
-					}
+					ezcomm.Log("update check done/skipped")
 				}
 			}
 			db.Close()

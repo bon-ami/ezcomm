@@ -32,8 +32,6 @@ func (g GuiFyne) Run(ver, bld string) {
 	ezcomm.Ver = ver
 	ezcomm.Bld = bld
 
-	ezcomm.LogPrintFunc = eztools.Log
-
 	ezcApp := app.NewWithID(ezcomm.EzcName)
 	/*uri, err := storage.Child(ezcApp.Storage().RootURI(), ezcomm.EzcName+".xml")
 	var cfg string

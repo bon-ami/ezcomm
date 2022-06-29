@@ -615,7 +615,7 @@ func (svr *FlowConnStruc) RunSvr(flow FlowStruc) {
 
 func runFlow(flow FlowStruc) bool {
 	if len(flow.Conns) < 1 {
-		LogPrintFunc("NO server defined. NO flow runs.")
+		Log("NO server defined. NO flow runs.")
 		return false
 	}
 	flow.Vals = make(map[string]*FlowStepStruc, 0)
@@ -648,13 +648,13 @@ func RunFlowReaderBG(rdr io.Reader, res chan bool) bool {
 	bytes, err := ioutil.ReadAll(rdr)
 	//n, err = uri.Read(bytes)
 	if err != nil {
-		LogPrintFunc("read flow file", err)
+		Log("read flow file", err)
 		return false
 	}
 	var flow FlowStruc
 	err = xml.Unmarshal(bytes, &flow)
 	if err != nil {
-		LogPrintFunc("parse flow file", err)
+		Log("parse flow file", err)
 		return false
 	}
 	go func() {
@@ -666,7 +666,7 @@ func RunFlowReaderBG(rdr io.Reader, res chan bool) bool {
 func RunFlowFile(file string) bool {
 	var flow FlowStruc
 	if err := eztools.XMLRead(file, &flow); err != nil {
-		LogPrintFunc(file, "failed to be read/parsed", err)
+		Log(file, "failed to be read/parsed", err)
 		return false
 	}
 	return runFlow(flow)

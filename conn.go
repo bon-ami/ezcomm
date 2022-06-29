@@ -53,13 +53,11 @@ func ConnectedUdp(conn *net.UDPConn) {
 	buf := make([]byte, FlowRcvLen)
 	lcl := conn.LocalAddr().String()
 	go func() {
-		if gui != nil && eztools.Debugging && eztools.Verbose > 1 {
-			defer gui.Log("exiting routine", lcl)
-		}
+		defer Log("exiting routine", lcl)
 		for {
-			//GuiLog(true, "receiving UDP", conn.LocalAddr())
+			//Log("receiving UDP", conn.LocalAddr())
 			n, addr, err := conn.ReadFromUDP(buf)
-			//GuiLog(true, "received UDP", n, addr, err)
+			//Log("received UDP", n, addr, err)
 			if err != nil &&
 				(errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed)) {
 				return
@@ -78,13 +76,13 @@ func ConnectedUdp(conn *net.UDPConn) {
 			}
 		}
 	}()
-	//GuiLog(true, "listening on UDP", ChanComm[0])
+	//Log("listening on UDP", ChanComm[0])
 	for {
 		cmd := <-ChanComm[0]
 		switch cmd.Act {
 		case FlowChnSnd:
 			/*if eztools.Debugging && eztools.Verbose > 2 {
-				GuiLog(true, "sending", cmd)
+				Log("sending", cmd)
 			}*/
 			_, err := conn.WriteToUDP([]byte(cmd.Data), cmd.PeerUdp)
 			/*chanComm[1] <- FlowCommStruc{
@@ -96,24 +94,20 @@ func ConnectedUdp(conn *net.UDPConn) {
 			if gui != nil {
 				gui.Snt(comm)
 			}
-			//GuiLog(true, "UDP sent", comm)
+			//Log("UDP sent", comm)
 		case FlowChnEnd:
 			for i := range ChanComm {
 				ChanComm[i] = nil
 			}
 			conn.Close()
-			if gui != nil && eztools.Debugging && eztools.Verbose > 1 {
-				gui.Log("exiting", lcl)
-			}
+			Log("exiting", lcl)
 			return
 		}
 	}
 }
 
 func ListeningTcp(lstnr net.Listener) {
-	if gui != nil && eztools.Debugging && eztools.Verbose > 1 {
-		defer gui.Log("exiting server", lstnr.Addr().String())
-	}
+	defer Log("exiting server", lstnr.Addr().String())
 	for {
 		cmd := <-ChanComm[0]
 		switch cmd.Act {
@@ -136,9 +130,7 @@ func ConnectedTcp(conn net.Conn) {
 	}
 	buf := make([]byte, FlowRcvLen)
 	go func() {
-		if gui != nil && eztools.Debugging && eztools.Verbose > 1 {
-			defer gui.Log("exiting routine peer", peer.String())
-		}
+		defer Log("exiting routine peer", peer.String())
 		for {
 			n, err := conn.Read(buf)
 			comm := RoutCommStruc{
@@ -179,11 +171,19 @@ func ConnectedTcp(conn net.Conn) {
 			}
 		case FlowChnEnd:
 			conn.Close()
-			if gui != nil && eztools.Debugging && eztools.Verbose > 1 {
-				gui.Log("exiting peer", peer.String())
-			}
+			Log("exiting peer", peer.String())
 			return
 		}
+	}
+}
+
+func Log(sth ...any) {
+	if gui != nil {
+		if eztools.Debugging {
+			gui.Log(sth...)
+		}
+	} else {
+		eztools.LogPrint(sth...)
 	}
 }
 
@@ -276,12 +276,12 @@ func ListenTcp(network, address string, accepted func(net.Conn),
 	if accepted == nil {
 		eztools.LogFatal("no function to handle server")
 	}
-	//eztools.Log("to serve")
+	//Log("to serve")
 	lstnr, err := net.Listen(network, address)
 	if err != nil {
 		return lstnr, err
 	}
-	//eztools.Log("serving", lstnr)
+	//Log("serving", lstnr)
 	//defer lstnr.Close()
 	go func() {
 		for {
@@ -292,7 +292,7 @@ func ListenTcp(network, address string, accepted func(net.Conn),
 				}
 			case*/conn, err := lstnr.Accept() //:
 			if err != nil {
-				/*eztools.Log("accept failed", err)
+				/*Log("accept failed", err)
 				continue*/
 				if errChan != nil {
 					errChan <- err

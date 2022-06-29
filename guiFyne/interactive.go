@@ -46,17 +46,17 @@ func connDisable() {
 	lstBut.SetText(ezcomm.StringTran["StrStp"])
 }
 
-func (GuiFyne) Log(log2File bool, inf ...any) {
-	str := fmt.Sprintf("%s%v\n", time.Now().Format("01-02 15:04:05"), inf)
-	fyneRowLog.SetText(fyneRowLog.Text + //strconv.Itoa(rowLog.CursorRow) + ":" +
-		str)
-	fyneRowLog.CursorRow++
-	if log2File {
-		if ezcomm.LogWtTime {
-			eztools.LogWtTime(inf)
-		} else {
-			eztools.Log(inf)
-		}
+func (GuiFyne) Log(inf ...any) {
+	if fyneRowLog != nil {
+		str := fmt.Sprintf("%s%v\n", time.Now().Format("01-02 15:04:05"), inf)
+		fyneRowLog.SetText(fyneRowLog.Text + //strconv.Itoa(rowLog.CursorRow) + ":" +
+			str)
+		fyneRowLog.CursorRow++
+	}
+	if ezcomm.LogWtTime {
+		eztools.LogWtTime(inf)
+	} else {
+		eztools.Log(inf)
 	}
 }
 
@@ -77,7 +77,7 @@ func getRmtSckStr() string {
 func getRmtSck() *net.UDPAddr {
 	ret, err := net.ResolveUDPAddr(protRd.Selected, getRmtSckStr())
 	if err != nil {
-		f.Log(false, err)
+		f.Log(err)
 		return nil
 	}
 	return ret
@@ -178,10 +178,10 @@ func Lstn() {
 			ezcomm.ChanComm[i] = nil
 		}
 		connEnable()
-		f.Log(true, ezcomm.StringTran["StrListeningOn"], err)
+		f.Log(ezcomm.StringTran["StrListeningOn"], err)
 	} else {
 		lstBut.OnTapped = Stop
-		f.Log(true, ezcomm.StringTran["StrListeningOn"], addrStruc.String())
+		f.Log(ezcomm.StringTran["StrListeningOn"], addrStruc.String())
 	}
 }
 
@@ -195,7 +195,7 @@ func Connect() {
 	/*conn*/ _, err := ezcomm.Client(protRd.Selected, pr, ezcomm.ConnectedTcp)
 	if err != nil {
 		connEnable()
-		f.Log(true, ezcomm.StringTran["StrConnFail"]+pr, err)
+		f.Log(ezcomm.StringTran["StrConnFail"]+pr, err)
 		return
 	}
 	//lstBut.OnTapped = guiFyneStp
@@ -217,7 +217,7 @@ func (f GuiFyne) Connected(lcl, rmt string) {
 	if len(rowTcpSock2.Selected) < 1 {
 		rowTcpSock2.SetSelectedIndex(0)
 	}
-	f.Log(true, lcl, "<->", rmt, ezcomm.StringTran["StrConnected"])
+	f.Log(lcl, "<->", rmt, ezcomm.StringTran["StrConnected"])
 	rowTcpSock2.Refresh()
 }
 
@@ -233,7 +233,7 @@ func Disconnected(rmt string) {
 	}
 	switch {
 	case indx == -1:
-		f.Log(true, ezcomm.StringTran["StrDisconnected"], rmt, ezcomm.StringTran["StrNotInRec"])
+		f.Log(ezcomm.StringTran["StrDisconnected"], rmt, ezcomm.StringTran["StrNotInRec"])
 		return
 	case ln == 1:
 		rowTcpSock2.Options = nil
@@ -246,10 +246,10 @@ func Disconnected(rmt string) {
 			//guiFyneSckRmt(false)
 			butSnd(false)
 			sndBut.Enable()
-			f.Log(true, rmt, ezcomm.StringTran["StrDisconnected"])
+			f.Log(rmt, ezcomm.StringTran["StrDisconnected"])
 		} else { //server
 			sndBut.Disable()
-			f.Log(true, rmt, ezcomm.StringTran["StrDisconnected"], ".", ezcomm.StringTran["StrSvrIdle"])
+			f.Log(rmt, ezcomm.StringTran["StrDisconnected"], ".", ezcomm.StringTran["StrSvrIdle"])
 		}
 		return
 	}
@@ -259,7 +259,7 @@ func Disconnected(rmt string) {
 	}
 	rowTcpSock2.Options = rowTcpSock2.Options[:ln-1]
 	if eztools.Debugging && eztools.Verbose > 2 {
-		f.Log(true, ezcomm.StringTran["StrClntLft"], rowTcpSock2.Options)
+		f.Log(ezcomm.StringTran["StrClntLft"], rowTcpSock2.Options)
 	}
 	rowTcpSock2.SetSelectedIndex(0)
 	rowTcpSock2.Refresh()
@@ -270,10 +270,10 @@ func Disconn1() {
 	rmtTcp := rowTcpSock2.Selected
 	chn, ok := ezcomm.PeeMap[rmtTcp]
 	if !ok {
-		f.Log(true, ezcomm.StringTran["StrNoPeer4"], rmtTcp)
+		f.Log(ezcomm.StringTran["StrNoPeer4"], rmtTcp)
 		return
 	}
-	f.Log(true, ezcomm.StringTran["StrDisconnecting"], rmtTcp)
+	f.Log(ezcomm.StringTran["StrDisconnecting"], rmtTcp)
 	chn <- ezcomm.RoutCommStruc{
 		Act: ezcomm.FlowChnEnd,
 	}
@@ -292,7 +292,7 @@ func Stop() {
 		butSndByProt(protRd.Selected)
 	}
 	lstBut.OnTapped = Lstn
-	f.Log(true, ezcomm.StringTran["StrStopLstn"])
+	f.Log(ezcomm.StringTran["StrStopLstn"])
 }
 
 func add2Rmt(indx int, txt string) {
@@ -353,7 +353,7 @@ func Snd() {
 		rmtTcp = rowTcpSock2.Selected
 		chn, ok := ezcomm.PeeMap[rmtTcp]
 		if !ok {
-			f.Log(true, ezcomm.StringTran["StrNoPeer4"], rmtTcp)
+			f.Log(ezcomm.StringTran["StrNoPeer4"], rmtTcp)
 			break
 		}
 		chn <- ezcomm.RoutCommStruc{
@@ -368,7 +368,7 @@ func (f GuiFyne) Rcv(comm ezcomm.RoutCommStruc) {
 	switch comm.Act {
 	case ezcomm.FlowChnRcv:
 		if comm.Err != nil {
-			f.Log(true, ezcomm.StringTran["StrFl2Rcv"], comm.Err)
+			f.Log(ezcomm.StringTran["StrFl2Rcv"], comm.Err)
 			break
 		}
 		cntRmt.SetText(comm.Data)
@@ -381,7 +381,7 @@ func (f GuiFyne) Rcv(comm ezcomm.RoutCommStruc) {
 		} else if comm.PeerTcp != nil {
 			peer = comm.PeerTcp.String()
 		} else {
-			f.Log(true, ezcomm.StringTran["StrGotFromSw"])
+			f.Log(ezcomm.StringTran["StrGotFromSw"])
 		}
 		if len(peer) > 0 {
 			if _, ok := ezcomm.RcvMap[peer]; !ok {
@@ -392,9 +392,9 @@ func (f GuiFyne) Rcv(comm ezcomm.RoutCommStruc) {
 			rowSockF.Refresh()
 			ezcomm.RecMap[peer] = append(ezcomm.RecMap[peer], comm.Data)
 			if eztools.Debugging && eztools.Verbose > 2 {
-				eztools.LogWtTime("<-", peer, comm.Data)
+				f.Log("<-", peer, comm.Data)
 			}
-			f.Log(true, ezcomm.StringTran["StrGotFrom"], peer)
+			f.Log(ezcomm.StringTran["StrGotFrom"], peer)
 		}
 		recRcv.Options = append(recRcv.Options, comm.Data)
 		ezcomm.RecSlc = append(ezcomm.RecSlc, comm.Data)
@@ -408,7 +408,7 @@ func (f GuiFyne) Ended(comm ezcomm.RoutCommStruc) {
 		if comm.PeerTcp != nil {
 			peer := comm.PeerTcp.String()
 			if ch, ok := ezcomm.PeeMap[peer]; !ok {
-				f.Log(true, ezcomm.StringTran["StrUnknownDsc"], peer)
+				f.Log(ezcomm.StringTran["StrUnknownDsc"], peer)
 			} else {
 				ch <- comm
 			}
@@ -422,7 +422,7 @@ func (f GuiFyne) Snt(comm ezcomm.RoutCommStruc) {
 	switch comm.Act {
 	case ezcomm.FlowChnSnd:
 		if comm.Err != nil {
-			f.Log(true, ezcomm.StringTran["StrFl2Snd"], comm.Err)
+			f.Log(ezcomm.StringTran["StrFl2Snd"], comm.Err)
 			break
 		}
 		var peer string
@@ -435,9 +435,9 @@ func (f GuiFyne) Snt(comm ezcomm.RoutCommStruc) {
 			peer = ezcomm.StringTran["StrSw"]
 		}
 		if eztools.Debugging && eztools.Verbose > 2 {
-			eztools.LogWtTime(">-", peer, comm.Data)
+			f.Log(">-", peer, comm.Data)
 		}
-		f.Log(true, ezcomm.StringTran["StrSnt2"], peer)
+		f.Log(ezcomm.StringTran["StrSnt2"], peer)
 		recSnd.Options = append(recSnd.Options, comm.Data)
 		if comm.PeerUdp != nil {
 			addrStr := comm.PeerUdp.String()

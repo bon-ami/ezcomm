@@ -20,12 +20,12 @@ func writeCfg() {
 	if err != nil {
 		/* TODO: fyne returns customized errors so I cannot check it now
 		if !errors.Is(err, os.ErrNotExist) {
-			eztools.Log("failed to write to config file", err)
+			f.Log("failed to write to config file", err)
 			return
 		}*/
 		cfgWriter, err = appStorage.Create(cfgFileName)
 		if err != nil {
-			eztools.Log("failed to create to config file", err)
+			f.Log("failed to create config file", err)
 			return
 		}
 		return
@@ -47,7 +47,7 @@ func makeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 			flowFnStt.SetText("")
 			defer flowFnStt.Refresh()
 			if err != nil {
-				eztools.LogWtTime("open flow file", err)
+				f.Log("open flow file", err)
 				flowFnTxt.SetText(ezcomm.StringTran["StrFlw"])
 				flowFnStt.SetText(ezcomm.StringTran["StrFlowOpenErr"])
 			}
@@ -63,7 +63,7 @@ func makeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 			flowFnTxt.Refresh()
 			resChn := make(chan bool)
 			if !ezcomm.RunFlowReaderBG(uri, resChn) {
-				eztools.LogWtTime("flow file NOT run", fn)
+				f.Log("flow file NOT run", fn)
 				flowFnStt.SetText(ezcomm.StringTran["StrFlowRunNot"])
 				flowFnStt.Refresh()
 				flowFlBut.Enable()
@@ -97,7 +97,7 @@ func makeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 			/*fyneCfgLogTxt.SetText("")
 			defer fyneCfgLogTxt.Refresh()*/
 			if err != nil {
-				eztools.LogWtTime("open log file", err)
+				f.Log("open log file", err)
 				return
 			}
 			if uri == nil {
@@ -140,7 +140,7 @@ func makeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 
 	fontRch := widget.NewRichTextWithText(ezcomm.StringTran["StrFntRch"])
 	langSel := widget.NewSelect(nil, func(str string) {
-		//eztools.LogWtTime("selecting", str)
+		//f.Log("selecting", str)
 		//loadStr(langMap[str])
 		if ezcomm.CfgStruc.Language == langMap[str] {
 			return
@@ -226,7 +226,7 @@ func useFontFromCfg(setTheme bool) (fontPath string, fontStaticIndx int) {
 	if len(cfg) < 1 {
 		return "", eztools.InvalidID
 	}
-	//eztools.Log("setting font=", cfg)
+	//f.Log("setting font=", cfg)
 	for i, fontBuiltin := range FontsBuiltin {
 		if cfg == fontBuiltin.locale {
 			if setTheme {
@@ -240,10 +240,10 @@ func useFontFromCfg(setTheme bool) (fontPath string, fontStaticIndx int) {
 	}
 	err := thm.SetFontByDir(cfg)
 	if err != nil {
-		eztools.Log("failed to set font", cfg, err)
+		f.Log("failed to set font", cfg, err)
 	} else {
 		if eztools.Debugging && eztools.Verbose > 2 {
-			eztools.Log("font set", cfg)
+			f.Log("font set", cfg)
 		}
 	}
 	return cfg, eztools.InvalidID
@@ -257,7 +257,7 @@ func matchFontFromCfg(dir string, indx int) {
 		fontSel.SetSelectedIndex(indx)
 	} else {
 		fontSel.ClearSelected()
-		//eztools.Log("font cleared")
+		//f.Log("font cleared")
 	}
 }
 
