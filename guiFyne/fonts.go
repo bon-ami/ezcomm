@@ -1,4 +1,4 @@
-package guiFyne
+package main
 
 import "fyne.io/fyne/v2"
 

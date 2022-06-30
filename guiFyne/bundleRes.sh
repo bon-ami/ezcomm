@@ -4,16 +4,20 @@ if [ $# -lt 2 ]; then
 else
         OP=""
         AP=""
+        AP_STR=" -a"
         if [ $# -gt 2 ]; then
                 OP="-o $3"
                 if [ -e "$3" ]; then
-                        AP=" -a"
+                        AP=$AP_STR
                 fi
         else
                 if [ -e "bundle.go" ]; then
-                        AP=" -a"
+                        AP=$AP_STR
                 fi
         fi
-        echo fyne bundle${AP} --name \"$2\" --pkg guiFyne $OP \"$1\"
-        fyne bundle${AP} --name "$2" --pkg guiFyne $OP "$1"
+        if [ "$AP" == "$AP_STR" ]; then
+                echo "appending"
+        fi
+        echo fyne bundle${AP} --name \"$2\" --pkg main $OP \"$1\"
+        fyne bundle${AP} --name "$2" --pkg main $OP "$1"
 fi

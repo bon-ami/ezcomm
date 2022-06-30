@@ -1,7 +1,0 @@
-Website = "https://ezproject.sourceforge.io/"
-
-[Details]
-  Icon = "Icon.png"
-  Name = "EZ Comm"
-  ID = "io.sourceforge.ezproject.ezcomm"
-  Build = 1

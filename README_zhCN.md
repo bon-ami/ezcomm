@@ -1,0 +1,49 @@
+# 易通信
+
+集TCP、UDP，客户端、服务器端于一体。用图形界面或流程脚本。
+
+## 开始
+
+到[发行版本](https://gitlab.com/bon-ami/ezcomm/-/releases)选择预编译二进制
+
+### 命令行
+
+在cmd目录下。只支持脚本模式。
+
+ - 以"-h"运行可显示可用参数。
+ - 以"-flow"加流程文件名参数运行可无图形界面运行流程脚本。流程脚本的书写参见sample.xml。
+
+### 图形界面
+
+代码在guiFyne目录下。使用了[fyne](https://fyne.io/)跨平台显示图形界面。
+
+功能
+
+ - TCP/UDP
+ - 服务器/客户端。服务器端面能向不同客户端改善不同消息。
+ - 发送/接收的消息历史
+ - 可定制且预置字体
+ - 多语言界面。当前支持语言：
+   - 英语
+   - 西班牙语
+   - 中文简体（中国）
+   - 中文繁体（台湾）
+
+## 问题
+
+由[Issues](https://gitlab.com/bon-ami/ezcomm/-/issues)跟踪
+
+## 需求与里程碑
+
+（英文）
+[需求](https://gitlab.com/bon-ami/ezcomm/-/requirements_management/requirements)
+[里程碑](https://gitlab.com/bon-ami/ezcomm/-/milestones)
+
+## 授权
+
+参见[COPYRIGHT](COPYRIGHT_zhCN)为[Apache V2.0](LICENSE-2.0.txt)（英文）基础上的明确发布说明.
+
+内置字体来自以下网站：
+
+ - 汉字简体 YRDZST Medium.ttf https://chinesefonts.org/
+ - 繁体汉字 YanKai.ttf https://cooltext.com/
