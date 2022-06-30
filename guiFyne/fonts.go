@@ -6,5 +6,6 @@ var FontsBuiltin = [...]struct {
 	locale string
 	res    *fyne.StaticResource
 }{
-	{"zh_CN", FontZhCn},
+	{"zh-CN", FontZhCn},
+	{"zh-TW", FontZhTw},
 }

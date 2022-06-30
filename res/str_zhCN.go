@@ -33,6 +33,7 @@ func I18n_zhCN() {
 		StrNon  = "无"
 		StrFnt      = "字体"
 		StrFnt4Lang = "为此语言设置此字体"
+		StrFnt4LangBuiltin = "建议为此语言使用内置字体"
 		StrFntRch   = "世界你好"
 		StrReboot4Change     = "应用重新启动后变化生效"
 

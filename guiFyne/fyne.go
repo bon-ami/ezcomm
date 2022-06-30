@@ -59,7 +59,7 @@ func (g GuiFyne) Run(ver, bld string) {
 	}
 	ezcomm.ReaderCfg(rdr, "")
 
-	useFontFromCfg(true)
+	useFontFromCfg(true, "")
 
 	meta := ezcApp.Metadata()
 	if len(meta.Version) > 0 && meta.Version != "0.0.0.0" {

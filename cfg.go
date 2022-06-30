@@ -137,12 +137,12 @@ func procCfg(paramLogI string) error {
 	}
 	if err == nil {
 		CfgStruc.Language = lang
-		MatchFontFromLanguage()
+		MatchFontFromCurrLanguageCfg()
 	}
 	return err
 }
 
-func MatchFontFromLanguage() {
+func MatchFontFromCurrLanguageCfg() {
 	if len(CfgStruc.Language) < 1 {
 		return
 	}

@@ -39,6 +39,7 @@ var (
 		"StrNon",
 		"StrFnt",
 		"StrFnt4Lang",
+		"StrFnt4LangBuiltin",
 		"StrReboot4Change",
 		"StrFntRch",
 		"StrVer",
@@ -87,6 +88,7 @@ func I18nInit() {
 	res.I18n_en()
 	res.I18n_es()
 	res.I18n_zhCN()
+	res.I18n_zhTW()
 	StringTran = make(map[string]string)
 }
 

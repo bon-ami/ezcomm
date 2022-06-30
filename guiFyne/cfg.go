@@ -123,11 +123,18 @@ func makeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 		writeCfg()
 	})
 	verboseSel.Options = []string{
-		ezcomm.StringTran["StrHh"], ezcomm.StringTran["StrMdm"], ezcomm.StringTran["StrLow"], ezcomm.StringTran["StrNon"],
+		ezcomm.StringTran["StrHgh"], ezcomm.StringTran["StrMdm"], ezcomm.StringTran["StrLow"], ezcomm.StringTran["StrNon"],
 	}
 	verboseSel.SetSelected(verbose2Str())
 
-	fontSel = widget.NewSelect(nil, nil)
+	rowFont := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrFnt"]))
+	fontSel = widget.NewSelect(nil, func(font string) {
+		suggestion, builtin := chkFontBltIn(font)
+		if builtin && len(suggestion) > 0 {
+			dialog.ShowInformation(ezcomm.StringTran["StrLang"],
+				ezcomm.StringTran["StrFnt4LangBuiltin"]+" "+suggestion, ezcWin)
+		}
+	})
 	fontSel.PlaceHolder = ezcomm.StringTran["StrFnt"]
 	for _, font := range FontsBuiltin {
 		fontSel.Options = append(fontSel.Options, font.locale)
@@ -136,10 +143,13 @@ func makeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 	for _, font := range ezcomm.ListSystemFonts([]string{".ttf"}) {
 		fontSel.Options = append(fontSel.Options, font)
 	}
-	//matchFontFromCfg()
 
 	fontRch := widget.NewRichTextWithText(ezcomm.StringTran["StrFntRch"])
+
+	rowLang := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrLang"]))
 	langSel := widget.NewSelect(nil, func(str string) {
+		prevMsgLang := ezcomm.StringTran["StrReboot4Change"] + "\n"
+		//prevMsgFont := ezcomm.StringTran["StrFnt4LangBuiltin"] + "\n"
 		//f.Log("selecting", str)
 		//loadStr(langMap[str])
 		if ezcomm.CfgStruc.Language == langMap[str] {
@@ -154,12 +164,13 @@ func makeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 			return
 		}
 		ezcomm.CfgStruc.Language = lang
-		ezcomm.MatchFontFromLanguage()
-		matchFontFromCfg(useFontFromCfg(true))
+		ezcomm.MatchFontFromCurrLanguageCfg()
+		markFont(useFontFromCfg(true, lang))
 		for _, v := range fontRch.Segments {
 			f.Log("richtext seg", v.Textual())
 		}
-		dialog.ShowInformation(ezcomm.StringTran["StrLang"], ezcomm.StringTran["StrReboot4Change"], ezcWin)
+		dialog.ShowInformation(ezcomm.StringTran["StrLang"], prevMsgLang+
+			ezcomm.StringTran["StrReboot4Change"], ezcWin)
 	})
 	langSel.PlaceHolder = ezcomm.StringTran["StrLang"]
 	eztools.ListLanguages(func(name, id string) {
@@ -170,7 +181,7 @@ func makeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 			langSel.SetSelected(full)
 		}
 	})
-	matchFontFromCfg(useFontFromCfg(false))
+	markFont(useFontFromCfg(false, ""))
 
 	fontBut := widget.NewButton(ezcomm.StringTran["StrFnt4Lang"], func() {
 		lang := langMap[langSel.Selected]
@@ -183,8 +194,8 @@ func makeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 
 	abtRow := container.NewCenter(widget.NewLabel(ezcomm.Ver + " - " + ezcomm.Bld))
 	return container.NewVBox(flowFnTxt, flowFlBut, flowFnStt,
-		logTxt, logBut, rowVerbose, verboseSel,
-		langSel, fontSel /*fontRch,*/, fontBut, abtRow)
+		logTxt, logBut, rowVerbose, verboseSel, rowLang,
+		langSel, rowFont, fontSel /*fontRch,*/, fontBut, abtRow)
 }
 
 func saveFontFromIndx(lang string) {
@@ -221,13 +232,31 @@ func saveFontFromIndx(lang string) {
 	writeCfg()
 }
 
-func useFontFromCfg(setTheme bool) (fontPath string, fontStaticIndx int) {
+func chkFontBltIn(font string) (suggestion string, builtin bool) {
+	indx := fontSel.SelectedIndex()
+	if indx < fontsNumBuiltin {
+		if ezcomm.CfgStruc.Language == FontsBuiltin[indx].locale {
+			return "", true
+		}
+	}
+	for _, fontBuiltin := range FontsBuiltin {
+		if ezcomm.CfgStruc.Language == fontBuiltin.locale {
+			return fontBuiltin.locale, true
+		}
+	}
+	return
+}
+
+func useFontFromCfg(setTheme bool, lang string) (fontPath string,
+	fontStaticIndx int) {
+	fontStaticIndx = eztools.InvalidID
 	cfg := ezcomm.CfgStruc.GetFont()
-	if len(cfg) < 1 {
-		return "", eztools.InvalidID
+	if len(lang) < 1 && len(cfg) < 1 {
+		return
 	}
 	//f.Log("setting font=", cfg)
 	for i, fontBuiltin := range FontsBuiltin {
+		//f.Log(lang, fontBuiltin.locale)
 		if cfg == fontBuiltin.locale {
 			if setTheme {
 				thm.SetFontByRes(fontBuiltin.res)
@@ -235,8 +264,9 @@ func useFontFromCfg(setTheme bool) (fontPath string, fontStaticIndx int) {
 			return "", i
 		}
 	}
+	fontPath = cfg
 	if !setTheme {
-		return cfg, eztools.InvalidID
+		return
 	}
 	err := thm.SetFontByDir(cfg)
 	if err != nil {
@@ -246,12 +276,16 @@ func useFontFromCfg(setTheme bool) (fontPath string, fontStaticIndx int) {
 			f.Log("font set", cfg)
 		}
 	}
-	return cfg, eztools.InvalidID
+	return
 }
 
-func matchFontFromCfg(dir string, indx int) {
+func markFont(dir string, indx int) {
+	//f.Log("marking", dir, indx)
 	if indx < 0 {
-		indx = ezcomm.MatchSystemFontsFromPath(dir) + fontsNumBuiltin
+		indx = ezcomm.MatchSystemFontsFromPath(dir)
+		if indx != eztools.InvalidID {
+			indx += fontsNumBuiltin
+		}
 	}
 	if indx >= 0 {
 		fontSel.SetSelectedIndex(indx)

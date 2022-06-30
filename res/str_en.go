@@ -33,6 +33,7 @@ func I18n_en() {
 		StrNon  = "none"
 		StrFnt      = "fonts"
 		StrFnt4Lang = "set this font for this language"
+		StrFnt4LangBuiltin = "suggest to use built-in font for this language"
 		StrFntRch   = "the quick brown fox jumps over the lazy dog"
 		StrReboot4Change     = "restart of this application will show the change"
 

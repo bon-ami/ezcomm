@@ -12,4 +12,7 @@ TCP/UDP, client & server all-in-one, with UI or flow script.
 Tracked by [Issues](https://gitlab.com/bon-ami/ezcomm/-/issues)
 
 ## License
-Refer to COPYRIGHT for Explicit Distribution Declaration
+Refer to COPYRIGHT for Explicit Distribution Declaration.
+Built-in fonts are from following sites.
+ - zhCN https://chinesefonts.org/
+ - zhTW https://cooltext.com/

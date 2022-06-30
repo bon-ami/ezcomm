@@ -33,6 +33,7 @@ func I18n_es() { // by bing.com
 		StrNon  = "ninguno"
 		StrFnt      = "fuentes"
 		StrFnt4Lang = "establecer esta fuente para este idioma"
+		StrFnt4LangBuiltin = "Le recomendamos que utilice fuentes integradas para este idioma"
 		StrFntRch   = "the quick brown fox jumps over the lazy dog"
 		StrReboot4Change     = "el reinicio de esta aplicación mostrará el cambio"
 
