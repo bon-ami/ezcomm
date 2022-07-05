@@ -234,7 +234,7 @@ func saveFontFromIndx(lang string) {
 
 func chkFontBltIn(font string) (suggestion string, builtin bool) {
 	indx := fontSel.SelectedIndex()
-	if indx < fontsNumBuiltin {
+	if indx >= 0 && indx < fontsNumBuiltin {
 		if ezcomm.CfgStruc.Language == FontsBuiltin[indx].locale {
 			return "", true
 		}

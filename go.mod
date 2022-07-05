@@ -3,13 +3,13 @@ module gitlab.com/bon-ami/ezcomm
 go 1.18
 
 require (
-	fyne.io/fyne/v2 v2.2.1
+	fyne.io/fyne/v2 v2.2.2
 	gitee.com/bon-ami/eztools/v4 v4.3.0
 	github.com/bon-ami/go-findfont v0.3.0
 )
 
 require (
-	fyne.io/systray v1.10.0 // indirect
+	fyne.io/systray v1.10.1-0.20220621085403-9a2652634e93 // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20200615164410-66371956d46c // indirect
 	github.com/BurntSushi/toml v1.1.0 // indirect
 	github.com/Xuanwo/go-locale v1.1.0 // indirect
