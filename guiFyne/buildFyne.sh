@@ -6,16 +6,17 @@ else
 	echo "Version $V"
 
         cp FyneApp.toml FyneApp.bak
-	echo building Android `grep "Build" FyneApp.toml`
-	fyne package -os android -appVersion $V
+	echo building Android 64 `grep "Build" FyneApp.toml`
+	fyne package -os android/arm64 -appVersion $V
 
         cp FyneApp.bak FyneApp.toml
         echo building Windows `grep "Build" FyneApp.toml`
         fyne package -os windows -appVersion $V
-        mv gui.exe "EZ_Comm.exe"
+        mv guiFyne.exe "EZ_Comm.exe"
 
-        cp FyneApp.bak FyneApp.toml
-        echo building Linux `grep "Build" FyneApp.toml`
-        fyne package -os linux -appVersion $V
+        #cp FyneApp.bak FyneApp.toml
+        #echo building Linux `grep "Build" FyneApp.toml`
+        #fyne package -os linux -appVersion $V
+
         echo `grep "Build" FyneApp.toml`
 fi

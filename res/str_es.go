@@ -4,7 +4,7 @@ import (
 	"gitee.com/bon-ami/eztools/v4"
 )
 
-func I18n_es() { // by bing.com
+func I18nEs() { // by bing.com
 	eztools.AddLanguage("es", `
 		StrInt = "interacción"
 		StrCfg = "configuración"

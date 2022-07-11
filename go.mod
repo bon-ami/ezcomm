@@ -3,7 +3,7 @@ module gitlab.com/bon-ami/ezcomm
 go 1.18
 
 require (
-	fyne.io/fyne/v2 v2.2.2
+	fyne.io/fyne/v2 v2.2.3
 	gitee.com/bon-ami/eztools/v4 v4.3.0
 	github.com/bon-ami/go-findfont v0.3.0
 )

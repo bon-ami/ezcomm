@@ -4,7 +4,7 @@ import (
 	"gitee.com/bon-ami/eztools/v4"
 )
 
-func I18n_en() {
+func I18nEn() {
 	eztools.AddLanguage("en", `
 		StrInt = "interative"
 		StrCfg = "config"

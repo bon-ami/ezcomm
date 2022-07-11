@@ -4,7 +4,7 @@ import (
 	"gitee.com/bon-ami/eztools/v4"
 )
 
-func I18n_zhTW() {
+func I18nZhtw() {
 	eztools.AddLanguage("zh-TW", `
 		StrInt = "交互"
 		StrCfg = "配置"

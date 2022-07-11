@@ -85,10 +85,11 @@ var (
 
 func I18nInit() {
 	eztools.InitLanguages()
-	res.I18n_en()
-	res.I18n_es()
-	res.I18n_zhCN()
-	res.I18n_zhTW()
+	res.I18nEn()
+	res.I18nEs()
+	res.I18nJa()
+	res.I18nZhcn()
+	res.I18nZhtw()
 	StringTran = make(map[string]string)
 }
 

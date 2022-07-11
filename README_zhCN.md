@@ -24,8 +24,9 @@
  - 发送/接收的消息历史
  - 可定制且预置字体
  - 多语言界面。当前支持语言：
-   - 英语
-   - 西班牙语
+   - 英文
+   - 西班牙文
+   - 日文
    - 中文简体（中国）
    - 中文繁体（台湾）
 
@@ -45,5 +46,6 @@
 
 内置字体来自以下网站：
 
+ - 日文 osaka.ttf https://cooltext.com/
  - 汉字简体 YRDZST Medium.ttf https://chinesefonts.org/
  - 繁体汉字 YanKai.ttf https://cooltext.com/

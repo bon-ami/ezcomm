@@ -27,6 +27,7 @@ Features
  - multilingual interface. Current languages:
    - English
    - Spanish
+   - Japanese
    - Chinese simplified (CN)
    - Chinese traditional (TW)
 
@@ -45,5 +46,6 @@ Refer to [COPYRIGHT](COPYRIGHT) for Explicit Distribution Declaration in additio
 
 Built-in fonts are from following sites.
 
- - zhCN YRDZST Medium.ttf https://chinesefonts.org/
- - zhTW YanKai.ttf https://cooltext.com/
+ - ja: Japanese. osaka.ttf https://cooltext.com/
+ - zhCN: Chinese Simplified. YRDZST Medium.ttf https://chinesefonts.org/
+ - zhTW: Chinese Traditional. YanKai.ttf https://cooltext.com/
