@@ -1,10 +1,8 @@
 @IF "%1" == "" (
 	ECHO "Version missing"
 ) ELSE (
-	@echo building Android
-	fyne package -os android -appVersion %1
-	@echo building Windows
-	fyne package -os windows -appVersion %1
-	@echo building Linux
-	fyne package -os linux -appVersion %1
+	@echo building Linux %1
+	cp FyneApp.toml FyneApp.bak
+	fyne-cross linux -arch=amd64 -name ezcomm -app-version %1
+	cp FyneApp.bak FyneApp.toml
 )
