@@ -4,15 +4,13 @@ import (
 	"errors"
 	"io"
 	"net"
+	"time"
 
 	"gitee.com/bon-ami/eztools/v4"
 )
 
+// Guis is for ezcomm (main module) -> users (UI)
 type Guis interface {
-	/*// GuiSetGlbPrm is run at the beginning,
-	//   to initialize following for ezcomm.
-	//   Ver, Bld, GuiConnected, GuiEnded, GuiLog, GuiRcv, GuiSnt
-	GuiSetGlbPrm
 	// Run is run at the end to handle UI in the main thread*/
 	Run(Ver, Bld string)
 	Log(...any)
@@ -23,6 +21,8 @@ type Guis interface {
 }
 
 var (
+	// ChanComm is for communication between ezcomm (main module) and users (UI)
+	// only [0] used for ui->ezcomm
 	ChanComm [2]chan RoutCommStruc
 	// Snd2Slc is for UDP peer display
 	Snd2Slc [2][]string
@@ -32,7 +32,16 @@ var (
 	RecSlc []string
 	RcvMap map[string]struct{}
 	PeeMap map[string]chan RoutCommStruc
-	gui    Guis
+	// AntiFlood is the limit of traffic from a peer
+	AntiFlood struct {
+		// Limit is for incoming traffic per second.
+		// negative values means limitless. 0 is a valid value.
+		Limit int64
+		// Period is to disconnect the peer immediatelyi,
+		// if it connects again since previous flood.
+		Period int64
+	}
+	gui Guis
 )
 
 func SetGui(g Guis) {
@@ -121,6 +130,25 @@ func ListeningTcp(lstnr net.Listener) {
 	}
 }
 
+func floodCtrl(floodStart, floodCount *int64, comm *RoutCommStruc) (ret bool) {
+	curr := time.Now().Unix()
+	if (curr - *floodStart) > 0 {
+		*floodStart = curr
+		*floodCount = 0
+		return
+	}
+	if *floodCount <= AntiFlood.Limit {
+		*floodCount++
+		return
+	}
+	if gui != nil {
+		comm.Act = FlowChnEnd
+		comm.Err = eztools.ErrAccess
+		gui.Ended(*comm)
+	}
+	return true
+}
+
 func ConnectedTcp(conn net.Conn) {
 	chn := make(chan RoutCommStruc, FlowComLen)
 	peer := conn.RemoteAddr()
@@ -131,6 +159,7 @@ func ConnectedTcp(conn net.Conn) {
 	buf := make([]byte, FlowRcvLen)
 	go func() {
 		defer Log("exiting routine peer", peer.String())
+		var floodStart, floodCount int64
 		for {
 			n, err := conn.Read(buf)
 			comm := RoutCommStruc{
@@ -138,14 +167,26 @@ func ConnectedTcp(conn net.Conn) {
 				PeerTcp: peer,
 				Err:     err,
 			}
+
+			var floodFunc func(floodStart, floodCount *int64, comm *RoutCommStruc) (ret bool)
+			if AntiFlood.Limit >= 0 {
+				floodFunc = floodCtrl
+			}
+
 			if err == nil {
 				comm.Data = string(buf[:n])
+				if floodFunc != nil && floodFunc(&floodStart, &floodCount, &comm) {
+					break
+				}
 			} else {
 				if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) {
-					comm.Act = FlowChnEnd
 					if gui != nil {
+						comm.Act = FlowChnEnd
 						gui.Ended(comm)
 					}
+					break
+				}
+				if floodFunc != nil && floodFunc(&floodStart, &floodCount, &comm) {
 					break
 				}
 			}
