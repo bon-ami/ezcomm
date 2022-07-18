@@ -75,15 +75,10 @@ func (g GuiFyne) Run(ver, bld string) {
 	ezcApp.Settings().SetTheme(&thm)
 	ezcWin := ezcApp.NewWindow(ezcomm.EzcName)
 
-	contLcl := makeControlsLcl()
-	contRmt := makeControlsRmt()
-
-	cont := container.NewGridWithColumns(2, contLcl, contRmt)
-
 	tabs := container.NewAppTabs(
-		container.NewTabItem(ezcomm.StringTran["StrInt"], cont),
-		container.NewTabItem(ezcomm.StringTran["StrInfLog"], makeControlsInfLog()),
-		container.NewTabItem(ezcomm.StringTran["StrCfg"], makeControlsCfg(ezcWin)),
+		container.NewTabItem(ezcomm.StringTran["StrInt"], makeTabMsg()),
+		container.NewTabItem(ezcomm.StringTran["StrInfLog"], makeTabLog()),
+		container.NewTabItem(ezcomm.StringTran["StrCfg"], makeTabCfg(ezcWin)),
 	)
 	ezcWin.SetContent(tabs)
 

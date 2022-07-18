@@ -33,7 +33,7 @@ func writeCfg() {
 	ezcomm.WriterCfg(cfgWriter)
 }
 
-func makeControlsCfg(ezcWin fyne.Window) *fyne.Container {
+func makeTabCfg(ezcWin fyne.Window) *fyne.Container {
 	// flow part begins
 	flowFnStt := widget.NewEntry()
 	flowFnStt.PlaceHolder = ezcomm.StringTran["StrStb"]
@@ -195,7 +195,7 @@ func makeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 	abtRow := container.NewCenter(widget.NewLabel(ezcomm.Ver + " - " + ezcomm.Bld))
 	return container.NewVBox(flowFnTxt, flowFlBut, flowFnStt,
 		logTxt, logBut, rowVerbose, verboseSel, rowLang,
-		langSel, rowFont, fontSel /*fontRch,*/, fontBut, abtRow)
+		langSel, rowFont, fontSel, fontRch, fontBut, abtRow)
 }
 
 func saveFontFromIndx(lang string) {

@@ -9,7 +9,7 @@ var (
 	fyneRowLog *Entry // widget.Entry
 )
 
-func makeControlsInfLog() *fyne.Container {
+func makeTabLog() *fyne.Container {
 	fyneRowLog = /*widget.*/ NewMultiLineEntry() //.NewList.NewTextGrid()
 	fyneRowLog.Disable()
 	/*eztools.SetLogFunc(func(p ...any) {

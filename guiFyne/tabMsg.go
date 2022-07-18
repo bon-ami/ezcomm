@@ -551,3 +551,7 @@ func makeControlsRmt() *fyne.Container {
 		rowFrm, rowSockF, rowRec)
 	return container.NewBorder(tops, nil, nil, nil, cntRmt)
 }
+
+func makeTabMsg() *fyne.Container {
+	return container.NewGridWithColumns(2, makeControlsLcl(), makeControlsRmt())
+}
