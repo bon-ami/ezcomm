@@ -80,6 +80,9 @@ var (
 		"StrSw",
 		"StrSnt2",
 		"StrInfLog",
+		"StrAntiFld",
+		"StrLmt",
+		"StrPrd",
 	}
 )
 

@@ -100,3 +100,10 @@ func (g GuiFyne) Run(ver, bld string) {
 		eztools.Log("UI done")
 	}*/
 }
+
+func validateInt64(str string) error {
+	if _, err := strconv.ParseInt(str, 10, 64); err != nil {
+		return err
+	}
+	return nil
+}

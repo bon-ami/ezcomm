@@ -77,5 +77,8 @@ func I18nJa() {
 		StrSw            = "どこかで"
 		StrSnt2          = "送信先"
 		StrInfLog        = "ログ"
+		StrAntiFld       = "アンチアタッ"
+		StrLmt = "1 秒あたりの制限"
+		StrPrd = "拒絶期間"
 	`)
 }

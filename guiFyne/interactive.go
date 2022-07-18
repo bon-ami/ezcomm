@@ -19,6 +19,19 @@ const (
 )
 
 var (
+	// snd2Slc is for UDP peer display
+	snd2Slc [2][]string
+	// sndMap is for UDP peer match
+	sndMap [2]map[string]struct{}
+	// recMap maps peer to incoming content
+	recMap map[string][]string
+	// recSlc records incoming content
+	recSlc []string
+	// rcvMap records whether anything ever received from a peer
+	rcvMap map[string]struct{}
+	// peeMap maps peer (addr) to channel of communication
+	peeMap map[string]chan ezcomm.RoutCommStruc
+
 	sockLcl, sockRmt                      [2]*widget.SelectEntry
 	recRcv, recSnd, rowTcpSock2, rowSockF *widget.Select
 	//selectCtrls    []*widget.SelectEntry
@@ -94,10 +107,10 @@ func getRmtSck() *net.UDPAddr {
 
 func sockF(str string) {
 	if str != ezcomm.StringTran["StrAll"] {
-		recRcv.Options = ezcomm.RecMap[str]
+		recRcv.Options = recMap[str]
 		return
 	}
-	recRcv.Options = ezcomm.RecSlc
+	recRcv.Options = recSlc
 }
 
 func butSnd(snd bool) {
@@ -160,7 +173,7 @@ func Lstn() {
 		setLclSck(addrStruc.String())
 		go ezcomm.ConnectedUdp(udpConn)
 	case ezcomm.StrTcp:
-		ezcomm.PeeMap = make(map[string]chan ezcomm.RoutCommStruc)
+		peeMap = make(map[string]chan ezcomm.RoutCommStruc)
 		var lstnr net.Listener
 		lstnr, err = ezcomm.ListenTcp(ezcomm.StrTcp, addr, ezcomm.ConnectedTcp, nil)
 		if err != nil {
@@ -188,9 +201,9 @@ func Lstn() {
 // Connect is for TCP only
 func Connect() {
 	pr := getRmtSckStr()
-	ezcomm.PeeMap = make(map[string]chan ezcomm.RoutCommStruc)
+	peeMap = make(map[string]chan ezcomm.RoutCommStruc)
 	chn := make(chan ezcomm.RoutCommStruc, ezcomm.FlowComLen)
-	ezcomm.PeeMap[pr] = chn
+	peeMap[pr] = chn
 	connDisable()
 	/*conn*/ _, err := ezcomm.Client(protRd.Selected, pr, ezcomm.ConnectedTcp)
 	if err != nil {
@@ -204,7 +217,8 @@ func Connect() {
 }
 
 // Connected is for TCP only
-func (f GuiFyne) Connected(lcl, rmt string) {
+func (f GuiFyne) Connected(lcl, rmt string, chn chan ezcomm.RoutCommStruc) {
+	peeMap[rmt] = chn
 	if ezcomm.ChanComm[0] == nil { //client
 		lstBut.Hide()
 		disBut.Show()
@@ -225,6 +239,9 @@ func (f GuiFyne) Connected(lcl, rmt string) {
 func Disconnected(rmt string) {
 	indx := -1
 	ln := len(rowTcpSock2.Options)
+	defer func() {
+		delete(peeMap, rmt)
+	}()
 	for i, v := range rowTcpSock2.Options {
 		if v == rmt {
 			indx = i
@@ -268,7 +285,7 @@ func Disconnected(rmt string) {
 // Disconn1 disconnect 1 peer TCP
 func Disconn1() {
 	rmtTcp := rowTcpSock2.Selected
-	chn, ok := ezcomm.PeeMap[rmtTcp]
+	chn, ok := peeMap[rmtTcp]
 	if !ok {
 		f.Log(ezcomm.StringTran["StrNoPeer4"], rmtTcp)
 		return
@@ -303,12 +320,12 @@ func add2Rmt(indx int, txt string) {
 		return
 	}
 	sndMap[indx][txt] = struct{}{}*/
-	if _, ok := ezcomm.SndMap[indx][txt]; ok {
+	if _, ok := sndMap[indx][txt]; ok {
 		return
 	}
-	ezcomm.SndMap[indx][txt] = struct{}{}
-	ezcomm.Snd2Slc[indx] = append(ezcomm.Snd2Slc[indx], txt)
-	sockRmt[indx].SetOptions(ezcomm.Snd2Slc[indx])
+	sndMap[indx][txt] = struct{}{}
+	snd2Slc[indx] = append(snd2Slc[indx], txt)
+	sockRmt[indx].SetOptions(snd2Slc[indx])
 }
 
 func Snd() {
@@ -351,7 +368,7 @@ func Snd() {
 		//GuiLog(true, "requested to send UDP")
 	case ezcomm.StrTcp:
 		rmtTcp = rowTcpSock2.Selected
-		chn, ok := ezcomm.PeeMap[rmtTcp]
+		chn, ok := peeMap[rmtTcp]
 		if !ok {
 			f.Log(ezcomm.StringTran["StrNoPeer4"], rmtTcp)
 			break
@@ -384,20 +401,20 @@ func (f GuiFyne) Rcv(comm ezcomm.RoutCommStruc) {
 			f.Log(ezcomm.StringTran["StrGotFromSw"])
 		}
 		if len(peer) > 0 {
-			if _, ok := ezcomm.RcvMap[peer]; !ok {
-				ezcomm.RcvMap[peer] = struct{}{}
+			if _, ok := rcvMap[peer]; !ok {
+				rcvMap[peer] = struct{}{}
 				rowSockF.Options = append(rowSockF.Options, peer)
 			}
 			rowSockF.SetSelected(peer)
 			rowSockF.Refresh()
-			ezcomm.RecMap[peer] = append(ezcomm.RecMap[peer], comm.Data)
+			recMap[peer] = append(recMap[peer], comm.Data)
 			if eztools.Debugging && eztools.Verbose > 2 {
 				f.Log("<-", peer, comm.Data)
 			}
 			f.Log(ezcomm.StringTran["StrGotFrom"], peer)
 		}
 		recRcv.Options = append(recRcv.Options, comm.Data)
-		ezcomm.RecSlc = append(ezcomm.RecSlc, comm.Data)
+		recSlc = append(recSlc, comm.Data)
 	}
 }
 
@@ -407,7 +424,7 @@ func (f GuiFyne) Ended(comm ezcomm.RoutCommStruc) {
 	case ezcomm.FlowChnEnd:
 		if comm.PeerTcp != nil {
 			peer := comm.PeerTcp.String()
-			if ch, ok := ezcomm.PeeMap[peer]; !ok {
+			if ch, ok := peeMap[peer]; !ok {
 				f.Log(ezcomm.StringTran["StrUnknownDsc"], peer)
 			} else {
 				ch <- comm
@@ -521,9 +538,9 @@ func makeControlsRmt() *fyne.Container {
 	rowFrm := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrFrm"]))
 
 	for i := 0; i < 2; i++ {
-		ezcomm.SndMap[i] = make(map[string]struct{})
+		sndMap[i] = make(map[string]struct{})
 	}
-	ezcomm.RcvMap = make(map[string]struct{})
+	rcvMap = make(map[string]struct{})
 	rowSockF = widget.NewSelect(nil, sockF)
 	rowSockF.Options = []string{ezcomm.StringTran["StrAll"]}
 
@@ -541,7 +558,7 @@ func makeControlsRmt() *fyne.Container {
 			}
 		}
 	})
-	ezcomm.RecMap = make(map[string][]string)
+	recMap = make(map[string][]string)
 	cntLbl := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrCnt"]))
 	rowRec := container.NewGridWithRows(3, recLbl, recRcv, cntLbl)
 

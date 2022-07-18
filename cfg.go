@@ -9,10 +9,12 @@ import (
 )
 
 const (
-	EzcName = "EZComm"
-	DefAdr  = "localhost"
-	StrUdp  = "udp"
-	StrTcp  = "tcp"
+	EzcName      = "EZComm"
+	DefAdr       = "localhost"
+	StrUdp       = "udp"
+	StrTcp       = "tcp"
+	DefAntFldLmt = 10
+	DefAntFldPrd = 60
 )
 
 var (
@@ -20,20 +22,33 @@ var (
 )
 
 type EzcommFonts struct {
-	Cmt    string `xml:",comment"`
+	// Cmt is not used
+	Cmt string `xml:",comment"`
+	// Locale is like zh-TW
 	Locale string `xml:"locale,attr"`
-	Font   string `xml:"font,attr"`
+	// Font is built-in names for fonts, which are locales,
+	// or paths of fonts
+	Font string `xml:"font,attr"`
 }
 type ezcommCfg struct {
 	// Cmt = comments
 	Cmt string `xml:",comment"`
 	// Txt is not used
 	//Txt      string `xml:",chardata"`
-	Verbose  int
-	LogFile  string
+	// Verbose is level 0-3
+	Verbose int
+	// LogFile is path to log file, if enabled
+	LogFile string
+	// Language is locale
 	Language string
-	Fonts    []EzcommFonts
-	font     string
+	// Fonts are configurations of fonts
+	Fonts []EzcommFonts
+	// font is current font path, or built-in fonts, which are locales
+	font string
+	// AntiFlood stores anti-flood config
+	AntiFlood struct {
+		Limit, Period int64
+	}
 }
 
 func (c ezcommCfg) GetFont() string {
@@ -77,6 +92,7 @@ func WriterCfg(wrt io.WriteCloser) error {
 
 func ReaderCfg(rdr io.ReadCloser, paramLogI string) error {
 	if rdr != nil {
+		setDefCfg()
 		eztools.XMLReader(rdr, &CfgStruc)
 		rdr.Close()
 	}
@@ -84,12 +100,18 @@ func ReaderCfg(rdr io.ReadCloser, paramLogI string) error {
 }
 
 func ReadCfg(cfg, paramLogI string) error {
+	setDefCfg()
 	cfgPath, _ = eztools.XMLReadDefault(cfg, EzcName, &CfgStruc)
 	if len(cfgPath) < 1 && len(cfg) > 0 {
 		// not exist yet?
 		cfgPath = cfg
 	}
 	return procCfg(paramLogI)
+}
+
+func setDefCfg() {
+	CfgStruc.AntiFlood.Limit = DefAntFldLmt
+	CfgStruc.AntiFlood.Period = DefAntFldPrd
 }
 
 func procCfg(paramLogI string) error {
@@ -138,6 +160,9 @@ func procCfg(paramLogI string) error {
 	if err == nil {
 		CfgStruc.Language = lang
 		MatchFontFromCurrLanguageCfg()
+	}
+	if CfgStruc.Verbose > 2 {
+		Log(CfgStruc)
 	}
 	return err
 }

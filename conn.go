@@ -16,7 +16,7 @@ type Guis interface {
 	Log(...any)
 	Rcv(RoutCommStruc)
 	Snt(RoutCommStruc)
-	Connected(string, string)
+	Connected(string, string, chan RoutCommStruc)
 	Ended(RoutCommStruc)
 }
 
@@ -24,14 +24,6 @@ var (
 	// ChanComm is for communication between ezcomm (main module) and users (UI)
 	// only [0] used for ui->ezcomm
 	ChanComm [2]chan RoutCommStruc
-	// Snd2Slc is for UDP peer display
-	Snd2Slc [2][]string
-	// SndMap is for UDP peer match
-	SndMap [2]map[string]struct{}
-	RecMap map[string][]string
-	RecSlc []string
-	RcvMap map[string]struct{}
-	PeeMap map[string]chan RoutCommStruc
 	// AntiFlood is the limit of traffic from a peer
 	AntiFlood struct {
 		// Limit is for incoming traffic per second.
@@ -152,7 +144,6 @@ func floodCtrl(floodStart, floodCount *int64, comm *RoutCommStruc) (ret bool) {
 func ConnectedTcp(conn net.Conn) {
 	chn := make(chan RoutCommStruc, FlowComLen)
 	peer := conn.RemoteAddr()
-	PeeMap[peer.String()] = chn
 	if gui != nil {
 		gui.Connected(conn.LocalAddr().String(), peer.String())
 	}

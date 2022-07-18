@@ -76,5 +76,8 @@ func I18nEs() { // by bing.com
 		StrSw            = "algún lado"
 		StrSnt2          = "enviado a"
 		StrInfLog        = "registro"
+		StrAntiFld       = "Antiataque"
+		StrLmt = "Límite por segundo"
+		StrPrd = "Plazo de denegación"
 	`)
 }

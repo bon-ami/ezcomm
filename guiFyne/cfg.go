@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strconv"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
@@ -34,6 +36,32 @@ func writeCfg() {
 }
 
 func makeControlsCfg(ezcWin fyne.Window) *fyne.Container {
+	rowFloodLbl := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrAntiFld"]))
+	floodLblLmt := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrLmt"]))
+	floodInpLmt := widget.NewEntry()
+	floodInpLmt.SetText(strconv.FormatInt(ezcomm.CfgStruc.AntiFlood.Limit, 10))
+	floodInpLmt.Validator = validateInt64
+	floodInpLmt.OnChanged = func(str string) {
+		if validateInt64(str) != nil {
+			return
+		}
+		ezcomm.CfgStruc.AntiFlood.Limit, _ = strconv.ParseInt(str, 10, 64)
+		writeCfg()
+	}
+	floodLblPrd := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrPrd"]))
+	floodInpPrd := widget.NewEntry()
+	floodInpPrd.SetText(strconv.FormatInt(ezcomm.CfgStruc.AntiFlood.Period, 10))
+	floodInpPrd.Validator = validateInt64
+	floodInpPrd.OnChanged = func(str string) {
+		if validateInt64(str) != nil {
+			return
+		}
+		ezcomm.CfgStruc.AntiFlood.Period, _ = strconv.ParseInt(str, 10, 64)
+		writeCfg()
+	}
+	rowFloodEnt := container.NewGridWithRows(2,
+		floodLblLmt, floodInpLmt, floodLblPrd, floodInpPrd)
+
 	// flow part begins
 	flowFnStt := widget.NewEntry()
 	flowFnStt.PlaceHolder = ezcomm.StringTran["StrStb"]
@@ -193,7 +221,8 @@ func makeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 	})
 
 	abtRow := container.NewCenter(widget.NewLabel(ezcomm.Ver + " - " + ezcomm.Bld))
-	return container.NewVBox(flowFnTxt, flowFlBut, flowFnStt,
+	return container.NewVBox(rowFloodLbl, rowFloodEnt,
+		flowFnTxt, flowFlBut, flowFnStt,
 		logTxt, logBut, rowVerbose, verboseSel, rowLang,
 		langSel, rowFont, fontSel /*fontRch,*/, fontBut, abtRow)
 }

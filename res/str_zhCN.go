@@ -76,5 +76,8 @@ func I18nZhcn() {
 		StrSw            = "某处"
 		StrSnt2          = "已发送到"
 		StrInfLog        = "日志"
+		StrAntiFld       = "防攻击"
+		StrLmt = "每秒限制"
+		StrPrd = "拒绝时长"
 	`)
 }
