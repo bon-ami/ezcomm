@@ -35,7 +35,7 @@ func writeCfg() {
 	ezcomm.WriterCfg(cfgWriter)
 }
 
-func makeControlsCfg(ezcWin fyne.Window) *fyne.Container {
+func makeTabCfg(ezcWin fyne.Window) *fyne.Container {
 	rowFloodLbl := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrAntiFld"]))
 	floodLblLmt := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrLmt"]))
 	floodInpLmt := widget.NewEntry()
@@ -157,7 +157,7 @@ func makeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 
 	rowFont := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrFnt"]))
 	fontSel = widget.NewSelect(nil, func(font string) {
-		suggestion, builtin := chkFontBltIn(font)
+		suggestion, builtin := chkFontBltIn()
 		if builtin && len(suggestion) > 0 {
 			dialog.ShowInformation(ezcomm.StringTran["StrLang"],
 				ezcomm.StringTran["StrFnt4LangBuiltin"]+" "+suggestion, ezcWin)
@@ -209,7 +209,7 @@ func makeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 			langSel.SetSelected(full)
 		}
 	})
-	markFont(useFontFromCfg(false, ""))
+	markFont(useFontFromCfg(false, ezcomm.CfgStruc.Language))
 
 	fontBut := widget.NewButton(ezcomm.StringTran["StrFnt4Lang"], func() {
 		lang := langMap[langSel.Selected]
@@ -224,7 +224,6 @@ func makeControlsCfg(ezcWin fyne.Window) *fyne.Container {
 	return container.NewVBox(rowFloodLbl, rowFloodEnt,
 		flowFnTxt, flowFlBut, flowFnStt,
 		logTxt, logBut, rowVerbose, verboseSel, rowLang,
-		langSel, rowFont, fontSel /*fontRch,*/, fontBut, abtRow)
 }
 
 func saveFontFromIndx(lang string) {
@@ -261,7 +260,7 @@ func saveFontFromIndx(lang string) {
 	writeCfg()
 }
 
-func chkFontBltIn(font string) (suggestion string, builtin bool) {
+func chkFontBltIn() (suggestion string, builtin bool) {
 	indx := fontSel.SelectedIndex()
 	if indx >= 0 && indx < fontsNumBuiltin {
 		if ezcomm.CfgStruc.Language == FontsBuiltin[indx].locale {
@@ -283,15 +282,25 @@ func useFontFromCfg(setTheme bool, lang string) (fontPath string,
 	if len(lang) < 1 && len(cfg) < 1 {
 		return
 	}
-	//f.Log("setting font=", cfg)
+	//f.Log("setting font=", cfg, ", lang=", lang)
 	for i, fontBuiltin := range FontsBuiltin {
-		//f.Log(lang, fontBuiltin.locale)
+		//f.Log("checking built-in", fontBuiltin.locale)
+		if len(cfg) < 1 {
+			if lang == fontBuiltin.locale {
+				ezcomm.CfgStruc.SetFont(lang)
+				thm.SetFontByRes(fontBuiltin.res)
+				return "", i
+			}
+		}
 		if cfg == fontBuiltin.locale {
 			if setTheme {
 				thm.SetFontByRes(fontBuiltin.res)
 			}
 			return "", i
 		}
+	}
+	if len(cfg) < 1 {
+		return
 	}
 	fontPath = cfg
 	if !setTheme {

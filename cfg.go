@@ -51,6 +51,10 @@ type ezcommCfg struct {
 	}
 }
 
+func (c ezcommCfg) SetFont(f string) {
+	c.font = f
+}
+
 func (c ezcommCfg) GetFont() string {
 	return c.font
 }

@@ -1,4 +1,7 @@
 *~
+*.bak
 *.log
+*.apk
 *.exe
-ezcomm
+*.stackdump
+passwd

@@ -59,7 +59,7 @@ func (g GuiFyne) Run(ver, bld string) {
 	}
 	ezcomm.ReaderCfg(rdr, "")
 
-	useFontFromCfg(true, "")
+	useFontFromCfg(true, ezcomm.CfgStruc.Language)
 
 	meta := ezcApp.Metadata()
 	if len(meta.Version) > 0 && meta.Version != "0.0.0.0" {
@@ -75,15 +75,10 @@ func (g GuiFyne) Run(ver, bld string) {
 	ezcApp.Settings().SetTheme(&thm)
 	ezcWin := ezcApp.NewWindow(ezcomm.EzcName)
 
-	contLcl := makeControlsLcl()
-	contRmt := makeControlsRmt()
-
-	cont := container.NewGridWithColumns(2, contLcl, contRmt)
-
 	tabs := container.NewAppTabs(
-		container.NewTabItem(ezcomm.StringTran["StrInt"], cont),
-		container.NewTabItem(ezcomm.StringTran["StrInfLog"], makeControlsInfLog()),
-		container.NewTabItem(ezcomm.StringTran["StrCfg"], makeControlsCfg(ezcWin)),
+		container.NewTabItem(ezcomm.StringTran["StrInt"], makeTabMsg()),
+		container.NewTabItem(ezcomm.StringTran["StrInfLog"], makeTabLog()),
+		container.NewTabItem(ezcomm.StringTran["StrCfg"], makeTabCfg(ezcWin)),
 	)
 	ezcWin.SetContent(tabs)
 
