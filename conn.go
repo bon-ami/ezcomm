@@ -4,61 +4,80 @@ import (
 	"errors"
 	"io"
 	"net"
+	"sync"
 	"time"
 
 	"gitee.com/bon-ami/eztools/v4"
 )
 
-// Guis is for ezcomm (main module) -> users (UI)
-type Guis interface {
-	// Run is run at the end to handle UI in the main thread*/
-	Run(Ver, Bld string)
-	Log(...any)
-	Rcv(RoutCommStruc)
-	Snt(RoutCommStruc)
-	Connected(string, string, chan RoutCommStruc)
-	Ended(RoutCommStruc)
-}
+// Uis is for ezcomm (main module) -> users (UI)
+//type Uis interface {
+// FuncLog is log function
+type FuncLog func(...any)
+
+// FuncConn is run when Connected.
+// addr=address info.
+//	[0]: parsed local
+//	[1]: remote
+//	[2]: requested protocol
+//	[3]: requested address
+type FuncConn func(addr [4]string, chn [2]chan RoutCommStruc)
+
+//}
 
 var (
-	// ChanComm is for communication between ezcomm (main module) and users (UI)
-	// only [0] used for ui->ezcomm
-	ChanComm [2]chan RoutCommStruc
 	// AntiFlood is the limit of traffic from a peer
 	AntiFlood struct {
 		// Limit is for incoming traffic per second.
-		// negative values means limitless. 0 is a valid value.
+		// negative values means limitless.
+		// 0=any incoming traffic causes disconnection
 		Limit int64
 		// Period is to disconnect the peer immediatelyi,
 		// if it connects again since previous flood.
+		// non-positive values means forever.
 		Period int64
+		// refused records time refused flood
+		refused map[string]int64
+		lock    sync.Mutex
 	}
-	gui Guis
 )
 
-func SetGui(g Guis) {
-	gui = g
-}
-
 type RoutCommStruc struct {
-	// Act=FlowChn* (>FlowChnMax)
-	Act     int
+	// ReqAddr is address from user
+	ReqAddr string
+	// Act=FlowChn*
+	Act int
+	// PeerUdp is filled, and required for FlowChnSnd by EZ Comm
 	PeerUdp *net.UDPAddr
+	// PeerTcp is filled, but not required by EZ Comm
 	PeerTcp net.Addr
-	Data    string
-	Resp    chan RoutCommStruc
-	Err     error
+	// raw message or file name
+	Data string
+	// Resp for SvrTcp and flow only
+	Resp chan RoutCommStruc
+	Err  error
 }
 
-func ConnectedUdp(conn *net.UDPConn) {
+// ConnectedUdp works for UDP, when remote can change
+//	It blocks.
+// chn[1] -> ui: FlowChnRcv, FlowChnSnd, FlowChnEnd
+// chn[0] <- ui: FlowChnSnd, FlowChnEnd
+func ConnectedUdp(logFunc FuncLog, chn [2]chan RoutCommStruc, conn *net.UDPConn) {
+	defer conn.Close()
 	buf := make([]byte, FlowRcvLen)
 	lcl := conn.LocalAddr().String()
 	go func() {
-		defer Log("exiting routine", lcl)
+		defer func() {
+			chn[1] <- RoutCommStruc{
+				Act: FlowChnEnd,
+			}
+			logFunc("exiting routine", lcl)
+		}()
+		floodRecs := make(map[string][2]int64)
 		for {
-			//Log("receiving UDP", conn.LocalAddr())
+			//logFunc("receiving UDP", conn.LocalAddr())
 			n, addr, err := conn.ReadFromUDP(buf)
-			//Log("received UDP", n, addr, err)
+			//logFunc("received UDP", n, addr, err)
 			if err != nil &&
 				(errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed)) {
 				return
@@ -67,178 +86,237 @@ func ConnectedUdp(conn *net.UDPConn) {
 				Act: FlowChnRcv,
 				Err: err,
 			}
+			peerAddr := addr.String()
+			if floodChk(peerAddr) {
+				continue
+			}
+			ok, recs := floodCtrl(func() [2]int64 {
+				recs, ok := floodRecs[peerAddr]
+				if ok {
+					return recs
+				}
+				return [2]int64{0, 0}
+			}, addr.String())
+			if ok {
+				continue
+			}
+			floodRecs[peerAddr] = recs
 			if err == nil {
 				comm.Data = string(buf[:n])
 				comm.PeerUdp = addr
 			}
-			//chanComm[1] <- comm
-			if gui != nil {
-				gui.Rcv(comm)
-			}
+			chn[1] <- comm
+			/*if ui != nil {
+				ui.Rcv(comm)
+			}*/
 		}
 	}()
-	//Log("listening on UDP", ChanComm[0])
+	//logFunc("listening on UDP", ChanComm)
 	for {
-		cmd := <-ChanComm[0]
+		//logFunc("command udp", chn, "waiting")
+		cmd := <-chn[0]
+		//logFunc("command udp", chn, cmd)
 		switch cmd.Act {
 		case FlowChnSnd:
 			/*if eztools.Debugging && eztools.Verbose > 2 {
-				Log("sending", cmd)
+				logFunc("sending", cmd)
 			}*/
 			_, err := conn.WriteToUDP([]byte(cmd.Data), cmd.PeerUdp)
-			/*chanComm[1] <- FlowCommStruc{
-				Act: FlowChnSnd,
-				Err: err,
-			}*/
+			//logFunc("UDP", cmd.PeerUdp, n, err)
 			comm := cmd
 			cmd.Err = err
-			if gui != nil {
-				gui.Snt(comm)
-			}
-			//Log("UDP sent", comm)
+			chn[1] <- comm
+			//logFunc("UDP sent", comm)
 		case FlowChnEnd:
-			for i := range ChanComm {
-				ChanComm[i] = nil
-			}
-			conn.Close()
-			Log("exiting", lcl)
+			logFunc("exiting", lcl)
 			return
 		}
 	}
 }
 
-func ListeningTcp(lstnr net.Listener) {
-	defer Log("exiting server", lstnr.Addr().String())
-	for {
-		cmd := <-ChanComm[0]
-		switch cmd.Act {
-		case FlowChnEnd:
-			lstnr.Close()
-			for i := range ChanComm {
-				ChanComm[i] = nil
-			}
-			return
-		}
-	}
+func ListeningTcp(logFunc FuncLog, chn [2]chan struct{}, lstnr net.Listener) {
+	defer logFunc("exiting TCP server routine", lstnr.Addr().String())
+	<-chn[0]
+	lstnr.Close()
+	return
 }
 
-func floodCtrl(floodStart, floodCount *int64, comm *RoutCommStruc) (ret bool) {
+func floodCtrl(getRecs func() [2]int64,
+	peerAddr string) (bool, [2]int64) {
+	if AntiFlood.Limit < 0 {
+		return false, [2]int64{0, 0}
+	}
+	floodRecs := getRecs()
 	curr := time.Now().Unix()
-	if (curr - *floodStart) > 0 {
-		*floodStart = curr
-		*floodCount = 0
-		return
+	if (curr - floodRecs[0]) > 0 {
+		floodRecs[0] = curr
+		floodRecs[1] = 0
+		return false, floodRecs
 	}
-	if *floodCount <= AntiFlood.Limit {
-		*floodCount++
-		return
+	if floodRecs[1] <= AntiFlood.Limit {
+		floodRecs[1]++
+		return false, floodRecs
 	}
-	if gui != nil {
-		comm.Act = FlowChnEnd
-		comm.Err = eztools.ErrAccess
-		gui.Ended(*comm)
+	if AntiFlood.Period > 0 {
+		AntiFlood.lock.Lock()
+		AntiFlood.refused[peerAddr] = curr
+		AntiFlood.lock.Unlock()
 	}
-	return true
+	return true, floodRecs
 }
 
-func ConnectedTcp(conn net.Conn) {
-	chn := make(chan RoutCommStruc, FlowComLen)
-	peer := conn.RemoteAddr()
-	if gui != nil {
-		gui.Connected(conn.LocalAddr().String(), peer.String())
+func floodChk(peerAddr string) bool {
+	if AntiFlood.Limit < 0 {
+		return false
 	}
+	AntiFlood.lock.Lock()
+	prev, ok := AntiFlood.refused[peerAddr]
+	AntiFlood.lock.Unlock()
+	if !ok {
+		return false
+	}
+	if AntiFlood.Period < 1 ||
+		AntiFlood.Period+prev > time.Now().Unix() {
+		return true
+	}
+	AntiFlood.lock.Lock()
+	delete(AntiFlood.refused, peerAddr)
+	AntiFlood.lock.Unlock()
+	return false
+}
+
+// ConnectedTcp also works for UDP, if remote does not change
+// Parameters:
+//	logFunc for logging
+//	connFunc is callback function upon entrance of this function.
+//		It runs in a routine.
+//	conn is the connection
+//	addrReq is address user requested, and varies between local/remote,
+//		when user creates a server (listen) or a client
+// -> ui: connFunc(), FlowChnRcv, FlowChnSnd, FlowChnEnd
+// <- ui: FlowChnSnd, FlowChnEnd // this may block routine from exiting, if too much incoming traffic not read
+func ConnectedTcp(logFunc FuncLog, connFunc FuncConn, conn net.Conn, addrReq [2]string) {
+	defer conn.Close()
+	peer := conn.RemoteAddr()
+	peerAddr := peer.String()
+	if floodChk(peerAddr) {
+		return
+	}
+	var chn [2]chan RoutCommStruc
+	for i := range chn {
+		chn[i] = make(chan RoutCommStruc, FlowComLen)
+	}
+	localAddr := conn.LocalAddr().String()
+	//if ui != nil {
+	go connFunc([...]string{localAddr, peerAddr,
+		addrReq[0], addrReq[1]}, chn)
+	//}
 	buf := make([]byte, FlowRcvLen)
 	go func() {
-		defer Log("exiting routine peer", peer.String())
-		var floodStart, floodCount int64
+		var floodRecs [2]int64
+		var comm RoutCommStruc
+		defer func() {
+			logFunc("exiting TCP", localAddr, "routine peer", peerAddr)
+			comm.Act = FlowChnEnd
+			chn[1] <- comm
+		}()
 		for {
+			//logFunc("TCP", localAddr, "to read")
 			n, err := conn.Read(buf)
-			comm := RoutCommStruc{
+			logFunc("TCP", localAddr, "read from", peerAddr, err)
+			comm = RoutCommStruc{
 				Act:     FlowChnRcv,
 				PeerTcp: peer,
 				Err:     err,
 			}
-
-			var floodFunc func(floodStart, floodCount *int64, comm *RoutCommStruc) (ret bool)
-			if AntiFlood.Limit >= 0 {
-				floodFunc = floodCtrl
+			floodChkTcp := func() bool {
+				var ok bool
+				ok, floodRecs = floodCtrl(
+					func() [2]int64 {
+						return floodRecs
+					}, peerAddr)
+				if ok {
+					logFunc("flooding")
+					//if ui != nil {
+					comm.Err = eztools.ErrAccess
+					//ui.Ended(*comm)
+					//}
+					return true
+				}
+				return false
 			}
 
 			if err == nil {
 				comm.Data = string(buf[:n])
-				if floodFunc != nil && floodFunc(&floodStart, &floodCount, &comm) {
-					break
-				}
 			} else {
-				if errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed) {
-					if gui != nil {
-						comm.Act = FlowChnEnd
-						gui.Ended(comm)
-					}
+				if errors.Is(err, io.EOF) ||
+					errors.Is(err, net.ErrClosed) {
+					//if ui != nil {
+					/*comm.Act = FlowChnEnd
+					chn[1] <- comm*/
+					//ui.Ended(comm)
+					//}
 					break
 				}
-				if floodFunc != nil && floodFunc(&floodStart, &floodCount, &comm) {
-					break
-				}
+				// reading on a closed TCP connection also reaches here
+				break
 			}
-			if gui != nil {
-				gui.Rcv(comm)
+			if floodChkTcp() {
+				comm.Err = eztools.ErrAccess
+				break
 			}
+			chn[1] <- comm
+			/*if ui != nil {
+				ui.Rcv(comm)
+			}*/
 		}
 	}()
 	for {
-		cmd := <-chn
+		cmd := <-chn[0]
+		logFunc(cmd, "got from user for", peerAddr)
 		switch cmd.Act {
 		case FlowChnSnd:
 			_, err := conn.Write([]byte(cmd.Data))
-			/*chanComm[1] <- FlowCommStruc{
-				Act: FlowChnSnd,
-				Err: err,
-			}*/
 			comm := cmd
 			comm.Err = err
 			comm.PeerTcp = peer
-			if gui != nil {
-				gui.Snt(comm)
-			}
+			chn[1] <- comm
 		case FlowChnEnd:
-			conn.Close()
-			Log("exiting peer", peer.String())
+			logFunc("exiting TCP connection routine", localAddr, "peer", peerAddr)
 			return
 		}
 	}
 }
 
-func Log(sth ...any) {
-	if gui != nil {
-		if eztools.Debugging {
-			gui.Log(sth...)
-		}
+/*func log(ui Uis, sth ...any) {
+	if !eztools.Debugging {
+		return
+	}
+	if ui != nil {
+		ui.Log(sth...)
 	} else {
 		eztools.LogPrint(sth...)
 	}
-}
+}*/
 
 // Client is mainly for TCP and Unix(not -gram). It ends immediately.
-//   fun() needs to handle procedures afterwards.
+//   lstnFunc() needs to handle procedures afterwards.
+//   returned conn needs to Close() by user.
 // UDP, IP and Unixgram will be tricky to track peer information,
 //   and preferrably use Listen*()
-func Client(network, address string,
-	fun func(net.Conn)) (net.Conn, error) {
-	/*if fun == nil {
-		eztools.LogFatal("no function to handle server")
-	}*/
-	conn, err := net.Dial(network, address)
+func Client(logFunc FuncLog, connFunc FuncConn,
+	network, rmtAddr string,
+	lstnFunc func(logFunc FuncLog, connFunc FuncConn,
+		conn net.Conn, rmtAddr [2]string)) (conn net.Conn, err error) {
+	conn, err = net.Dial(network, rmtAddr)
 	if err != nil {
-		return conn, err
+		return
 	}
 	//defer conn.Close()
-	if fun != nil {
-		go func() {
-			fun(conn)
-		}()
+	if lstnFunc != nil {
+		go lstnFunc(logFunc, connFunc, conn, [2]string{network, rmtAddr})
 	}
-	return conn, nil
+	return
 }
 
 // ListenIp listens to IP. It ends immediately.
@@ -303,35 +381,45 @@ func ListenUdp(network, address string) (*net.UDPConn, error) {
 //		"unix" or "unixpacket"
 //	fun handles incoming connections for TCP/unix and all connections for UDP
 //	errChan sends Accept errors for TCP
-func ListenTcp(network, address string, accepted func(net.Conn),
-	errChan chan error) (net.Listener, error) {
+func ListenTcp(logFunc FuncLog, connFunc FuncConn,
+	network, address string, accepted func(FuncLog,
+		FuncConn, net.Conn, [2]string), errChan chan error) (net.Listener, error) {
 	if accepted == nil {
 		eztools.LogFatal("no function to handle server")
 	}
-	//Log("to serve")
+	//log("to serve")
 	lstnr, err := net.Listen(network, address)
 	if err != nil {
 		return lstnr, err
 	}
-	//Log("serving", lstnr)
+	//log("serving", lstnr)
 	//defer lstnr.Close()
 	go func() {
+		var (
+			err  error
+			conn net.Conn
+		)
+		defer func() {
+			if errChan != nil {
+				errChan <- err
+			}
+			logFunc("exiting listener routine")
+		}()
 		for {
 			/*select {
 				case req := <-chnSvr:
 				switch req.cmd {
 				case EZCOMM_CMD_END:
 				}
-			case*/conn, err := lstnr.Accept() //:
+			case*/conn, err = lstnr.Accept() //:
 			if err != nil {
-				/*Log("accept failed", err)
+				logFunc("accept failed", err)
+				/*log("accept failed", err)
 				continue*/
-				if errChan != nil {
-					errChan <- err
-				}
 				break
 			}
-			go accepted(conn)
+			go accepted(logFunc, connFunc, conn,
+				[2]string{network, address})
 		}
 		//}
 	}()

@@ -90,7 +90,7 @@ func makeTabCfg(ezcWin fyne.Window) *fyne.Container {
 			flowFnTxt.SetText(fn)
 			flowFnTxt.Refresh()
 			resChn := make(chan bool)
-			if !ezcomm.RunFlowReaderBG(uri, resChn) {
+			if !ezcomm.RunFlowReaderBG(f, uri, resChn) {
 				f.Log("flow file NOT run", fn)
 				flowFnStt.SetText(ezcomm.StringTran["StrFlowRunNot"])
 				flowFnStt.Refresh()
@@ -224,6 +224,7 @@ func makeTabCfg(ezcWin fyne.Window) *fyne.Container {
 	return container.NewVBox(rowFloodLbl, rowFloodEnt,
 		flowFnTxt, flowFlBut, flowFnStt,
 		logTxt, logBut, rowVerbose, verboseSel, rowLang,
+		langSel, rowFont, fontSel /*fontRch,*/, fontBut, abtRow)
 }
 
 func saveFontFromIndx(lang string) {

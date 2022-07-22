@@ -71,10 +71,10 @@ func WriteCfg() error {
 		err = eztools.XMLWrite(cfgPath, CfgStruc, "\t")
 	}
 	if err != nil {
-		Log("failed to write config", cfgPath, err)
+		//log("failed to write config", cfgPath, err)
 		cfgPath, err = eztools.XMLWriteDefault(EzcName, CfgStruc, "\t")
 	}
-	resWriteCfg(err)
+	//resWriteCfg(err)
 	if err != nil {
 		cfgPath = ""
 		return err
@@ -82,15 +82,15 @@ func WriteCfg() error {
 	return err
 }
 
-func resWriteCfg(err error) {
-	Log("writing config", cfgPath,
+/*func resWriteCfg(err error) {
+	log("writing config", cfgPath,
 		CfgStruc, "with (no?) error", err)
-}
+}*/
 
 func WriterCfg(wrt io.WriteCloser) error {
 	err := eztools.XMLWriter(wrt, CfgStruc, "\t")
 	wrt.Close()
-	resWriteCfg(err)
+	//resWriteCfg(err)
 	return err
 }
 
@@ -143,7 +143,7 @@ func procCfg(paramLogI string) error {
 				paramLogO = EzcName + ".log"
 			}
 		}
-		Log("verbose", eztools.Verbose, ",log file =", paramLogO)
+		//log("verbose", eztools.Verbose, ",log file =", paramLogO)
 	}
 	if len(paramLogO) > 0 {
 		setLog(paramLogO)
@@ -165,9 +165,9 @@ func procCfg(paramLogI string) error {
 		CfgStruc.Language = lang
 		MatchFontFromCurrLanguageCfg()
 	}
-	if CfgStruc.Verbose > 2 {
-		Log(CfgStruc)
-	}
+	/*if CfgStruc.Verbose > 2 {
+		log(CfgStruc)
+	}*/
 	return err
 }
 
@@ -193,11 +193,11 @@ func setLog(fil string) error {
 	logger, err := os.OpenFile(fil,
 		os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err == nil {
-		if err = eztools.InitLogger(logger); err != nil {
-			Log(err)
-		}
-	} else {
-		Log("Failed to open log file "+fil, err)
+		/*if*/ err = eztools.InitLogger(logger) /*; err != nil {
+				log(err)
+			}
+		} else {
+			log("Failed to open log file "+fil, err)*/
 	}
 	return err
 }
