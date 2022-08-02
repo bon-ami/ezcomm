@@ -29,10 +29,6 @@ var (
 	recSlc []string
 	// rcvMap records whether anything ever received from a peer
 	rcvMap map[string]struct{}
-	// peeMap maps peer (addr) to channel of communication
-	peeMap map[string][2]chan ezcomm.RoutCommStruc
-	// chnsFrm consists channels from EZ Comm, peeMap[1]
-	chnsFrm []chan ezcomm.RoutCommStruc
 
 	sockLcl, sockRmt                      [2]*widget.SelectEntry
 	recRcv, recSnd, rowTcpSock2, rowSockF *widget.Select
@@ -115,8 +111,9 @@ func sockF(str string) {
 	recRcv.Options = recSlc
 }
 
+// butSnd set the send/conn button as Send
 func butSnd(snd bool) {
-	//GuiLog(true, "but snd", snd)
+	//Log("but snd", snd)
 	if snd {
 		sndBut.OnTapped = Snd
 		sndBut.SetText(ezcomm.StringTran["StrSnd"])
@@ -141,6 +138,7 @@ func butSndByProt(prot string) {
 	}
 }
 
+// sckRmt sets remote as single/combined sockets for TCP or UDP
 func sckRmt(single bool) {
 	if single {
 		rowUdpSock2.Hide()
@@ -152,6 +150,7 @@ func sckRmt(single bool) {
 }
 
 func Lstn() {
+	//Log("Listen clicked")
 	var (
 		err       error
 		addrStruc net.Addr
@@ -170,65 +169,111 @@ func Lstn() {
 		}
 		addrStruc = udpConn.LocalAddr()
 		setLclSck(addrStruc.String())
+		for i := range chn {
+			chn[i] = make(chan ezcomm.RoutCommStruc, ezcomm.FlowComLen)
+		}
 		go ezcomm.ConnectedUdp(Log, chn, udpConn)
+		clntRoutine()
 	case ezcomm.StrTcp:
-		peeMap = make(map[string][2]chan ezcomm.RoutCommStruc)
-		var lstnr net.Listener
-		lstnr, err = ezcomm.ListenTcp(Log, Connected, ezcomm.StrTcp, addr,
-			ezcomm.ConnectedTcp, nil)
+		err = svrTcp.Listen("", addr)
+		//var lstnr net.Listener
+		/*lstnr, err = ezcomm.ListenTcp(Log, Connected, ezcomm.StrTcp, addr,
+		ezcomm.ConnectedTcp, nil)*/
 		if err != nil {
+			//Log(ezcomm.StringTran["StrListeningOn"], err)
 			break
 		}
-		addrStruc = lstnr.Addr()
-		setLclSck(addrStruc.String())
-		butSnd(true)
-		sndBut.Disable()
-		sckRmt(true)
-		go ezcomm.ListeningTcp(Log, chn[0], lstnr)
 	}
 	if err != nil {
 		connEnable()
 		Log(ezcomm.StringTran["StrListeningOn"], err)
 	} else {
 		lstBut.OnTapped = Stop
-		Log(ezcomm.StringTran["StrListeningOn"], addrStruc.String())
+		if addrStruc != nil {
+			Log(ezcomm.StringTran["StrListeningOn"], addrStruc.String())
+		}
 	}
 }
 
 // Connect is for TCP only
 func Connect() {
+	//Log("Connect clicked")
 	pr := getRmtSckStr()
-	peeMap = make(map[string][2]chan ezcomm.RoutCommStruc)
-	/*chn := make(chan ezcomm.RoutCommStruc, ezcomm.FlowComLen)
-	peeMap[pr] = chn*/
 	connDisable()
-	/*conn*/ _, err := ezcomm.Client(Log, Connected, protRd.Selected,
+	/*conn*/ _, err := ezcomm.Client(Log, TcpClnConnected, protRd.Selected,
 		pr, ezcomm.ConnectedTcp)
 	if err != nil {
 		connEnable()
 		Log(ezcomm.StringTran["StrConnFail"]+pr, err)
 		return
 	}
-	//lstBut.OnTapped = guiFyneStp
+	//lstBut.OnTapped = Stop
 	sckRmt(true)
 	//guiFyneConnected(conn.LocalAddr().String(), conn.RemoteAddr().String())
 }
 
-func listenFrm() {
-
+func tcpConnAct(comm ezcomm.RoutCommStruc) {
+	//Log("act from connection", comm)
+	switch comm.Act {
+	case ezcomm.FlowChnRcv:
+		Rcv(comm)
+	case ezcomm.FlowChnEnd:
+		Ended(comm)
+	case ezcomm.FlowChnSnd:
+		Snt(comm)
+	}
 }
 
-// Connected is for TCP only
-func Connected(addr [2]string, chn [2]chan ezcomm.RoutCommStruc) {
-	peeMap[addr[1]] = chn
-	/*TODO:if chn == nil { //client
-		lstBut.Hide()
-		disBut.Show()
-	}*/
+// TcpClnConnected is TCP client routine
+func TcpClnConnected(addr [4]string, chnC [2]chan ezcomm.RoutCommStruc) {
+	for _, ch := range chnC {
+		if ch == nil {
+			connEnable()
+			Log(ezcomm.StringTran["StrConnFail"], addr[3], "flooding")
+			return
+		}
+	}
+	chn = chnC
+	svrConnected(addr)
+	TcpSvrConnected(addr)
+	lstBut.Hide()
+	clntRoutine()
+}
+
+// clntRoutine is for TCP client and UDP
+func clntRoutine() {
+	go func(chn chan ezcomm.RoutCommStruc) {
+		if eztools.Debugging && eztools.Verbose > 1 {
+			defer Log("client routine ends")
+		}
+		for {
+			comm := <-chn
+			tcpConnAct(comm)
+			if comm.Act == ezcomm.FlowChnEnd {
+				break
+			}
+		}
+	}(chn[1])
+}
+
+func svrConnected(addr [4]string) {
+	Log(ezcomm.StringTran["StrListeningOn"], addr[0])
+	//Log(addr)
+	setLclSck(addr[0])
 	butSnd(true)
+	sndBut.Disable()
+	sckRmt(true)
+}
+
+func TcpSvrConnected(addr [4]string) {
+	if len(addr[1]) < 1 {
+		svrConnected(addr)
+		return
+	}
+	//butSnd(true)
 	disBut.Show()
 	sndBut.Enable()
-	setLclSck(addr[0])
+	//setLclSck(addr[0])
 	rowTcpSock2.Options = append(rowTcpSock2.Options, addr[1])
 	if len(rowTcpSock2.Selected) < 1 {
 		rowTcpSock2.SetSelectedIndex(0)
@@ -241,9 +286,6 @@ func Connected(addr [2]string, chn [2]chan ezcomm.RoutCommStruc) {
 func Disconnected(rmt string) {
 	indx := -1
 	ln := len(rowTcpSock2.Options)
-	defer func() {
-		delete(peeMap, rmt)
-	}()
 	for i, v := range rowTcpSock2.Options {
 		if v == rmt {
 			indx = i
@@ -258,18 +300,27 @@ func Disconnected(rmt string) {
 		rowTcpSock2.Options = nil
 		rowTcpSock2.Selected = ""
 		rowTcpSock2.Refresh()
+		disBut.Enable()
 		disBut.Hide()
-		if lstBut.Hidden { //client
+		/*if lstBut.Hidden { //client
 			lstBut.Show()
 			connEnable()
 			//guiFyneSckRmt(false)
 			butSnd(false)
 			sndBut.Enable()
 			Log(rmt, ezcomm.StringTran["StrDisconnected"])
-		} else { //server
-			sndBut.Disable()
+		} else { //server*/
+		sndBut.Disable()
+		//if protRd.Selected == ezcomm.StrTcp {
+		if chn[0] == nil {
+			go chkSvrStopped(true)
 			Log(rmt, ezcomm.StringTran["StrDisconnected"], ".", ezcomm.StringTran["StrSvrIdle"])
+		} else {
+			svrStopped()
 		}
+		//} /*else {
+		//svrStopped()}*/
+		//}
 		return
 	}
 	// reorder the records
@@ -287,31 +338,66 @@ func Disconnected(rmt string) {
 // Disconn1 disconnect 1 peer TCP
 func Disconn1() {
 	rmtTcp := rowTcpSock2.Selected
-	chn, ok := peeMap[rmtTcp]
-	if !ok {
-		Log(ezcomm.StringTran["StrNoPeer4"], rmtTcp)
-		return
+	if chn[0] == nil {
+		svrTcp.Disconnect(rmtTcp)
+	} else {
+		disBut.Disable()
+		chn[0] <- ezcomm.RoutCommStruc{
+			Act: ezcomm.FlowChnEnd,
+		}
 	}
-	Log(ezcomm.StringTran["StrDisconnecting"], rmtTcp)
-	chn[0] <- ezcomm.RoutCommStruc{
-		Act: ezcomm.FlowChnEnd,
-	}
-	Disconnected(rmtTcp)
+	//Disconnected(rmtTcp)
 }
 
+func svrStopped() {
+	sckRmt(false)
+	connEnable()
+	if len(sockRmt[1].Text) > 0 {
+		sndBut.Enable()
+	}
+	butSndByProt(protRd.Selected)
+	lstBut.Enable()
+	lstBut.Show()
+	disBut.Enable()
+	disBut.Hide()
+	rowTcpSock2.Options = nil
+	for i := range chn {
+		chn[i] = nil
+	}
+}
+
+func chkSvrStopped(clients bool) {
+	svrTcp.Wait(clients)
+	if lstBut.Disabled() {
+		if svrTcp.HasStopped() {
+			svrStopped()
+		}
+	}
+}
+
+// Stop stops current server
 func Stop() {
-	chn[0] <- ezcomm.RoutCommStruc{
-		Act: ezcomm.FlowChnEnd,
-	}
-	if !disBut.Hidden { //clients still running
-		lstBut.Hide()
-	} else {
-		sckRmt(false)
-		connEnable()
-		butSndByProt(protRd.Selected)
-	}
 	lstBut.OnTapped = Lstn
 	Log(ezcomm.StringTran["StrStopLstn"])
+	if chn[0] != nil {
+		chn[0] <- ezcomm.RoutCommStruc{
+			Act: ezcomm.FlowChnEnd,
+		}
+	}
+	if protRd.Selected == ezcomm.StrTcp {
+		lstBut.Disable()
+		//if chn[0] == nil {
+		svrTcp.Stop()
+		go chkSvrStopped(false)
+		//}
+		return
+	}
+	disBut.Disable()
+	/*if !disBut.Hidden { //clients still running
+		lstBut.Hide()
+	} else {
+		svrStopped()
+	}*/
 }
 
 func add2Rmt(indx int, txt string) {
@@ -331,11 +417,8 @@ func add2Rmt(indx int, txt string) {
 }
 
 func Snd() {
-	var (
-		rmtUdp *net.UDPAddr
-		rmtTcp string
-	)
-	//GuiLog(true, "to send")
+	//Log("send clicked")
+	var rmtUdp *net.UDPAddr
 	if !protRd.Disabled() {
 		switch protRd.Selected {
 		case ezcomm.StrUdp: // listen before sending
@@ -354,37 +437,31 @@ func Snd() {
 			panic("NOT listening when sending")
 		}
 	}
+	comm := ezcomm.RoutCommStruc{
+		Act:  ezcomm.FlowChnSnd,
+		Data: cntLcl.Text,
+	}
 	switch protRd.Selected {
 	case ezcomm.StrUdp: // listen before sending
-		//GuiLog(true, "to send UDP")
+		//Log("to send UDP")
 		rmtUdp = getRmtSck()
 		if rmtUdp == nil {
 			return
 		}
-		//GuiLog(true, "requesting to send UDP", chn)
-		// TODO: use a channel replied from ezcomm?
-		chn[0] <- ezcomm.RoutCommStruc{
-			Act:     ezcomm.FlowChnSnd,
-			Data:    cntLcl.Text,
-			PeerUdp: rmtUdp,
-		}
-		//GuiLog(true, "requested to send UDP")
+		comm.PeerUdp = rmtUdp
 	case ezcomm.StrTcp:
-		rmtTcp = rowTcpSock2.Selected
-		chn, ok := peeMap[rmtTcp]
-		if !ok {
-			Log(ezcomm.StringTran["StrNoPeer4"], rmtTcp)
-			break
+		rmtTcp := rowTcpSock2.Selected
+		if chn[0] == nil {
+			svrTcp.Send(rmtTcp, cntLcl.Text, ezcomm.FlowChnSnd)
 		}
-		chn[0] <- ezcomm.RoutCommStruc{
-			Act:  ezcomm.FlowChnSnd,
-			Data: cntLcl.Text,
-		}
+	}
+	if chn[0] != nil {
+		chn[0] <- comm
 	}
 }
 
 func Rcv(comm ezcomm.RoutCommStruc) {
-	//GuiLog(true, "recv", comm)
+	//Log("recv", comm)
 	switch comm.Act {
 	case ezcomm.FlowChnRcv:
 		if comm.Err != nil {
@@ -421,24 +498,28 @@ func Rcv(comm ezcomm.RoutCommStruc) {
 	}
 }
 
-// Ended is run when TCP peer disconnected
+// Ended is run when peer disconnected
 func Ended(comm ezcomm.RoutCommStruc) {
 	switch comm.Act {
 	case ezcomm.FlowChnEnd:
 		if comm.PeerTcp != nil {
 			peer := comm.PeerTcp.String()
-			if ch, ok := peeMap[peer]; !ok {
-				Log(ezcomm.StringTran["StrUnknownDsc"], peer)
+			if chn[0] == nil {
+				svrTcp.Disconnect(peer) // maybe duplicate
 			} else {
-				ch[0] <- comm
+				chn[0] <- ezcomm.RoutCommStruc{
+					Act: ezcomm.FlowChnEnd,
+				}
 			}
 			Disconnected(peer)
+		} else {
+			svrStopped()
 		}
 	}
 }
 
 func Snt(comm ezcomm.RoutCommStruc) {
-	//GuiLog(true, "sent", comm)
+	//Log("sent", comm)
 	switch comm.Act {
 	case ezcomm.FlowChnSnd:
 		if comm.Err != nil {
@@ -488,6 +569,9 @@ func makeControlsLcl() *fyne.Container {
 	disBut.Hide()
 	rowProt := container.NewHBox(protRd, lstBut, disBut)
 	protRd.OnChanged = func(str string) {
+		if len(str) < 1 {
+			protRd.SetSelected("udp")
+		}
 		butSndByProt(str)
 	}
 

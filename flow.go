@@ -607,7 +607,7 @@ func (svr *FlowConnStruc) RunSvr(flow FlowStruc) {
 		lstnr, err := ListenTcp(eztools.Log, nil, svr.Protocol,
 			svr.Addr, func(logFunc FuncLog,
 				connFunc FuncConn, conn net.Conn, addr [2]string) {
-				svr.Connected(logFunc, connFunc, conn, [2]string{})
+				go svr.Connected(logFunc, connFunc, conn, [2]string{})
 			}, svr.chanErrs)
 		if err != nil {
 			eztools.LogWtTime(svr.Name, "failed to listen",

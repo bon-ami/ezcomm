@@ -204,7 +204,7 @@ func TestClient(t *testing.T) {
 
 func tstTCPSvr(addr [4]string, chn [2]chan RoutCommStruc) {
 	tstChnSvr[0] <- true
-	tstUDPSvr(tstChnSvr[1], chn)
+	go tstUDPSvr(tstChnSvr[1], chn)
 }
 
 func tstUDPSvr(fin chan bool, chn [2]chan RoutCommStruc) {

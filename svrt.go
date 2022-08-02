@@ -10,32 +10,32 @@ import (
 /* routines
               SvrTcp  |  ezcomm
               ======= | =======
-listening (Connected) | conn1:* ListeningTcp ListenTcp ConnectedTcp:2
-===================== | =============================================
-    |--------------------------------|-----------|
+listening (Connected) | connected:* ListenTcp ConnectedTcp:2
+===================== | ===================================
+    |-----------------------------------|
 
-        1 incoming connection                    |---------->
-                <---------------[2]channel, ezcomm----------|
-    <-channel[0]|channel[1]>
+        1 incoming connection           |-------------->
+                <-----[2]channel, ezcomm------------|
+    <-channel[0]|channel[1]->
 
                 incoming traffic
-    <-----chnLstn---------|<-------channel[1], ezcomm-------|
+    <-----chnLstn-----------|<-channel[1], ezcomm---|
 ChnConn[1]
 
                 outgoing traffic
-    |------------------------------channel[0], ezcomm------>|
+    |------------------channel[0], ezcomm---------->|
 ChnConn[0]
-    |----------break 1 connection-------------------------->^
+    |----------break 1 connection------------------>^
 ChnConn[0]
 
-    <----------1 connection broken--------------------------^
+    <----------1 connection broken-----------------^
 ChnConn[1]
     |--break 1 connection ->^
 
-    |----------stop listening--------^
+    |close listener
 ChnConn[0]
 
-    listening stopped, sending chnSvr             ^
+      listening stopped, sending chnSvr^
 
     ^ (listening stopped and no connections in existence)
 ChnConn[1]
@@ -52,19 +52,18 @@ type SvrTcp struct {
 	lstnr   net.Listener
 	// chnStp [0/1] when server/clients stopped
 	chnStp [2]chan struct{}
-	/*// ChnConn traffic, for all connections
-	ChnConn [2]chan RoutCommStruc*/
-	/*// peeMapIn maps EZ Comm channel to requested address
-	peeMapIn map[chan RoutCommStruc]string*/
 
-	// following must to be set by user
 	// LogFunc is not routine safe, for logging
+	// behavior undefined if not set
 	LogFunc FuncLog
 	// ActFunc is invoked in one routine, to user.
 	//	including FlowChnRcv, FlowChnEnd, FlowChnSnd
+	// behavior undefined if not set
 	ActFunc func(RoutCommStruc)
-	// ConnFunc is run in a routine, on a connection incoming
+	// ConnFunc runs in the routine for an incoming connection
+	//   It must not block
 	// also run on listening, to tell user of the actual address
+	// behavior undefined if not set
 	ConnFunc func([4]string)
 }
 
@@ -80,6 +79,7 @@ func (s SvrTcp) listening() {
 	}()
 	svrDone := false
 	chkDone := func() (noClients, allDone bool) {
+		//s.LogFunc("chkDone", peerMpO)
 		if len(peerMpO) < 1 {
 			return true, svrDone
 		} else {
@@ -87,12 +87,16 @@ func (s SvrTcp) listening() {
 		}
 	}
 	for {
+		//s.LogFunc("looping")
 		select {
 		case /*err :=*/ <-chnErr:
 			//s.LogFunc("chn err")
 			chnStp[0] <- struct{}{}
 			svrDone = true
-			if _, d := chkDone(); d {
+			if noClients, allDone := chkDone(); allDone {
+				if noClients && chnStp[1] != nil {
+					chnStp[1] <- struct{}{}
+				}
 				return
 			}
 			//if err == eztools.ErrAbort {
@@ -125,6 +129,9 @@ func (s SvrTcp) listening() {
 				} else {
 					s.LogFunc("adding peer", comm.ReqAddr)
 				}*/
+				if chnStp[1] == nil {
+					chnStp[1] = make(chan struct{}, 1)
+				}
 				peerMpO[comm.ReqAddr] = comm.Resp
 				// from user
 			case FlowChnSnd:
@@ -149,7 +156,7 @@ func (s SvrTcp) listening() {
 				comm.Act = FlowChnEnd
 				s.ActFunc(comm)
 				noClients, allDone := chkDone()
-				if noClients {
+				if noClients && chnStp[1] != nil {
 					chnStp[1] <- struct{}{}
 				}
 				if allDone {
@@ -162,45 +169,41 @@ func (s SvrTcp) listening() {
 	}
 }
 
-// conn1 is routine for 1 connectin from EZ Comm
-func (s SvrTcp) conn1(addr string, chn chan RoutCommStruc) {
-	if s.chnLstn == nil {
-		return
-	}
-	chnLstn := s.chnLstn
-	for {
-		comm := <-chn
-		//s.LogFunc("connection got", addr, comm)
-		comm.ReqAddr = addr
-		switch comm.Act {
-		case FlowChnSnd:
-			comm.Act = FlowChnSnt
-		case FlowChnEnd:
-			comm.Act = FlowChnDie
-		}
-		chnLstn <- comm
-		if comm.Act == FlowChnDie {
-			s.LogFunc("connection dieing", addr, chnLstn, comm)
-			break
-		}
-	}
-}
-
 // connected runs when a client comes in
 func (s SvrTcp) connected(addr [4]string, chn [2]chan RoutCommStruc) {
-	defer s.LogFunc("connection routine exit")
 	if s.chnLstn == nil {
 		s.LogFunc("NO listening channel!")
+		// should we panic?
 		return
 	}
-	addrReq := addr[1]
+	// to record this address-channel pair
 	s.chnLstn <- RoutCommStruc{
 		Act:     FlowChnLst,
-		ReqAddr: addrReq,
+		ReqAddr: addr[1],
 		Resp:    chn[0],
 	}
-	go s.ConnFunc(addr)
-	s.conn1(addrReq, chn[1])
+	s.ConnFunc(addr)
+
+	go func(chnLstn, chnComm chan RoutCommStruc, addr string) {
+		defer s.LogFunc("connection routine exit")
+		for {
+			comm := <-chnComm
+			s.LogFunc("connection got", addr, comm)
+			comm.ReqAddr = addr
+			switch comm.Act {
+			case FlowChnSnd:
+				comm.Act = FlowChnSnt
+			case FlowChnEnd:
+				comm.Act = FlowChnDie
+			}
+			chnLstn <- comm
+			if comm.Act == FlowChnEnd || comm.Act == FlowChnDie {
+				s.LogFunc("connection dieing",
+					addr, chnLstn, comm)
+				break
+			}
+		}
+	}(s.chnLstn, chn[1], addr[1])
 }
 
 // Send is routine safe
@@ -215,17 +218,29 @@ func (s SvrTcp) Send(addr, data string, act int) {
 	}
 }
 
+func (s SvrTcp) HasStopped() bool {
+	for _, ch := range s.chnStp {
+		if ch != nil {
+			return false
+		}
+	}
+	return true
+}
+
 // Listen returns whether successfully listening
 // ConnFunc is called before returning, with only listening address as the first member of the slice.
+// ConnFunc may be called after a client incomes and is reported because of routine schedules.
 func (s *SvrTcp) Listen(network, addr string) (err error) {
-	if /*s.chnSvr != nil ||*/ s.chnStp[0] != nil || s.chnStp[1] != nil {
+	//if [>s.chnSvr != nil ||<] s.chnStp[0] != nil || s.chnStp[1] != nil {
+	if !s.HasStopped() {
 		return eztools.ErrIncomplete
 	}
 	s.chnErr = make(chan error, 1)
 	s.chnLstn = make(chan RoutCommStruc, FlowComLen)
-	for i := range s.chnStp {
-		s.chnStp[i] = make(chan struct{}, 1)
-	}
+	//for i := range s.chnStp {
+	s.chnStp[0] = make(chan struct{}, 1)
+	// [1] is to be created when connected
+	//}
 	s.lstnr, err = ListenTcp(s.LogFunc, s.connected,
 		network, addr, ConnectedTcp, s.chnErr)
 	if err != nil {
@@ -233,11 +248,6 @@ func (s *SvrTcp) Listen(network, addr string) (err error) {
 	}
 	s.ConnFunc([4]string{s.lstnr.Addr().String(), "", "", ""})
 	//s.chnSvr = make(chan RoutCommStruc)
-	//go ListeningTcp(s.LogFunc, s.chnSvr, lstnr)
-	//s.peeMapIn = make(map[chan RoutCommStruc]string)
-	/*for i := range s.ChnConn {
-		s.ChnConn[i] = make(chan RoutCommStruc, FlowComLen)
-	}*/
 	go s.listening()
 	return nil
 }
@@ -249,6 +259,9 @@ func (s *SvrTcp) Wait(clients bool) {
 	switch clients {
 	case true:
 		indx = 1
+	}
+	if s.chnStp[indx] == nil {
+		return
 	}
 	<-s.chnStp[indx]
 	s.chnStp[indx] = nil

@@ -150,6 +150,10 @@ func procCfg(paramLogI string) error {
 		LogWtTime = true
 	}
 
+	// anti-flood
+	AntiFlood.Limit = CfgStruc.AntiFlood.Limit
+	AntiFlood.Period = CfgStruc.AntiFlood.Period
+
 	I18nInit()
 	var (
 		err  error

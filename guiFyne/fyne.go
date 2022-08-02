@@ -1,6 +1,7 @@
 package main
 
 import (
+	"runtime"
 	"strconv"
 
 	"fyne.io/fyne/v2"
@@ -13,17 +14,19 @@ import (
 var (
 	thm        theme4Fonts
 	appStorage fyne.Storage
-	//f          uiFyne
+	// chn is for TCP client and UDP
 	chn [2]chan ezcomm.RoutCommStruc
+	// svrTcp is for TCP server only
+	svrTcp ezcomm.SvrTcp
 )
 
 // uiFyne implements Uis
 //type uiFyne struct{}
 
 func main() {
-	for i := range chn {
+	/*for i := range chn {
 		chn[i] = make(chan ezcomm.RoutCommStruc, ezcomm.FlowComLen)
-	}
+	}*/
 	ezcApp := app.NewWithID(ezcomm.EzcName)
 	appStorage = ezcApp.Storage()
 	cfgFileName := ezcomm.EzcName + ".xml"
@@ -53,8 +56,15 @@ func main() {
 	)
 	ezcWin.SetContent(tabs)
 
+	svrTcp.ActFunc = tcpConnAct
+	svrTcp.ConnFunc = TcpSvrConnected
+	svrTcp.LogFunc = Log
+
 	ezcWin.Show()
 	ezcApp.Run()
+	if eztools.Debugging {
+		eztools.Log("routines left", runtime.NumGoroutine())
+	}
 }
 
 func validateInt64(str string) error {
