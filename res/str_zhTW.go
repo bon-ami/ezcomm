@@ -76,5 +76,8 @@ func I18nZhtw() {
 		StrSw            = "某處"
 		StrSnt2          = "已發送到"
 		StrInfLog        = "日誌"
+		StrAntiFld       = "反攻擊"
+		StrLmt = "每秒限制"
+		StrPrd = "駁回期限"
 	`)
 }

@@ -76,5 +76,8 @@ func I18nEn() {
 		StrSw            = "somewhere"
 		StrSnt2          = "sent to"
 		StrInfLog        = "log"
+		StrAntiFld       = "Anti Attack"
+		StrLmt = "Limit per second"
+		StrPrd = "Period of refusal"
 	`)
 }

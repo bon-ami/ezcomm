@@ -1,6 +1,8 @@
 package main
 
 import (
+	"strconv"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
@@ -20,12 +22,12 @@ func writeCfg() {
 	if err != nil {
 		/* TODO: fyne returns customized errors so I cannot check it now
 		if !errors.Is(err, os.ErrNotExist) {
-			f.Log("failed to write to config file", err)
+			Log("failed to write to config file", err)
 			return
 		}*/
 		cfgWriter, err = appStorage.Create(cfgFileName)
 		if err != nil {
-			f.Log("failed to create config file", err)
+			Log("failed to create config file", err)
 			return
 		}
 		return
@@ -34,6 +36,34 @@ func writeCfg() {
 }
 
 func makeTabCfg(ezcWin fyne.Window) *fyne.Container {
+	rowFloodLbl := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrAntiFld"]))
+	floodLblLmt := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrLmt"]))
+	floodInpLmt := widget.NewEntry()
+	floodInpLmt.SetText(strconv.FormatInt(ezcomm.CfgStruc.AntiFlood.Limit, 10))
+	floodInpLmt.Validator = validateInt64
+	floodInpLmt.OnChanged = func(str string) {
+		if validateInt64(str) != nil {
+			return
+		}
+		ezcomm.CfgStruc.AntiFlood.Limit, _ = strconv.ParseInt(str, 10, 64)
+		ezcomm.AntiFlood.Limit = ezcomm.CfgStruc.AntiFlood.Limit
+		writeCfg()
+	}
+	floodLblPrd := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrPrd"]))
+	floodInpPrd := widget.NewEntry()
+	floodInpPrd.SetText(strconv.FormatInt(ezcomm.CfgStruc.AntiFlood.Period, 10))
+	floodInpPrd.Validator = validateInt64
+	floodInpPrd.OnChanged = func(str string) {
+		if validateInt64(str) != nil {
+			return
+		}
+		ezcomm.CfgStruc.AntiFlood.Period, _ = strconv.ParseInt(str, 10, 64)
+		ezcomm.AntiFlood.Period = ezcomm.CfgStruc.AntiFlood.Period
+		writeCfg()
+	}
+	rowFloodEnt := container.NewGridWithRows(2,
+		floodLblLmt, floodInpLmt, floodLblPrd, floodInpPrd)
+
 	// flow part begins
 	flowFnStt := widget.NewEntry()
 	flowFnStt.PlaceHolder = ezcomm.StringTran["StrStb"]
@@ -47,7 +77,7 @@ func makeTabCfg(ezcWin fyne.Window) *fyne.Container {
 			flowFnStt.SetText("")
 			defer flowFnStt.Refresh()
 			if err != nil {
-				f.Log("open flow file", err)
+				Log("open flow file", err)
 				flowFnTxt.SetText(ezcomm.StringTran["StrFlw"])
 				flowFnStt.SetText(ezcomm.StringTran["StrFlowOpenErr"])
 			}
@@ -63,7 +93,7 @@ func makeTabCfg(ezcWin fyne.Window) *fyne.Container {
 			flowFnTxt.Refresh()
 			resChn := make(chan bool)
 			if !ezcomm.RunFlowReaderBG(uri, resChn) {
-				f.Log("flow file NOT run", fn)
+				Log("flow file NOT run", fn)
 				flowFnStt.SetText(ezcomm.StringTran["StrFlowRunNot"])
 				flowFnStt.Refresh()
 				flowFlBut.Enable()
@@ -97,7 +127,7 @@ func makeTabCfg(ezcWin fyne.Window) *fyne.Container {
 			/*fyneCfgLogTxt.SetText("")
 			defer fyneCfgLogTxt.Refresh()*/
 			if err != nil {
-				f.Log("open log file", err)
+				Log("open log file", err)
 				return
 			}
 			if uri == nil {
@@ -150,7 +180,7 @@ func makeTabCfg(ezcWin fyne.Window) *fyne.Container {
 	langSel := widget.NewSelect(nil, func(str string) {
 		prevMsgLang := ezcomm.StringTran["StrReboot4Change"] + "\n"
 		//prevMsgFont := ezcomm.StringTran["StrFnt4LangBuiltin"] + "\n"
-		//f.Log("selecting", str)
+		//Log("selecting", str)
 		//loadStr(langMap[str])
 		if ezcomm.CfgStruc.Language == langMap[str] {
 			return
@@ -160,14 +190,14 @@ func makeTabCfg(ezcWin fyne.Window) *fyne.Container {
 
 		lang, err := ezcomm.I18nLoad(ezcomm.CfgStruc.Language)
 		if err != nil {
-			f.Log("cannot set language", ezcomm.CfgStruc.Language, err)
+			Log("cannot set language", ezcomm.CfgStruc.Language, err)
 			return
 		}
 		ezcomm.CfgStruc.Language = lang
 		ezcomm.MatchFontFromCurrLanguageCfg()
 		markFont(useFontFromCfg(true, lang))
 		for _, v := range fontRch.Segments {
-			f.Log("richtext seg", v.Textual())
+			Log("richtext seg", v.Textual())
 		}
 		dialog.ShowInformation(ezcomm.StringTran["StrLang"], prevMsgLang+
 			ezcomm.StringTran["StrReboot4Change"], ezcWin)
@@ -181,7 +211,6 @@ func makeTabCfg(ezcWin fyne.Window) *fyne.Container {
 			langSel.SetSelected(full)
 		}
 	})
-	f.Log("lang=", ezcomm.CfgStruc.Language)
 	markFont(useFontFromCfg(false, ezcomm.CfgStruc.Language))
 
 	fontBut := widget.NewButton(ezcomm.StringTran["StrFnt4Lang"], func() {
@@ -194,9 +223,10 @@ func makeTabCfg(ezcWin fyne.Window) *fyne.Container {
 	})
 
 	abtRow := container.NewCenter(widget.NewLabel(ezcomm.Ver + " - " + ezcomm.Bld))
-	return container.NewVBox(flowFnTxt, flowFlBut, flowFnStt,
+	return container.NewVBox(rowFloodLbl, rowFloodEnt,
+		flowFnTxt, flowFlBut, flowFnStt,
 		logTxt, logBut, rowVerbose, verboseSel, rowLang,
-		langSel, rowFont, fontSel, fontRch, fontBut, abtRow)
+		langSel, rowFont, fontSel /*fontRch,*/, fontBut, abtRow)
 }
 
 func saveFontFromIndx(lang string) {
@@ -208,7 +238,7 @@ func saveFontFromIndx(lang string) {
 		font = ezcomm.MatchSystemFontsFromIndex(indx)
 	}
 	if len(font) < 1 {
-		f.Log("NO font found!", lang)
+		Log("NO font found!", lang)
 		return
 	}
 	// check whether already in config file
@@ -252,9 +282,12 @@ func useFontFromCfg(setTheme bool, lang string) (fontPath string,
 	fontStaticIndx int) {
 	fontStaticIndx = eztools.InvalidID
 	cfg := ezcomm.CfgStruc.GetFont()
-	//f.Log("setting font=", cfg, ", lang=", lang)
+	if len(lang) < 1 && len(cfg) < 1 {
+		return
+	}
+	//Log("setting font=", cfg, ", lang=", lang)
 	for i, fontBuiltin := range FontsBuiltin {
-		//f.Log("checking built-in", fontBuiltin.locale)
+		//Log("checking built-in", fontBuiltin.locale)
 		if len(cfg) < 1 {
 			if lang == fontBuiltin.locale {
 				ezcomm.CfgStruc.SetFont(lang)
@@ -278,17 +311,17 @@ func useFontFromCfg(setTheme bool, lang string) (fontPath string,
 	}
 	err := thm.SetFontByDir(cfg)
 	if err != nil {
-		f.Log("failed to set font", cfg, err)
+		Log("failed to set font", cfg, err)
 	} else {
 		if eztools.Debugging && eztools.Verbose > 2 {
-			f.Log("font set", cfg)
+			Log("font set", cfg)
 		}
 	}
 	return
 }
 
 func markFont(dir string, indx int) {
-	//f.Log("marking", dir, indx)
+	//Log("marking", dir, indx)
 	if indx < 0 {
 		indx = ezcomm.MatchSystemFontsFromPath(dir)
 		if indx != eztools.InvalidID {
@@ -299,7 +332,7 @@ func markFont(dir string, indx int) {
 		fontSel.SetSelectedIndex(indx)
 	} else {
 		fontSel.ClearSelected()
-		//f.Log("font cleared")
+		//Log("font cleared")
 	}
 }
 

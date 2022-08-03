@@ -12,19 +12,19 @@ import (
 )
 
 const (
-	tstBye             = "ciao"
-	tstSeparator       = ";"
-	TEST_READ_BUF_LEN  = 10
-	TEST_SIMUL_CLIENTS = 10
-	TEST_SERVER_TO     = 10
+	tstBye           = "ciao"
+	tstSeparator     = ";"
+	TestReadBufLen   = 10
+	TestSimulClients = 10
+	TestTimeout      = 30
 )
 
 var (
-	tstInitDone                        bool
-	tstProt, tstLcl, tstRmt, tstMsg    *string
-	tstVerbose, tstClntNo, tstMsgCount *int
-	tstClntRdMsg                       chan struct{}
-	tstSvrChan                         chan error
+	tstInitDone                     bool
+	tstProt, tstLcl, tstRmt, tstMsg *string
+	tstClntNo, tstMsgCount          *int
+	tstClntRdMsg                    chan struct{}
+	tstSvrChan                      chan struct{}
 )
 
 func init() {
@@ -33,11 +33,11 @@ func init() {
 	tstRmt = flag.String("rmt", "", "remote address")
 	tstMsg = flag.String("msg", "", "messages to send, separated by \""+tstSeparator+"\". \""+tstBye+"\" to end udp server")
 	tstMsgCount = flag.Int("msgCount", 0, "number of messages to send per client for TestSvrCln. default=all greek")
-	tstVerbose = flag.Int("verbose", 0, "verbose level. 0-3.")
-	tstClntNo = flag.Int("quan", TEST_SIMUL_CLIENTS, "quantity of clients. default="+strconv.Itoa(TEST_SIMUL_CLIENTS))
+	tstClntNo = flag.Int("quan", TestSimulClients, "quantity of clients. default="+strconv.Itoa(TestSimulClients))
 }
 
 func init4Tests(t *testing.T) {
+	tstClntId++
 	if tstInitDone {
 		return
 	}
@@ -45,242 +45,258 @@ func init4Tests(t *testing.T) {
 		panic(t)
 	}
 	tstInitDone = true
+	tstT = t
 	if !flag.Parsed() {
 		flag.Parse()
 	}
-	eztools.SetLogFunc(t.Log)
+	eztools.SetLogFunc(func(l ...any) {
+		func(m ...any) {
+			t.Log(m)
+		}(eztools.GetCallerLog(), l)
+	})
 	eztools.Debugging = true
-	eztools.Verbose = *tstVerbose
+	eztools.Verbose = 3
 	return
 }
+
+var (
+	tstClntId int
+	tstT      *testing.T
+	// tstChnClnt is for both start and stop
+	tstChnClnt chan struct{}
+	// tstChnSvr for start and stop
+	tstChnSvr [2]chan bool
+)
 
 func TestSvrCln(t *testing.T) {
 	init4Tests(t)
 	if len(*tstRmt) > 0 || len(*tstMsg) > 0 {
 		t.Skip("rmt & msg are ignored. msgCount and quan count.")
 	}
+	AntiFlood.Limit = -1
 	//*prot = "tcp"
-	tstSvrChan = make(chan error)
+	tstSvrChan = make(chan struct{})
 	tstClntRdMsg = make(chan struct{})
+	clnts := *tstClntNo
 	go func() {
 		TestServer(t)
 	}()
 	<-tstClntRdMsg // server ready
-	const (
-		CharHd = '\u0393'
-		CharTl = '\u03C9' + 1 /*bonjour*/
-	)
-	if *tstMsgCount <= 0 {
-		*tstMsgCount = CharTl - CharHd + 1
-		t.Log(CharTl, CharHd, *tstMsgCount)
-	}
-	*tstMsgCount += CharHd
-	clnts := *tstClntNo
-	if *tstVerbose > 2 {
-		t.Log("clnCount", clnts, "msgCount", *tstMsgCount)
-	}
 	chs := make([]chan struct{}, clnts)
 	for i := range chs {
 		chs[i] = make(chan struct{})
 	}
 	for i := 0; i < clnts; i++ {
-		a := strconv.Itoa(i)
-		*tstMsg = "bonjour"
-		for j := CharHd; j < rune(*tstMsgCount); j++ {
-			*tstMsg += tstSeparator + string(j)
-			*tstMsg += a
-		}
-		*tstClntNo = i
-		if *tstVerbose > 2 {
-			t.Log("client", i, *tstMsg)
-		}
 		go func(ind int) {
 			TestClient(t)
+			//t.Log("done for", ind)
 			chs[ind] <- struct{}{}
 		}(i)
 		<-tstClntRdMsg // next client available
 	}
 	for i := range chs {
+		//t.Log("waiting for", i)
 		<-chs[i]
 	}
 	*tstMsg = tstBye
-	*tstClntNo = -1
-	if *tstVerbose > 2 {
-		t.Log("client", *tstMsg)
-	}
+	t.Log("client", *tstMsg)
 	tstClntRdMsg = nil
 	TestClient(t)
-	if !strings.HasPrefix(*tstProt, "udp") {
+	if tstSvrChan != nil {
 		<-tstSvrChan
 	}
 }
 
+func tstClnt(addr [4]string, chn [2]chan RoutCommStruc) {
+	id := tstClntId
+	msg := *tstMsg
+	chn2Main := tstChnClnt
+	cnt := *tstMsgCount
+	chn2Main <- struct{}{}
+
+	defer func() {
+		chn2Main <- struct{}{}
+	}()
+	tstT.Log(addr)
+	ids := strconv.Itoa(id)
+	var msgs []string
+	if len(msg) < 1 {
+		const (
+			CharHd = '\u0393'
+			CharTl = '\u03C9'
+		)
+		msgs = append(msgs, "bonjour")
+		if cnt <= 0 {
+			cnt = CharTl - CharHd
+			tstT.Log(CharTl, CharHd, cnt)
+		}
+		cnt += CharHd
+		for j := CharHd; j < rune(cnt); j++ {
+			msgs = append(msgs, string(j)+ids)
+		}
+	} else {
+		msgs = strings.Split(msg, tstSeparator)
+	}
+ClientLoop:
+	for _, msg1 := range msgs {
+		chn[0] <- RoutCommStruc{
+			Act:  FlowChnSnd,
+			Data: msg1,
+		}
+		for {
+			select {
+			case comm := <-chn[1]:
+				if comm.Err != nil {
+					tstT.Error(comm.Err)
+					break ClientLoop
+				}
+				switch comm.Act {
+				case FlowChnRcv:
+					if comm.Data != msg1 {
+						tstT.Error("sent", msg1, "!=",
+							"got", comm.Data)
+						break ClientLoop
+					}
+					continue ClientLoop
+				case FlowChnSnd:
+					tstT.Log("sent", comm.Data)
+				default:
+					tstT.Log("got action?", comm.Act)
+				}
+			case <-time.After(time.Second * TestTimeout):
+				tstT.Log("client TO")
+				tstT.Error("reply NOT got from server!", ids)
+				break ClientLoop
+			}
+		}
+	}
+	return
+}
+
 func TestClient(t *testing.T) {
 	init4Tests(t)
-	if len(*tstRmt) < 1 || len(*tstMsg) < 1 {
-		t.Skip("rmt & msg needed")
+	AntiFlood.Limit = -1
+	if len(*tstRmt) < 1 {
+		t.Skip("rmt needed")
 	}
-	msgs := strings.Split(*tstMsg, tstSeparator)
-	clntId := *tstClntNo
-	if tstClntRdMsg != nil {
-		tstClntRdMsg <- struct{}{}
-	}
-	fin := make(chan struct{})
-	conn, err := Client(*tstProt, *tstRmt, func(conn net.Conn) {
-		defer func() {
-			if *tstVerbose > 1 {
-				t.Log("client dieing", clntId)
-			}
-			conn.Close()
-			fin <- struct{}{}
-		}()
-		if *tstVerbose > 0 {
-			t.Log(clntId, conn.LocalAddr(), "->", conn.RemoteAddr())
-		}
-		sndNrcv := func(msg string) error {
-			conn.Write([]byte(msg))
-			if *tstVerbose > 2 {
-				t.Log(clntId, "sent", msg)
-			}
-			buf := make([]byte, TEST_READ_BUF_LEN)
-			ln, err := conn.Read(buf)
-			if err != nil {
-				t.Log(err)
-			} else {
-				if string(buf[:ln]) != msg {
-					t.Error("sent", msg, "!=", "got", ln, buf[:ln])
-				} else {
-					if *tstVerbose > 2 {
-						t.Log(clntId, string(buf))
-					}
-				}
-			}
-			return nil //err
-		}
-		if *tstVerbose > 2 {
-			t.Log(clntId, "messages", msgs)
-		}
-		for _, msg1 := range msgs {
-			if sndNrcv(msg1) != nil {
-				return
-			}
-		}
-		if !strings.HasPrefix(*tstProt, "udp") {
-			sndNrcv(tstBye)
-		}
-	})
+	tstChnClnt = make(chan struct{}, 2)
+	id := tstClntId
+	conn, err := Client(t.Log, tstClnt,
+		*tstProt, *tstRmt, ConnectedTcp)
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
+		return
 	}
 	if conn == nil {
 		panic(conn)
 	}
-	defer conn.Close()
-	<-fin
-	if *tstVerbose > 1 {
-		t.Log("client died", clntId)
+	// wait for init
+	<-tstChnClnt
+	if tstClntRdMsg != nil {
+		// init done (for clntId)
+		tstClntRdMsg <- struct{}{}
+	}
+	// wait for end
+	<-tstChnClnt
+	eztools.Debugging = false // do not let conn routines to print since now
+	t.Log("client died", id)
+}
+
+func tstTCPSvr(addr [4]string, chn [2]chan RoutCommStruc) {
+	tstChnSvr[0] <- true
+	go tstUDPSvr(tstChnSvr[1], chn)
+}
+
+func tstUDPSvr(fin chan bool, chn [2]chan RoutCommStruc) {
+	wait4Rcvr := true
+	done := false
+	defer func() {
+		tstT.Log("exiting 1 connection")
+		if wait4Rcvr {
+			chn[0] <- RoutCommStruc{
+				Act: FlowChnEnd,
+			}
+			for {
+				comm := <-chn[1]
+				if comm.Act == FlowChnEnd {
+					break
+				}
+			}
+		}
+		if fin != nil {
+			fin <- done
+		}
+		tstT.Log("exit 1 connection")
+	}()
+	for {
+		comm := <-chn[1]
+		if comm.Err != nil {
+			tstT.Error(comm.Err)
+			wait4Rcvr = false
+			return
+		}
+		switch comm.Act {
+		case FlowChnEnd:
+			//tstT.Error(eztools.ErrIncomplete)
+			wait4Rcvr = false
+			return
+		case FlowChnSnd:
+			if comm.Data == tstBye {
+				tstT.Log("exiting server after bye sent")
+				done = true
+				return
+			}
+		case FlowChnRcv:
+			tstT.Log("server echoing", comm.Data)
+			comm.Act = FlowChnSnd
+			chn[0] <- comm
+		}
 	}
 }
 
 func TestServer(t *testing.T) {
 	init4Tests(t)
-	beg := make(chan struct{}, TEST_SIMUL_CLIENTS)
-	fin := make(chan struct{})
-	var svrWait bool
 	var (
 		conn  *net.UDPConn
 		lstnr net.Listener
 		err   error
 	)
+	AntiFlood.Limit = -1
 
+	id := tstClntId
+	t.Log("server", id, "will TO in 10 minutes!")
+	for i := range tstChnSvr {
+		tstChnSvr[i] = make(chan bool, TestSimulClients)
+	}
+	var chnEnd chan error
 	if strings.HasPrefix(*tstProt, "udp") {
 		conn, err = ListenUdp(*tstProt, *tstLcl)
 		if err != nil {
-			t.Fatal(err)
+			t.Error(err)
+			return
 		}
-		go func() {
-			beg <- struct{}{} // once only
-			defer func() {
-				if *tstVerbose > 2 {
-					t.Log("server dieing")
-				}
-				conn.Close()
-				fin <- struct{}{}
-			}()
-			for {
-				bytes := make([]byte, TEST_READ_BUF_LEN)
-				ln, addr, err := conn.ReadFromUDP(bytes)
-				if err != nil {
-					t.Log(err)
-					break
-				} else {
-					if ln < 1 {
-						t.Error(ln)
-					}
-					if *tstVerbose > 2 {
-						t.Log("svr:", addr.String(), string(bytes))
-					}
-				}
-				if _, err = conn.WriteToUDP(bytes[:ln], addr); err != nil {
-					t.Error(err)
-				}
-				if string(bytes[:ln]) == tstBye {
-					break
-				}
-			}
-		}()
+		var chn [2]chan RoutCommStruc
+		for i := range chn {
+			chn[i] = make(chan RoutCommStruc, TestReadBufLen)
+		}
+		go ConnectedUdp(t.Log, chn, conn)
+		tstChnSvr[0] <- true
+		go tstUDPSvr(tstChnSvr[1], chn)
 	} else {
-		if tstSvrChan == nil {
-			tstSvrChan = make(chan error)
-			svrWait = true
-		}
-		lstnr, err = ListenTcp(*tstProt, *tstLcl, func(conn net.Conn) {
-			beg <- struct{}{}
-			defer func() {
-				if *tstVerbose > 2 {
-					t.Log("server dieing")
-				}
-				conn.Close()
-				fin <- struct{}{}
-			}()
-			if *tstVerbose > 2 {
-				t.Log(conn.LocalAddr(), "<-", conn.RemoteAddr())
-			}
-			for {
-				bytes := make([]byte, TEST_READ_BUF_LEN)
-				ln, err := conn.Read(bytes)
-				if err != nil {
-					t.Log(err)
-					break
-				} else {
-					if ln < 1 {
-						t.Error(ln)
-					}
-					if *tstVerbose > 2 {
-						t.Log("svr:", string(bytes))
-					}
-				}
-				conn.Write(bytes[:ln])
-				if string(bytes[:ln]) == tstBye {
-					break
-				}
-			}
-		}, tstSvrChan)
+		chnEnd = make(chan error)
+		lstnr, err = ListenTcp(t.Log, tstTCPSvr, *tstProt, *tstLcl, ConnectedTcp, chnEnd)
 	}
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
+		return
 	}
-	/*if lstnr == nil && conn == nil {
-		panic(lstnr)
-	}*/
-	//defer conn.Close()
 	const lstn = "listening"
 	switch {
 	case lstnr != nil:
-		t.Log(lstn, lstnr.Addr())
+		t.Log(lstn, *tstProt, lstnr.Addr())
 		*tstRmt = lstnr.Addr().String() // to test clients
 	case conn != nil:
-		t.Log(lstn, conn.LocalAddr())
+		t.Log(lstn, *tstProt, conn.LocalAddr())
 		*tstRmt = conn.LocalAddr().String() // to test clients
 	default:
 		t.Error("no connection info")
@@ -288,30 +304,38 @@ func TestServer(t *testing.T) {
 	if tstClntRdMsg != nil {
 		tstClntRdMsg <- struct{}{}
 	}
-	<-beg
-	<-fin
-	switch {
-	case lstnr != nil:
-	SERVER_LOOP:
-		for {
-			select {
-			case <-time.After(time.Second * TEST_SERVER_TO):
-				break SERVER_LOOP
-			case <-beg:
-				<-fin
+	// wait for 1 connection
+	<-tstChnSvr[0]
+ServerLoop:
+	for {
+		t.Log("server waiting for end")
+		select {
+		case <-time.After(time.Second * TestTimeout):
+			t.Skip("server TO")
+			break ServerLoop
+		case <-tstChnSvr[0]:
+			t.Log("server waiting for 1 more end")
+		case done := <-tstChnSvr[1]:
+			t.Log("server waited for 1 more end")
+			if done {
+				break ServerLoop
 			}
 		}
+	}
+	t.Log("server to die")
+	if lstnr != nil {
 		lstnr.Close()
-		/*case conn != nil:
-		conn.Close()*/
 	}
-	if svrWait {
-		if *tstVerbose > 1 {
-			t.Log("waiting for server to die")
-		}
-		<-tstSvrChan
+	if conn != nil {
+		conn.Close()
 	}
-	if *tstVerbose > 1 {
-		t.Log("server died")
+	if chnEnd != nil { //TCP
+		t.Log("waiting for server to die")
+		<-chnEnd
+	}
+	eztools.Debugging = false // do not let conn routines to print since now
+	t.Log("server died")
+	if tstSvrChan != nil { //TCP
+		tstSvrChan <- struct{}{}
 	}
 }

@@ -9,10 +9,12 @@ import (
 )
 
 const (
-	EzcName = "EZComm"
-	DefAdr  = "localhost"
-	StrUdp  = "udp"
-	StrTcp  = "tcp"
+	EzcName      = "EZComm"
+	DefAdr       = "localhost"
+	StrUdp       = "udp"
+	StrTcp       = "tcp"
+	DefAntFldLmt = 10
+	DefAntFldPrd = 60
 )
 
 var (
@@ -20,20 +22,33 @@ var (
 )
 
 type EzcommFonts struct {
-	Cmt    string `xml:",comment"`
+	// Cmt is not used
+	Cmt string `xml:",comment"`
+	// Locale is like zh-TW
 	Locale string `xml:"locale,attr"`
-	Font   string `xml:"font,attr"`
+	// Font is built-in names for fonts, which are locales,
+	// or paths of fonts
+	Font string `xml:"font,attr"`
 }
 type ezcommCfg struct {
 	// Cmt = comments
 	Cmt string `xml:",comment"`
 	// Txt is not used
 	//Txt      string `xml:",chardata"`
-	Verbose  int
-	LogFile  string
+	// Verbose is level 0-3
+	Verbose int
+	// LogFile is path to log file, if enabled
+	LogFile string
+	// Language is locale
 	Language string
-	Fonts    []EzcommFonts
-	font     string
+	// Fonts are configurations of fonts
+	Fonts []EzcommFonts
+	// font is current font path, or built-in fonts, which are locales
+	font string
+	// AntiFlood stores anti-flood config
+	AntiFlood struct {
+		Limit, Period int64
+	}
 }
 
 func (c ezcommCfg) SetFont(f string) {
@@ -56,10 +71,10 @@ func WriteCfg() error {
 		err = eztools.XMLWrite(cfgPath, CfgStruc, "\t")
 	}
 	if err != nil {
-		Log("failed to write config", cfgPath, err)
+		//log("failed to write config", cfgPath, err)
 		cfgPath, err = eztools.XMLWriteDefault(EzcName, CfgStruc, "\t")
 	}
-	resWriteCfg(err)
+	//resWriteCfg(err)
 	if err != nil {
 		cfgPath = ""
 		return err
@@ -67,20 +82,21 @@ func WriteCfg() error {
 	return err
 }
 
-func resWriteCfg(err error) {
-	Log("writing config", cfgPath,
+/*func resWriteCfg(err error) {
+	log("writing config", cfgPath,
 		CfgStruc, "with (no?) error", err)
-}
+}*/
 
 func WriterCfg(wrt io.WriteCloser) error {
 	err := eztools.XMLWriter(wrt, CfgStruc, "\t")
 	wrt.Close()
-	resWriteCfg(err)
+	//resWriteCfg(err)
 	return err
 }
 
 func ReaderCfg(rdr io.ReadCloser, paramLogI string) error {
 	if rdr != nil {
+		setDefCfg()
 		eztools.XMLReader(rdr, &CfgStruc)
 		rdr.Close()
 	}
@@ -88,12 +104,18 @@ func ReaderCfg(rdr io.ReadCloser, paramLogI string) error {
 }
 
 func ReadCfg(cfg, paramLogI string) error {
+	setDefCfg()
 	cfgPath, _ = eztools.XMLReadDefault(cfg, EzcName, &CfgStruc)
 	if len(cfgPath) < 1 && len(cfg) > 0 {
 		// not exist yet?
 		cfgPath = cfg
 	}
 	return procCfg(paramLogI)
+}
+
+func setDefCfg() {
+	CfgStruc.AntiFlood.Limit = DefAntFldLmt
+	CfgStruc.AntiFlood.Period = DefAntFldPrd
 }
 
 func procCfg(paramLogI string) error {
@@ -121,12 +143,16 @@ func procCfg(paramLogI string) error {
 				paramLogO = EzcName + ".log"
 			}
 		}
-		Log("verbose", eztools.Verbose, ",log file =", paramLogO)
+		//log("verbose", eztools.Verbose, ",log file =", paramLogO)
 	}
 	if len(paramLogO) > 0 {
 		setLog(paramLogO)
 		LogWtTime = true
 	}
+
+	// anti-flood
+	AntiFlood.Limit = CfgStruc.AntiFlood.Limit
+	AntiFlood.Period = CfgStruc.AntiFlood.Period
 
 	I18nInit()
 	var (
@@ -143,6 +169,9 @@ func procCfg(paramLogI string) error {
 		CfgStruc.Language = lang
 		MatchFontFromCurrLanguageCfg()
 	}
+	/*if CfgStruc.Verbose > 2 {
+		log(CfgStruc)
+	}*/
 	return err
 }
 
@@ -168,11 +197,11 @@ func setLog(fil string) error {
 	logger, err := os.OpenFile(fil,
 		os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	if err == nil {
-		if err = eztools.InitLogger(logger); err != nil {
-			Log(err)
-		}
-	} else {
-		Log("Failed to open log file "+fil, err)
+		/*if*/ err = eztools.InitLogger(logger) /*; err != nil {
+				log(err)
+			}
+		} else {
+			log("Failed to open log file "+fil, err)*/
 	}
 	return err
 }

@@ -42,13 +42,23 @@ const (
 	FlowFilLen = 1024 * 1024
 )
 const (
+	// FlowChnLst is not used by EZ Comm
 	FlowChnLst = iota
-	FlowChnMax
-
+	// FlowChnEnd is to end a connection/server, to EZ Comm,
+	//	or, a connection ends, from EZ Comm
 	FlowChnEnd
+	// FlowChnDie is not used by EZ Comm
+	FlowChnDie
+	// FlowChnSnd is to send sth, to EZ Comm
+	//	or, sth is sent, from EZ Comm
 	FlowChnSnd
+	// FlowChnSnt is not used by EZ Comm
+	FlowChnSnt
+	// FlowChnSndFil is FlowChnSnt for files
 	FlowChnSndFil
+	// FlowChnRcv is sth received, from EZ Comm
 	FlowChnRcv
+	// FlowChnRcvFil is FlowChnRcv for files
 	FlowChnRcvFil
 )
 
@@ -96,7 +106,7 @@ type FlowConnStruc struct {
 	conn  *net.UDPConn
 	// chanErrs is for Server()
 	chanErrs chan error
-	chanStrs [FlowChnMax]chan string
+	chanStrs chan string
 	chanComm chan RoutCommStruc
 	// TODO: for ending
 	//chanStrus [FlowChnStrMax]chan struct{}
@@ -140,6 +150,7 @@ const (
 //  2nd. FlowParseVal*
 func (flow FlowStruc) ParseVar(str string,
 	fun func(int, string)) (string, int) {
+	//eztools.Log("parsevar enter", str)
 	if len(str) < 1 {
 		return str, FlowParseValSimple
 	}
@@ -164,11 +175,14 @@ func (flow FlowStruc) ParseVar(str string,
 		//eztools.Log("parsevar", vars[0], vars[1], *step1)
 		stepTp := reflect.TypeOf(*step1)
 		for i := 0; i < stepTp.NumField(); i++ {
-			if vars[1] != stepTp.Field(i).Tag.Get("xml") {
-				//eztools.Log("passing", stepTp.Field(i).Tag.Get("xml"))
+			fld := stepTp.Field(i)
+			tg := fld.Tag.Get("xml")
+			tg = strings.TrimSuffix(tg, ",attr")
+			if vars[1] != tg {
+				//eztools.Log("passing", tg)
 				continue
 			}
-			f := stepTp.FieldByIndex(stepTp.Field(i).Index)
+			f := stepTp.FieldByIndex(fld.Index)
 			v := reflect.ValueOf(*step1).FieldByName(f.Name)
 			//eztools.Log("got", v.String())
 			/*str, ok := v.(string)
@@ -304,12 +318,14 @@ func (conn FlowConnStruc) StepAll(flow *FlowStruc, steps []FlowStepStruc) {
 	}
 }
 
-func (connStruc *FlowConnStruc) Connected(connTcp net.Conn) {
+func (connStruc *FlowConnStruc) Connected(logFunc FuncLog,
+	connFunc FuncConn, connTcp net.Conn, addr [2]string) {
 	defer func() {
 		// duplcate for TCP server, but does not matter
 		connStruc.chanErrs <- eztools.ErrAbort
 	}()
 	for {
+		// TODO: replace all with log()
 		if eztools.Verbose > 2 {
 			eztools.LogWtTime(connStruc.Name, "waiting")
 		}
@@ -473,11 +489,11 @@ func (conn *FlowConnStruc) ParsePeer(flow FlowStruc) {
 		case FlowVarLst:
 			conn.wait4Svr = &flow.Conns[svrInd]
 			conn.wait4Act = FlowVarLst
-			if flow.Conns[svrInd].chanStrs[FlowChnLst] == nil {
-				flow.Conns[svrInd].chanStrs[FlowChnLst] = make(chan string, 1)
+			if flow.Conns[svrInd].chanStrs == nil {
+				flow.Conns[svrInd].chanStrs = make(chan string, 1)
 			} else {
-				curr := cap(flow.Conns[svrInd].chanStrs[FlowChnLst])
-				flow.Conns[svrInd].chanStrs[FlowChnLst] = make(chan string, curr+1)
+				curr := cap(flow.Conns[svrInd].chanStrs)
+				flow.Conns[svrInd].chanStrs = make(chan string, curr+1)
 			}
 			break
 		}
@@ -489,7 +505,7 @@ func (conn *FlowConnStruc) Wait4(flow FlowStruc) (ret string) {
 		return
 	}
 	conn.LockLog(conn.wait4Svr.Name, true)
-	ret = <-conn.wait4Svr.chanStrs[FlowChnLst]
+	ret = <-conn.wait4Svr.chanStrs
 	conn.LockLog(conn.wait4Svr.Name, false)
 	return ret
 }
@@ -548,10 +564,10 @@ func (cln *FlowConnStruc) RunCln(flow FlowStruc) {
 				"local", conn.LocalAddr().String())
 		}
 		go func() {
-			cln.Connected(nil)
+			cln.Connected(eztools.Log, nil, nil, [2]string{})
 		}()
 	} else {
-		conn, err := Client(cln.Protocol, cln.Peer, cln.Connected)
+		conn, err := Client(eztools.Log, nil, cln.Protocol, cln.Peer, cln.Connected)
 		if err != nil {
 			eztools.LogWtTime(cln.Name, "failed to connect to", cln.Peer)
 			return
@@ -585,12 +601,13 @@ func (svr *FlowConnStruc) RunSvr(flow FlowStruc) {
 			/*defer func() {
 				svr.conn.Close()
 			}()*/
-			svr.Connected(nil)
+			svr.Connected(eztools.Log, nil, nil, [2]string{})
 		}()
 	} else {
-		lstnr, err := ListenTcp(svr.Protocol,
-			svr.Addr, func(conn net.Conn) {
-				svr.Connected(conn)
+		lstnr, err := ListenTcp(eztools.Log, nil, svr.Protocol,
+			svr.Addr, func(logFunc FuncLog,
+				connFunc FuncConn, conn net.Conn, addr [2]string) {
+				go svr.Connected(logFunc, connFunc, conn, [2]string{})
 			}, svr.chanErrs)
 		if err != nil {
 			eztools.LogWtTime(svr.Name, "failed to listen",
@@ -607,15 +624,15 @@ func (svr *FlowConnStruc) RunSvr(flow FlowStruc) {
 			"local", svr.Addr)
 	}
 	//svr.lock.Unlock()
-	listeners := cap(svr.chanStrs[FlowChnLst])
+	listeners := cap(svr.chanStrs)
 	for i := 0; i < listeners; i++ {
-		svr.chanStrs[FlowChnLst] <- svr.Addr
+		svr.chanStrs <- svr.Addr
 	}
 }
 
 func runFlow(flow FlowStruc) bool {
 	if len(flow.Conns) < 1 {
-		Log("NO server defined. NO flow runs.")
+		eztools.Log("NO server defined. NO flow runs.")
 		return false
 	}
 	flow.Vals = make(map[string]*FlowStepStruc, 0)
@@ -648,13 +665,13 @@ func RunFlowReaderBG(rdr io.Reader, res chan bool) bool {
 	bytes, err := ioutil.ReadAll(rdr)
 	//n, err = uri.Read(bytes)
 	if err != nil {
-		Log("read flow file", err)
+		eztools.Log("read flow file", err)
 		return false
 	}
 	var flow FlowStruc
 	err = xml.Unmarshal(bytes, &flow)
 	if err != nil {
-		Log("parse flow file", err)
+		eztools.Log("parse flow file", err)
 		return false
 	}
 	go func() {
@@ -666,7 +683,7 @@ func RunFlowReaderBG(rdr io.Reader, res chan bool) bool {
 func RunFlowFile(file string) bool {
 	var flow FlowStruc
 	if err := eztools.XMLRead(file, &flow); err != nil {
-		Log(file, "failed to be read/parsed", err)
+		eztools.Log(file, "failed to be read/parsed", err)
 		return false
 	}
 	return runFlow(flow)

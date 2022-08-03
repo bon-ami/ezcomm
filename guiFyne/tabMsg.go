@@ -19,6 +19,17 @@ const (
 )
 
 var (
+	// snd2Slc is for UDP peer display
+	snd2Slc [2][]string
+	// sndMap is for UDP peer match
+	sndMap [2]map[string]struct{}
+	// recMap maps peer to incoming content
+	recMap map[string][]string
+	// recSlc records incoming content
+	recSlc []string
+	// rcvMap records whether anything ever received from a peer
+	rcvMap map[string]struct{}
+
 	sockLcl, sockRmt                      [2]*widget.SelectEntry
 	recRcv, recSnd, rowTcpSock2, rowSockF *widget.Select
 	//selectCtrls    []*widget.SelectEntry
@@ -46,7 +57,7 @@ func connDisable() {
 	lstBut.SetText(ezcomm.StringTran["StrStp"])
 }
 
-func (GuiFyne) Log(inf ...any) {
+func Log(inf ...any) {
 	if fyneRowLog != nil {
 		str := fmt.Sprintf("%s%v\n", time.Now().Format("01-02 15:04:05"), inf)
 		fyneRowLog.SetText(fyneRowLog.Text + //strconv.Itoa(rowLog.CursorRow) + ":" +
@@ -77,7 +88,7 @@ func getRmtSckStr() string {
 func getRmtSck() *net.UDPAddr {
 	ret, err := net.ResolveUDPAddr(protRd.Selected, getRmtSckStr())
 	if err != nil {
-		f.Log(err)
+		Log(err)
 		return nil
 	}
 	return ret
@@ -94,14 +105,15 @@ func getRmtSck() *net.UDPAddr {
 
 func sockF(str string) {
 	if str != ezcomm.StringTran["StrAll"] {
-		recRcv.Options = ezcomm.RecMap[str]
+		recRcv.Options = recMap[str]
 		return
 	}
-	recRcv.Options = ezcomm.RecSlc
+	recRcv.Options = recSlc
 }
 
+// butSnd set the send/conn button as Send
 func butSnd(snd bool) {
-	//GuiLog(true, "but snd", snd)
+	//Log("but snd", snd)
 	if snd {
 		sndBut.OnTapped = Snd
 		sndBut.SetText(ezcomm.StringTran["StrSnd"])
@@ -126,6 +138,7 @@ func butSndByProt(prot string) {
 	}
 }
 
+// sckRmt sets remote as single/combined sockets for TCP or UDP
 func sckRmt(single bool) {
 	if single {
 		rowUdpSock2.Hide()
@@ -137,15 +150,13 @@ func sckRmt(single bool) {
 }
 
 func Lstn() {
+	//Log("Listen clicked")
 	var (
 		err       error
 		addrStruc net.Addr
 	)
 	addr := sockLcl[0].Text + ":" + sockLcl[1].Text
 	connDisable()
-	for i := range ezcomm.ChanComm {
-		ezcomm.ChanComm[i] = make(chan ezcomm.RoutCommStruc, ezcomm.FlowComLen)
-	}
 	switch protRd.Selected {
 	case ezcomm.StrUdp:
 		var udpConn *net.UDPConn
@@ -158,66 +169,116 @@ func Lstn() {
 		}
 		addrStruc = udpConn.LocalAddr()
 		setLclSck(addrStruc.String())
-		go ezcomm.ConnectedUdp(udpConn)
+		for i := range chn {
+			chn[i] = make(chan ezcomm.RoutCommStruc, ezcomm.FlowComLen)
+		}
+		go ezcomm.ConnectedUdp(Log, chn, udpConn)
+		clntRoutine()
 	case ezcomm.StrTcp:
-		ezcomm.PeeMap = make(map[string]chan ezcomm.RoutCommStruc)
-		var lstnr net.Listener
-		lstnr, err = ezcomm.ListenTcp(ezcomm.StrTcp, addr, ezcomm.ConnectedTcp, nil)
+		err = svrTcp.Listen("", addr)
+		//var lstnr net.Listener
+		/*lstnr, err = ezcomm.ListenTcp(Log, Connected, ezcomm.StrTcp, addr,
+		ezcomm.ConnectedTcp, nil)*/
 		if err != nil {
+			//Log(ezcomm.StringTran["StrListeningOn"], err)
 			break
 		}
-		addrStruc = lstnr.Addr()
-		setLclSck(addrStruc.String())
-		butSnd(true)
-		sndBut.Disable()
-		sckRmt(true)
-		go ezcomm.ListeningTcp(lstnr)
 	}
 	if err != nil {
-		for i := range ezcomm.ChanComm {
-			ezcomm.ChanComm[i] = nil
-		}
 		connEnable()
-		f.Log(ezcomm.StringTran["StrListeningOn"], err)
+		Log(ezcomm.StringTran["StrListeningOn"], err)
 	} else {
 		lstBut.OnTapped = Stop
-		f.Log(ezcomm.StringTran["StrListeningOn"], addrStruc.String())
+		if addrStruc != nil {
+			Log(ezcomm.StringTran["StrListeningOn"], addrStruc.String())
+		}
 	}
 }
 
 // Connect is for TCP only
 func Connect() {
+	//Log("Connect clicked")
 	pr := getRmtSckStr()
-	ezcomm.PeeMap = make(map[string]chan ezcomm.RoutCommStruc)
-	chn := make(chan ezcomm.RoutCommStruc, ezcomm.FlowComLen)
-	ezcomm.PeeMap[pr] = chn
 	connDisable()
-	/*conn*/ _, err := ezcomm.Client(protRd.Selected, pr, ezcomm.ConnectedTcp)
+	/*conn*/ _, err := ezcomm.Client(Log, TcpClnConnected, protRd.Selected,
+		pr, ezcomm.ConnectedTcp)
 	if err != nil {
 		connEnable()
-		f.Log(ezcomm.StringTran["StrConnFail"]+pr, err)
+		Log(ezcomm.StringTran["StrConnFail"]+pr, err)
 		return
 	}
-	//lstBut.OnTapped = guiFyneStp
+	//lstBut.OnTapped = Stop
 	sckRmt(true)
 	//guiFyneConnected(conn.LocalAddr().String(), conn.RemoteAddr().String())
 }
 
-// Connected is for TCP only
-func (f GuiFyne) Connected(lcl, rmt string) {
-	if ezcomm.ChanComm[0] == nil { //client
-		lstBut.Hide()
-		disBut.Show()
+func tcpConnAct(comm ezcomm.RoutCommStruc) {
+	//Log("act from connection", comm)
+	switch comm.Act {
+	case ezcomm.FlowChnRcv:
+		Rcv(comm)
+	case ezcomm.FlowChnEnd:
+		Ended(comm)
+	case ezcomm.FlowChnSnd:
+		Snt(comm)
 	}
+}
+
+// TcpClnConnected is TCP client routine
+func TcpClnConnected(addr [4]string, chnC [2]chan ezcomm.RoutCommStruc) {
+	for _, ch := range chnC {
+		if ch == nil {
+			connEnable()
+			Log(ezcomm.StringTran["StrConnFail"], addr[3], "flooding")
+			return
+		}
+	}
+	chn = chnC
+	svrConnected(addr)
+	TcpSvrConnected(addr)
+	lstBut.Hide()
+	clntRoutine()
+}
+
+// clntRoutine is for TCP client and UDP
+func clntRoutine() {
+	go func(chn chan ezcomm.RoutCommStruc) {
+		if eztools.Debugging && eztools.Verbose > 1 {
+			defer Log("client routine ends")
+		}
+		for {
+			comm := <-chn
+			tcpConnAct(comm)
+			if comm.Act == ezcomm.FlowChnEnd {
+				break
+			}
+		}
+	}(chn[1])
+}
+
+func svrConnected(addr [4]string) {
+	Log(ezcomm.StringTran["StrListeningOn"], addr[0])
+	//Log(addr)
+	setLclSck(addr[0])
 	butSnd(true)
+	sndBut.Disable()
+	sckRmt(true)
+}
+
+func TcpSvrConnected(addr [4]string) {
+	if len(addr[1]) < 1 {
+		svrConnected(addr)
+		return
+	}
+	//butSnd(true)
 	disBut.Show()
 	sndBut.Enable()
-	setLclSck(lcl)
-	rowTcpSock2.Options = append(rowTcpSock2.Options, rmt)
+	//setLclSck(addr[0])
+	rowTcpSock2.Options = append(rowTcpSock2.Options, addr[1])
 	if len(rowTcpSock2.Selected) < 1 {
 		rowTcpSock2.SetSelectedIndex(0)
 	}
-	f.Log(lcl, "<->", rmt, ezcomm.StringTran["StrConnected"])
+	Log(addr, ezcomm.StringTran["StrConnected"])
 	rowTcpSock2.Refresh()
 }
 
@@ -233,24 +294,33 @@ func Disconnected(rmt string) {
 	}
 	switch {
 	case indx == -1:
-		f.Log(ezcomm.StringTran["StrDisconnected"], rmt, ezcomm.StringTran["StrNotInRec"])
+		Log(ezcomm.StringTran["StrDisconnected"], rmt, ezcomm.StringTran["StrNotInRec"])
 		return
 	case ln == 1:
 		rowTcpSock2.Options = nil
 		rowTcpSock2.Selected = ""
 		rowTcpSock2.Refresh()
+		disBut.Enable()
 		disBut.Hide()
-		if lstBut.Hidden { //client
+		/*if lstBut.Hidden { //client
 			lstBut.Show()
 			connEnable()
 			//guiFyneSckRmt(false)
 			butSnd(false)
 			sndBut.Enable()
-			f.Log(rmt, ezcomm.StringTran["StrDisconnected"])
-		} else { //server
-			sndBut.Disable()
-			f.Log(rmt, ezcomm.StringTran["StrDisconnected"], ".", ezcomm.StringTran["StrSvrIdle"])
+			Log(rmt, ezcomm.StringTran["StrDisconnected"])
+		} else { //server*/
+		sndBut.Disable()
+		//if protRd.Selected == ezcomm.StrTcp {
+		if chn[0] == nil {
+			go chkSvrStopped(true)
+			Log(rmt, ezcomm.StringTran["StrDisconnected"], ".", ezcomm.StringTran["StrSvrIdle"])
+		} else {
+			svrStopped()
 		}
+		//} /*else {
+		//svrStopped()}*/
+		//}
 		return
 	}
 	// reorder the records
@@ -259,7 +329,7 @@ func Disconnected(rmt string) {
 	}
 	rowTcpSock2.Options = rowTcpSock2.Options[:ln-1]
 	if eztools.Debugging && eztools.Verbose > 2 {
-		f.Log(ezcomm.StringTran["StrClntLft"], rowTcpSock2.Options)
+		Log(ezcomm.StringTran["StrClntLft"], rowTcpSock2.Options)
 	}
 	rowTcpSock2.SetSelectedIndex(0)
 	rowTcpSock2.Refresh()
@@ -268,31 +338,66 @@ func Disconnected(rmt string) {
 // Disconn1 disconnect 1 peer TCP
 func Disconn1() {
 	rmtTcp := rowTcpSock2.Selected
-	chn, ok := ezcomm.PeeMap[rmtTcp]
-	if !ok {
-		f.Log(ezcomm.StringTran["StrNoPeer4"], rmtTcp)
-		return
+	if chn[0] == nil {
+		svrTcp.Disconnect(rmtTcp)
+	} else {
+		disBut.Disable()
+		chn[0] <- ezcomm.RoutCommStruc{
+			Act: ezcomm.FlowChnEnd,
+		}
 	}
-	f.Log(ezcomm.StringTran["StrDisconnecting"], rmtTcp)
-	chn <- ezcomm.RoutCommStruc{
-		Act: ezcomm.FlowChnEnd,
-	}
-	Disconnected(rmtTcp)
+	//Disconnected(rmtTcp)
 }
 
-func Stop() {
-	ezcomm.ChanComm[0] <- ezcomm.RoutCommStruc{
-		Act: ezcomm.FlowChnEnd,
+func svrStopped() {
+	sckRmt(false)
+	connEnable()
+	if len(sockRmt[1].Text) > 0 {
+		sndBut.Enable()
 	}
-	if !disBut.Hidden { //clients still running
+	butSndByProt(protRd.Selected)
+	lstBut.Enable()
+	lstBut.Show()
+	disBut.Enable()
+	disBut.Hide()
+	rowTcpSock2.Options = nil
+	for i := range chn {
+		chn[i] = nil
+	}
+}
+
+func chkSvrStopped(clients bool) {
+	svrTcp.Wait(clients)
+	if lstBut.Disabled() {
+		if svrTcp.HasStopped() {
+			svrStopped()
+		}
+	}
+}
+
+// Stop stops current server
+func Stop() {
+	lstBut.OnTapped = Lstn
+	Log(ezcomm.StringTran["StrStopLstn"])
+	if chn[0] != nil {
+		chn[0] <- ezcomm.RoutCommStruc{
+			Act: ezcomm.FlowChnEnd,
+		}
+	}
+	if protRd.Selected == ezcomm.StrTcp {
+		lstBut.Disable()
+		//if chn[0] == nil {
+		svrTcp.Stop()
+		go chkSvrStopped(false)
+		//}
+		return
+	}
+	disBut.Disable()
+	/*if !disBut.Hidden { //clients still running
 		lstBut.Hide()
 	} else {
-		sckRmt(false)
-		connEnable()
-		butSndByProt(protRd.Selected)
-	}
-	lstBut.OnTapped = Lstn
-	f.Log(ezcomm.StringTran["StrStopLstn"])
+		svrStopped()
+	}*/
 }
 
 func add2Rmt(indx int, txt string) {
@@ -303,20 +408,17 @@ func add2Rmt(indx int, txt string) {
 		return
 	}
 	sndMap[indx][txt] = struct{}{}*/
-	if _, ok := ezcomm.SndMap[indx][txt]; ok {
+	if _, ok := sndMap[indx][txt]; ok {
 		return
 	}
-	ezcomm.SndMap[indx][txt] = struct{}{}
-	ezcomm.Snd2Slc[indx] = append(ezcomm.Snd2Slc[indx], txt)
-	sockRmt[indx].SetOptions(ezcomm.Snd2Slc[indx])
+	sndMap[indx][txt] = struct{}{}
+	snd2Slc[indx] = append(snd2Slc[indx], txt)
+	sockRmt[indx].SetOptions(snd2Slc[indx])
 }
 
 func Snd() {
-	var (
-		rmtUdp *net.UDPAddr
-		rmtTcp string
-	)
-	//GuiLog(true, "to send")
+	//Log("send clicked")
+	var rmtUdp *net.UDPAddr
 	if !protRd.Disabled() {
 		switch protRd.Selected {
 		case ezcomm.StrUdp: // listen before sending
@@ -335,40 +437,35 @@ func Snd() {
 			panic("NOT listening when sending")
 		}
 	}
+	comm := ezcomm.RoutCommStruc{
+		Act:  ezcomm.FlowChnSnd,
+		Data: cntLcl.Text,
+	}
 	switch protRd.Selected {
 	case ezcomm.StrUdp: // listen before sending
-		//GuiLog(true, "to send UDP")
+		//Log("to send UDP")
 		rmtUdp = getRmtSck()
 		if rmtUdp == nil {
 			return
 		}
-		//GuiLog(true, "requesting to send UDP", ezcomm.ChanComm[0])
-		ezcomm.ChanComm[0] <- ezcomm.RoutCommStruc{
-			Act:     ezcomm.FlowChnSnd,
-			Data:    cntLcl.Text,
-			PeerUdp: rmtUdp,
-		}
-		//GuiLog(true, "requested to send UDP")
+		comm.PeerUdp = rmtUdp
 	case ezcomm.StrTcp:
-		rmtTcp = rowTcpSock2.Selected
-		chn, ok := ezcomm.PeeMap[rmtTcp]
-		if !ok {
-			f.Log(ezcomm.StringTran["StrNoPeer4"], rmtTcp)
-			break
+		rmtTcp := rowTcpSock2.Selected
+		if chn[0] == nil {
+			svrTcp.Send(rmtTcp, cntLcl.Text, ezcomm.FlowChnSnd)
 		}
-		chn <- ezcomm.RoutCommStruc{
-			Act:  ezcomm.FlowChnSnd,
-			Data: cntLcl.Text,
-		}
+	}
+	if chn[0] != nil {
+		chn[0] <- comm
 	}
 }
 
-func (f GuiFyne) Rcv(comm ezcomm.RoutCommStruc) {
-	//GuiLog(true, "recv", comm)
+func Rcv(comm ezcomm.RoutCommStruc) {
+	//Log("recv", comm)
 	switch comm.Act {
 	case ezcomm.FlowChnRcv:
 		if comm.Err != nil {
-			f.Log(ezcomm.StringTran["StrFl2Rcv"], comm.Err)
+			Log(ezcomm.StringTran["StrFl2Rcv"], comm.Err)
 			break
 		}
 		cntRmt.SetText(comm.Data)
@@ -381,48 +478,52 @@ func (f GuiFyne) Rcv(comm ezcomm.RoutCommStruc) {
 		} else if comm.PeerTcp != nil {
 			peer = comm.PeerTcp.String()
 		} else {
-			f.Log(ezcomm.StringTran["StrGotFromSw"])
+			Log(ezcomm.StringTran["StrGotFromSw"])
 		}
 		if len(peer) > 0 {
-			if _, ok := ezcomm.RcvMap[peer]; !ok {
-				ezcomm.RcvMap[peer] = struct{}{}
+			if _, ok := rcvMap[peer]; !ok {
+				rcvMap[peer] = struct{}{}
 				rowSockF.Options = append(rowSockF.Options, peer)
 			}
 			rowSockF.SetSelected(peer)
 			rowSockF.Refresh()
-			ezcomm.RecMap[peer] = append(ezcomm.RecMap[peer], comm.Data)
+			recMap[peer] = append(recMap[peer], comm.Data)
 			if eztools.Debugging && eztools.Verbose > 2 {
-				f.Log("<-", peer, comm.Data)
+				Log("<-", peer, comm.Data)
 			}
-			f.Log(ezcomm.StringTran["StrGotFrom"], peer)
+			Log(ezcomm.StringTran["StrGotFrom"], peer)
 		}
 		recRcv.Options = append(recRcv.Options, comm.Data)
-		ezcomm.RecSlc = append(ezcomm.RecSlc, comm.Data)
+		recSlc = append(recSlc, comm.Data)
 	}
 }
 
-// Ended is run when TCP peer disconnected
-func (f GuiFyne) Ended(comm ezcomm.RoutCommStruc) {
+// Ended is run when peer disconnected
+func Ended(comm ezcomm.RoutCommStruc) {
 	switch comm.Act {
 	case ezcomm.FlowChnEnd:
 		if comm.PeerTcp != nil {
 			peer := comm.PeerTcp.String()
-			if ch, ok := ezcomm.PeeMap[peer]; !ok {
-				f.Log(ezcomm.StringTran["StrUnknownDsc"], peer)
+			if chn[0] == nil {
+				svrTcp.Disconnect(peer) // maybe duplicate
 			} else {
-				ch <- comm
+				chn[0] <- ezcomm.RoutCommStruc{
+					Act: ezcomm.FlowChnEnd,
+				}
 			}
 			Disconnected(peer)
+		} else {
+			svrStopped()
 		}
 	}
 }
 
-func (f GuiFyne) Snt(comm ezcomm.RoutCommStruc) {
-	//GuiLog(true, "sent", comm)
+func Snt(comm ezcomm.RoutCommStruc) {
+	//Log("sent", comm)
 	switch comm.Act {
 	case ezcomm.FlowChnSnd:
 		if comm.Err != nil {
-			f.Log(ezcomm.StringTran["StrFl2Snd"], comm.Err)
+			Log(ezcomm.StringTran["StrFl2Snd"], comm.Err)
 			break
 		}
 		var peer string
@@ -435,9 +536,9 @@ func (f GuiFyne) Snt(comm ezcomm.RoutCommStruc) {
 			peer = ezcomm.StringTran["StrSw"]
 		}
 		if eztools.Debugging && eztools.Verbose > 2 {
-			f.Log(">-", peer, comm.Data)
+			Log(">-", peer, comm.Data)
 		}
-		f.Log(ezcomm.StringTran["StrSnt2"], peer)
+		Log(ezcomm.StringTran["StrSnt2"], peer)
 		recSnd.Options = append(recSnd.Options, comm.Data)
 		if comm.PeerUdp != nil {
 			addrStr := comm.PeerUdp.String()
@@ -468,6 +569,9 @@ func makeControlsLcl() *fyne.Container {
 	disBut.Hide()
 	rowProt := container.NewHBox(protRd, lstBut, disBut)
 	protRd.OnChanged = func(str string) {
+		if len(str) < 1 {
+			protRd.SetSelected("udp")
+		}
 		butSndByProt(str)
 	}
 
@@ -521,9 +625,9 @@ func makeControlsRmt() *fyne.Container {
 	rowFrm := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrFrm"]))
 
 	for i := 0; i < 2; i++ {
-		ezcomm.SndMap[i] = make(map[string]struct{})
+		sndMap[i] = make(map[string]struct{})
 	}
-	ezcomm.RcvMap = make(map[string]struct{})
+	rcvMap = make(map[string]struct{})
 	rowSockF = widget.NewSelect(nil, sockF)
 	rowSockF.Options = []string{ezcomm.StringTran["StrAll"]}
 
@@ -541,7 +645,7 @@ func makeControlsRmt() *fyne.Container {
 			}
 		}
 	})
-	ezcomm.RecMap = make(map[string][]string)
+	recMap = make(map[string][]string)
 	cntLbl := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrCnt"]))
 	rowRec := container.NewGridWithRows(3, recLbl, recRcv, cntLbl)
 
