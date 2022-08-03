@@ -71,15 +71,20 @@ func main() {
 		// minor error, not affecting exit value
 	}
 	var upch chan bool
+	log := func(sth ...any) {
+		if eztools.Debugging {
+			eztools.Log(sth)
+		}
+	}
 	defer func() {
 		if db != nil {
 			if !(<-upch) {
-				ezcomm.Log("wrong server for update check")
+				log("wrong server for update check")
 			} else {
 				if !(<-upch) {
-					ezcomm.Log("update check failed")
+					log("update check failed")
 				} else {
-					ezcomm.Log("update check done/skipped")
+					log("update check done/skipped")
 				}
 			}
 			db.Close()
