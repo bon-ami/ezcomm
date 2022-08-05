@@ -7,6 +7,10 @@ import (
 func I18nEn() {
 	eztools.AddLanguage("en", `
 		StrInt = "interative"
+		StrFil = "files"
+		StrDir = "directory"
+		StrFilO = "Choose a file below to send. TCP is recommended to for transfer of split big files."
+		StrDirI = "Choose a directory below to save received files."
 		StrCfg = "config"
 		StrLcl = "local"
 		StrRmt = "remote"
@@ -79,5 +83,6 @@ func I18nEn() {
 		StrAntiFld       = "Anti Attack"
 		StrLmt = "Limit per second"
 		StrPrd = "Period of refusal"
+		StrTooLarge2Rcv  = "too large to receive by UDP"
 	`)
 }

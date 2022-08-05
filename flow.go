@@ -37,7 +37,7 @@ const (
 	FlowVarPee  = "peer"
 	FlowVarFil  = "file"
 
-	FlowRcvLen = 256
+	FlowRcvLen = 1024 //* 1024
 	FlowComLen = 99
 	FlowFilLen = 1024 * 1024
 )
@@ -54,11 +54,13 @@ const (
 	FlowChnSnd
 	// FlowChnSnt is not used by EZ Comm
 	FlowChnSnt
-	// FlowChnSndFil is FlowChnSnt for files
+	// FlowChnSndFil is FlowChnSnd for files, not used by EZ Comm
 	FlowChnSndFil
+	// FlowChnSntFil is FlowChnSnt for files, not used by EZ Comm
+	FlowChnSntFil
 	// FlowChnRcv is sth received, from EZ Comm
 	FlowChnRcv
-	// FlowChnRcvFil is FlowChnRcv for files
+	// FlowChnRcvFil is FlowChnRcv for files, not used by EZ Comm. For flow only, currently
 	FlowChnRcvFil
 )
 
@@ -264,14 +266,14 @@ func (conn FlowConnStruc) Step1(flow *FlowStruc, step *FlowStepStruc) {
 			conn.chanComm <- RoutCommStruc{
 				Act:     FlowChnSnd + fil,
 				PeerUdp: dest,
-				Data:    data,
+				Data:    []byte(data),
 				Resp:    respChn,
 			}
 		case FlowActRcv:
 			data, fil := step.ParseData(*flow, conn)
 			conn.chanComm <- RoutCommStruc{
 				Act:  FlowChnRcv + fil,
-				Data: data,
+				Data: []byte(data),
 				Resp: respChn,
 			}
 		}
@@ -279,7 +281,7 @@ func (conn FlowConnStruc) Step1(flow *FlowStruc, step *FlowStepStruc) {
 		if respStruc.Err != nil {
 			eztools.LogWtTime(conn.Name, step.Act, respStruc.Err)
 		} else {
-			step.Data = respStruc.Data
+			step.Data = string(respStruc.Data)
 			if respStruc.PeerUdp != nil {
 				if eztools.Verbose > 1 {
 					eztools.Log("refreshing dest of", step.Name,
@@ -403,10 +405,10 @@ func (connStruc *FlowConnStruc) Connected(logFunc FuncLog,
 			}
 			return
 		case FlowChnSnd:
-			com.Err = sndFunc([]byte(com.Data))
+			com.Err = sndFunc(com.Data)
 		case FlowChnSndFil:
 			buf := make([]byte, FlowFilLen)
-			fil, err := os.Open(com.Data)
+			fil, err := os.Open(string(com.Data))
 			if err != nil {
 				eztools.LogWtTime(connUdp.LocalAddr().String, "reading", err)
 				com.Err = err
@@ -437,7 +439,7 @@ func (connStruc *FlowConnStruc) Connected(logFunc FuncLog,
 			bytes := make([]byte, FlowRcvLen)
 			for {
 				err := rcvFunc(bytes, func(buf []byte, ln int) error {
-					com.Data += string(buf[:ln])
+					com.Data = append(com.Data, buf[:ln]...)
 					byteLen = ln
 					return nil
 				})
@@ -450,7 +452,7 @@ func (connStruc *FlowConnStruc) Connected(logFunc FuncLog,
 				//}
 			}
 		case FlowChnRcvFil:
-			fil, err := os.OpenFile(com.Data, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, eztools.FileCreatePermission)
+			fil, err := os.OpenFile(string(com.Data), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, eztools.FileCreatePermission)
 			if err != nil {
 				com.Err = err
 				break

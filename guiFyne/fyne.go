@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"runtime"
 	"strconv"
 
@@ -12,6 +13,7 @@ import (
 )
 
 var (
+	ezcWin     fyne.Window
 	thm        theme4Fonts
 	appStorage fyne.Storage
 	// chn is for TCP client and UDP
@@ -23,7 +25,24 @@ var (
 // uiFyne implements Uis
 //type uiFyne struct{}
 
+func parseParams() {
+	var paramV, paramVV, paramVVV bool
+	flag.BoolVar(&paramV, "v", false, ezcomm.StringTran["StrV"])
+	flag.BoolVar(&paramVV, "vv", false, ezcomm.StringTran["StrVV"])
+	flag.BoolVar(&paramVVV, "vvv", false, ezcomm.StringTran["StrVVV"])
+	flag.Parse()
+	switch {
+	case paramV:
+		eztools.Verbose = 1
+	case paramVV:
+		eztools.Verbose = 2
+	case paramVVV:
+		eztools.Verbose = 3
+	}
+}
+
 func main() {
+	parseParams()
 	/*for i := range chn {
 		chn[i] = make(chan ezcomm.RoutCommStruc, ezcomm.FlowComLen)
 	}*/
@@ -47,14 +66,31 @@ func main() {
 	}
 	ezcApp.SetIcon(Icon)
 	ezcApp.Settings().SetTheme(&thm)
-	ezcWin := ezcApp.NewWindow(ezcomm.EzcName)
+	ezcWin = ezcApp.NewWindow(ezcomm.EzcName)
 
+	tabMsg := makeTabMsg()
+	tabFil := makeTabFil()
+	tabLog := makeTabLog()
+	tabCfg := makeTabCfg()
 	tabs := container.NewAppTabs(
-		container.NewTabItem(ezcomm.StringTran["StrInt"], makeTabMsg()),
-		container.NewTabItem(ezcomm.StringTran["StrInfLog"], makeTabLog()),
-		container.NewTabItem(ezcomm.StringTran["StrCfg"], makeTabCfg(ezcWin)),
+		tabMsg,
+		tabFil,
+		tabLog,
+		tabCfg,
 	)
 	ezcWin.SetContent(tabs)
+	tabs.OnSelected = func(tb *container.TabItem) {
+		switch tb {
+		case tabMsg:
+			tabMsgShown()
+		case tabFil:
+			tabFilShown()
+		case tabLog:
+			tabLogShown()
+		case tabCfg:
+			tabCfgShown()
+		}
+	}
 
 	svrTcp.ActFunc = tcpConnAct
 	svrTcp.ConnFunc = TcpSvrConnected

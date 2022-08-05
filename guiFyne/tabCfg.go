@@ -35,7 +35,12 @@ func writeCfg() {
 	ezcomm.WriterCfg(cfgWriter)
 }
 
-func makeTabCfg(ezcWin fyne.Window) *fyne.Container {
+func makeTabCfg() *container.TabItem {
+	return container.NewTabItem(ezcomm.StringTran["StrCfg"],
+		makeControlsCfg())
+}
+
+func makeControlsCfg() *fyne.Container {
 	rowFloodLbl := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrAntiFld"]))
 	floodLblLmt := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrLmt"]))
 	floodInpLmt := widget.NewEntry()
@@ -115,48 +120,6 @@ func makeTabCfg(ezcWin fyne.Window) *fyne.Container {
 	// flow part ends
 
 	langMap := make(map[string]string)
-	logTxt := widget.NewEntry()
-	if len(ezcomm.CfgStruc.LogFile) > 0 {
-		logTxt.SetText(ezcomm.CfgStruc.LogFile)
-	} else {
-		logTxt.SetText(ezcomm.StringTran["StrLog"])
-	}
-	logTxt.Disable()
-	logBut := widget.NewButton(ezcomm.StringTran["StrLog"], func() {
-		dialog.ShowFileSave(func(uri fyne.URIWriteCloser, err error) {
-			/*fyneCfgLogTxt.SetText("")
-			defer fyneCfgLogTxt.Refresh()*/
-			if err != nil {
-				Log("open log file", err)
-				return
-			}
-			if uri == nil {
-				return
-			}
-			fn := uri.URI().Path()
-			if eztools.InitLogger(uri) == nil {
-				ezcomm.CfgStruc.LogFile = fn
-				writeCfg()
-				logTxt.SetText(fn)
-				logTxt.Refresh()
-			}
-		}, ezcWin)
-	})
-	rowVerbose := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrVbs"]))
-	verboseSel := widget.NewSelect(nil, func(lvl string) {
-		newLvl := verboseFrmStr(lvl)
-		if newLvl == ezcomm.CfgStruc.Verbose {
-			return
-		}
-		eztools.Verbose = newLvl
-		ezcomm.CfgStruc.Verbose = newLvl
-		writeCfg()
-	})
-	verboseSel.Options = []string{
-		ezcomm.StringTran["StrHgh"], ezcomm.StringTran["StrMdm"], ezcomm.StringTran["StrLow"], ezcomm.StringTran["StrNon"],
-	}
-	verboseSel.SetSelected(verbose2Str())
-
 	rowFont := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrFnt"]))
 	fontSel = widget.NewSelect(nil, func(font string) {
 		suggestion, builtin := chkFontBltIn()
@@ -224,9 +187,8 @@ func makeTabCfg(ezcWin fyne.Window) *fyne.Container {
 
 	abtRow := container.NewCenter(widget.NewLabel(ezcomm.Ver + " - " + ezcomm.Bld))
 	return container.NewVBox(rowFloodLbl, rowFloodEnt,
-		flowFnTxt, flowFlBut, flowFnStt,
-		logTxt, logBut, rowVerbose, verboseSel, rowLang,
-		langSel, rowFont, fontSel /*fontRch,*/, fontBut, abtRow)
+		flowFnTxt, flowFlBut, flowFnStt, rowLang, langSel,
+		rowFont, fontSel /*fontRch,*/, fontBut, abtRow)
 }
 
 func saveFontFromIndx(lang string) {
@@ -362,4 +324,8 @@ func verboseFrmStr(str string) int {
 		return 0
 	}
 	return 0
+}
+
+func tabCfgShown() {
+
 }

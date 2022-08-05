@@ -134,7 +134,7 @@ func (s SvrTcp) listening() {
 				}
 				peerMpO[comm.ReqAddr] = comm.Resp
 				// from user
-			case FlowChnSnd:
+			case FlowChnSnd: //, FlowChnSndFil:
 				act1Conn(comm.ReqAddr)
 			case FlowChnEnd:
 				if len(comm.ReqAddr) > 0 {
@@ -152,6 +152,9 @@ func (s SvrTcp) listening() {
 			case FlowChnSnt:
 				comm.Act = FlowChnSnd
 				s.ActFunc(comm)
+			/*case FlowChnSntFil:
+			comm.Act = FlowChnSndFil
+			s.ActFunc(comm)*/
 			case FlowChnDie:
 				comm.Act = FlowChnEnd
 				s.ActFunc(comm)
@@ -188,11 +191,13 @@ func (s SvrTcp) connected(addr [4]string, chn [2]chan RoutCommStruc) {
 		defer s.LogFunc("connection routine exit")
 		for {
 			comm := <-chnComm
-			s.LogFunc("connection got", addr, comm)
+			//s.LogFunc("connection got", addr, comm)
 			comm.ReqAddr = addr
 			switch comm.Act {
 			case FlowChnSnd:
 				comm.Act = FlowChnSnt
+			/*case FlowChnSndFil:
+			comm.Act = FlowChnSntFil*/
 			case FlowChnEnd:
 				comm.Act = FlowChnDie
 			}
@@ -207,11 +212,11 @@ func (s SvrTcp) connected(addr [4]string, chn [2]chan RoutCommStruc) {
 }
 
 // Send is routine safe
-//	act should be FlowChnSnd or FlowChnSndFil
-func (s SvrTcp) Send(addr, data string, act int) {
+//	act should be FlowChnSnd
+func (s SvrTcp) Send(addr string, data []byte) {
 	if s.chnLstn != nil {
 		s.chnLstn <- RoutCommStruc{
-			Act:     act,
+			Act:     FlowChnSnd,
 			ReqAddr: addr,
 			Data:    data,
 		}

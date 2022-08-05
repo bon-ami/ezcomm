@@ -13,6 +13,10 @@ var (
 	StringTran map[string]string
 	StringIndx = [...]string{
 		"StrInt",
+		"StrFil",
+		"StrDir",
+		"StrFilO",
+		"StrDirI",
 		"StrCfg",
 		"StrLcl",
 		"StrRmt",
@@ -83,6 +87,7 @@ var (
 		"StrAntiFld",
 		"StrLmt",
 		"StrPrd",
+		"StrTooLarge2Rcv",
 	}
 )
 

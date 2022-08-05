@@ -7,6 +7,10 @@ import (
 func I18nZhcn() {
 	eztools.AddLanguage("zh-CN", `
 		StrInt = "交互"
+		StrFil = "文件"
+		StrDir = "目录"
+		StrFilO = "在下面选择要发送的文件。建议使用TCP以分片传输大文件。"
+		StrDirI = "在下面选择一个目录以保存收到的文件。"
 		StrCfg = "设置"
 		StrLcl = "本地"
 		StrRmt = "远端"
@@ -79,5 +83,6 @@ func I18nZhcn() {
 		StrAntiFld       = "防攻击"
 		StrLmt = "每秒限制"
 		StrPrd = "拒绝时长"
+		StrTooLarge2Rcv = "UDP无法接收过大文件"
 	`)
 }

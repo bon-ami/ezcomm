@@ -56,9 +56,9 @@ func tstSvrTAct(comm RoutCommStruc) {
 			chkDone()
 		}
 	case FlowChnRcv: // echo it
-		tstSvrT.Send(addr, comm.Data, FlowChnSnd)
+		tstSvrT.Send(addr, comm.Data)
 	case FlowChnSnd:
-		if comm.Data == tstBye {
+		if string(comm.Data) == tstBye {
 			tstSvrT.Stop()
 			disc("")
 			/*} else {

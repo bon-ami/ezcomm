@@ -7,6 +7,10 @@ import (
 func I18nZhtw() {
 	eztools.AddLanguage("zh-TW", `
 		StrInt = "交互"
+		StrFil = "文件"
+		StrDir = "資料夾"
+		StrFilO = "在下面選擇要發送的檔。建議使用TCP來確保傳輸拆分的大檔。"
+		StrDirI = "在下面選擇一個資料夾以保存收到的檔。"
 		StrCfg = "配置"
 		StrLcl = "當地"
 		StrRmt = "遠端"
@@ -79,5 +83,6 @@ func I18nZhtw() {
 		StrAntiFld       = "反攻擊"
 		StrLmt = "每秒限制"
 		StrPrd = "駁回期限"
+		StrTooLarge2Rcv = "太大，無法由UDP接收"
 	`)
 }

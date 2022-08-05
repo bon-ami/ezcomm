@@ -141,7 +141,7 @@ ClientLoop:
 	for _, msg1 := range msgs {
 		chn[0] <- RoutCommStruc{
 			Act:  FlowChnSnd,
-			Data: msg1,
+			Data: []byte(msg1),
 		}
 		for {
 			select {
@@ -152,9 +152,9 @@ ClientLoop:
 				}
 				switch comm.Act {
 				case FlowChnRcv:
-					if comm.Data != msg1 {
+					if string(comm.Data) != msg1 {
 						tstT.Error("sent", msg1, "!=",
-							"got", comm.Data)
+							"got", string(comm.Data))
 						break ClientLoop
 					}
 					continue ClientLoop
@@ -241,13 +241,13 @@ func tstUDPSvr(fin chan bool, chn [2]chan RoutCommStruc) {
 			wait4Rcvr = false
 			return
 		case FlowChnSnd:
-			if comm.Data == tstBye {
+			if string(comm.Data) == tstBye {
 				tstT.Log("exiting server after bye sent")
 				done = true
 				return
 			}
 		case FlowChnRcv:
-			tstT.Log("server echoing", comm.Data)
+			tstT.Log("server echoing", string(comm.Data))
 			comm.Act = FlowChnSnd
 			chn[0] <- comm
 		}

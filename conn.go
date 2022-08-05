@@ -51,11 +51,18 @@ type RoutCommStruc struct {
 	PeerUdp *net.UDPAddr
 	// PeerTcp is filled, but not required by EZ Comm
 	PeerTcp net.Addr
-	// raw message or file name
-	Data string
+	// I/O raw message
+	Data []byte
 	// Resp for SvrTcp and flow only
 	Resp chan RoutCommStruc
 	Err  error
+}
+
+func replyWtErr(comm RoutCommStruc, err error, chn chan RoutCommStruc) {
+	//logFunc("UDP", cmd.PeerUdp, n, err)
+	comm.Err = err
+	chn <- comm
+	//logFunc("UDP sent", comm)
 }
 
 // ConnectedUdp works for UDP, when remote can change
@@ -77,10 +84,14 @@ func ConnectedUdp(logFunc FuncLog, chn [2]chan RoutCommStruc, conn *net.UDPConn)
 		for {
 			//logFunc("receiving UDP", conn.LocalAddr())
 			n, addr, err := conn.ReadFromUDP(buf)
-			//logFunc("received UDP", n, addr, err)
+			//logFunc("received UDP", n, addr, err, buf)
 			if err != nil &&
 				(errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed)) {
 				return
+			}
+			if addr == nil {
+				// such as an err buf is smaller than data
+				continue
 			}
 			comm := RoutCommStruc{
 				Act: FlowChnRcv,
@@ -108,7 +119,7 @@ func ConnectedUdp(logFunc FuncLog, chn [2]chan RoutCommStruc, conn *net.UDPConn)
 			}
 			floodRecs[peerHost] = recs
 			if err == nil {
-				comm.Data = string(buf[:n])
+				comm.Data = buf[:n]
 				comm.PeerUdp = addr
 			}
 			chn[1] <- comm
@@ -124,15 +135,12 @@ func ConnectedUdp(logFunc FuncLog, chn [2]chan RoutCommStruc, conn *net.UDPConn)
 		//logFunc("command udp", chn, cmd)
 		switch cmd.Act {
 		case FlowChnSnd:
-			/*if eztools.Debugging && eztools.Verbose > 2 {
+			if eztools.Debugging && eztools.Verbose > 2 {
 				logFunc("sending", cmd)
-			}*/
-			_, err := conn.WriteToUDP([]byte(cmd.Data), cmd.PeerUdp)
-			//logFunc("UDP", cmd.PeerUdp, n, err)
-			comm := cmd
-			cmd.Err = err
-			chn[1] <- comm
-			//logFunc("UDP sent", comm)
+			}
+			// TODO: confirm to anti-flood
+			_, err := conn.WriteToUDP(cmd.Data, cmd.PeerUdp)
+			replyWtErr(cmd, err, chn[1])
 		case FlowChnEnd:
 			//logFunc("exiting", lcl)
 			return
@@ -248,7 +256,7 @@ func ConnectedTcp(logFunc FuncLog, connFunc FuncConn, conn net.Conn, addrReq [2]
 		for {
 			//logFunc("TCP", localAddr, "to read")
 			n, err := conn.Read(buf)
-			//logFunc("TCP", localAddr, "read from", peerAddr, err)
+			//logFunc("TCP", localAddr, "read from", peerAddr, n, err)
 			comm = RoutCommStruc{
 				Act:     FlowChnRcv,
 				PeerTcp: peer,
@@ -272,7 +280,8 @@ func ConnectedTcp(logFunc FuncLog, connFunc FuncConn, conn net.Conn, addrReq [2]
 			}
 
 			if err == nil {
-				comm.Data = string(buf[:n])
+				comm.Data = make([]byte, n)
+				copy(comm.Data, buf[:n])
 			} else {
 				if errors.Is(err, io.EOF) ||
 					errors.Is(err, net.ErrClosed) {
@@ -301,11 +310,10 @@ func ConnectedTcp(logFunc FuncLog, connFunc FuncConn, conn net.Conn, addrReq [2]
 		//logFunc(cmd, "got from user for", peerAddr)
 		switch cmd.Act {
 		case FlowChnSnd:
-			_, err := conn.Write([]byte(cmd.Data))
-			comm := cmd
-			comm.Err = err
-			comm.PeerTcp = peer
-			chn[1] <- comm
+			cmd.PeerTcp = peer
+			// TODO: confirm to anti-flood
+			_, err := conn.Write(cmd.Data)
+			replyWtErr(cmd, err, chn[1])
 		case FlowChnEnd:
 			logFunc("exiting TCP connection routine", localAddr, "peer", peerAddr)
 			return

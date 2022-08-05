@@ -7,6 +7,10 @@ import (
 func I18nJa() {
 	eztools.AddLanguage("ja", `
 		StrInt = "インターマティブ"
+		StrFil = "ファイル"
+		StrDir = "フォルダ"
+		StrFilO = "送信するファイルを以下に選択してください。TCPは、分割された大きなファイルの転送に推奨されます。"
+		StrDirI = "受信したフォルダを保存するには、以下のファイル名を選択してください。"
 		StrCfg = "設定"
 		StrLcl = "ローカル"
 		StrRmt = "リモート"
@@ -80,5 +84,6 @@ func I18nJa() {
 		StrAntiFld       = "アンチアタッ"
 		StrLmt = "1 秒あたりの制限"
 		StrPrd = "拒絶期間"
+		StrTooLarge2Rcv = "大きすぎて UDP で受信できない"
 	`)
 }
