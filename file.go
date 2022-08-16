@@ -17,7 +17,8 @@ import (
 )
 
 /* bytes of packed files. the order must be guaranteed (by TCP).
-ID, ranging 1-255, cannot promise matching, if multiple transfers are concurrent.
+ID, ranging [FileIdMin=1, FileIdMax=255], cannot promise matching, if multiple transfers are concurrent.
+FileHdrLen=6
 
 only one piece
 bytes:0 1          2-5             6-         -
@@ -80,12 +81,12 @@ func GetAvailFileName(fn, addr string) (string, bool) {
 func BulkFile(dir, affix string, data []byte) (fn string,
 	offset uint32, cont []byte, end bool) {
 	getFN := func() (fn string, fnEnd int) {
-		fl := binary.LittleEndian.Uint32(data[2:6])
-		fnEnd = int(6 + fl)
+		fl := binary.LittleEndian.Uint32(data[2:FileHdrLen])
+		fnEnd = int(FileHdrLen + fl)
 		if len(data) < fnEnd {
 			fnEnd = -1
 		} else {
-			fn = string(data[6:fnEnd])
+			fn = string(data[FileHdrLen:fnEnd])
 		}
 		return
 	}
@@ -99,20 +100,27 @@ func BulkFile(dir, affix string, data []byte) (fn string,
 		filePieceMap = make(map[int]string)
 	}
 	fn, rec := filePieceMap[id]
-	eztools.Log("b", fn)
 	switch {
 	case !rec:
 		filePMLock.Unlock()
 		var fnEnd int
 		fn, fnEnd = getFN()
 		if fnEnd < 0 {
+			if eztools.Debugging {
+				eztools.Log("NO file name parsed!")
+			}
 			return
 		}
 		if len(dir) > 0 {
 			fn = filepath.Join(dir, fn)
-			var ok bool
-			if fn, ok = GetAvailFileName(fn, affix); !ok {
+			if nfn, ok := GetAvailFileName(fn, affix); !ok {
+				if eztools.Debugging {
+					eztools.Log("NO available file names for",
+						fn)
+				}
 				return
+			} else {
+				fn = nfn
 			}
 		}
 		if !end {
@@ -166,7 +174,7 @@ func makeFileID() (ret int) {
 // Return values:
 //	prefix slice
 //	errors from binary.Write()
-func prefix4File(end bool, fn string, offset uint32) ([]byte, error) {
+func prefix4File(id int, end bool, fn string, offset uint32) ([]byte, error) {
 	int2byte := func(i uint32, n int) (data []byte, err error) {
 		buf := new(bytes.Buffer)
 		err = binary.Write(buf, binary.LittleEndian, i)
@@ -195,13 +203,13 @@ func prefix4File(end bool, fn string, offset uint32) ([]byte, error) {
 		ret[0] = 1
 	}
 	// ID
-	id, err := int2byte(uint32(makeFileID()), 1)
+	idb, err := int2byte(uint32(id), 1)
 	if err != nil {
 		return nil, err
 	}
-	ret = append(ret, id...)
+	ret = append(ret, idb...)
 
-	if len(fn) > 0 {
+	if offset == 0 && len(fn) > 0 {
 		// file name
 		fb, err := int2byte(uint32(len(fn)), 4)
 		if err != nil {
@@ -218,7 +226,6 @@ func prefix4File(end bool, fn string, offset uint32) ([]byte, error) {
 		}
 		ret = append(ret, fb...)
 	}
-	//eztools.Log("FN", ret)
 	return ret, nil
 }
 
@@ -239,7 +246,7 @@ func SndFile(fn string, proc func([]byte) error) error {
 	if err != nil {
 		return err
 	}
-	ret, err := prefix4File(true, filepath.Base(fn), 0)
+	ret, err := prefix4File(makeFileID(), true, filepath.Base(fn), 0)
 	if err != nil {
 		return err
 	}
@@ -267,13 +274,14 @@ func SplitFile(fn string, proc func([]byte) error) error {
 		}
 		return uint32(FlowRcvLen - pad)
 	}
+	id := makeFileID()
 	fun := func(indx uint32, inf fs.FileInfo,
 		offset uint32, data []byte) error {
 		var end bool
 		if offset+uint32(len(data)) >= uint32(inf.Size()) {
 			end = true
 		}
-		ret, err := prefix4File(end, inf.Name(), offset)
+		ret, err := prefix4File(id, end, inf.Name(), offset)
 		if err != nil {
 			return err
 		}

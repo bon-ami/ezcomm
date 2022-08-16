@@ -97,9 +97,10 @@ func main() {
 	svrTcp.LogFunc = Log
 
 	ezcWin.Show()
+	// 9 routines here
 	ezcApp.Run()
 	if eztools.Debugging {
-		eztools.Log("routines left", runtime.NumGoroutine())
+		eztools.Log("routines (5 is normal) left", runtime.NumGoroutine())
 	}
 }
 

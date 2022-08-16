@@ -139,7 +139,7 @@ func butSndByProt(prot string) {
 			sndBut.OnTapped = guiFyneSnd
 		}*/
 	}
-	chkNEnableSnd()
+	chkNEnableSnd(tabFil.Content.Visible())
 	/*if !filEnable {
 		sndBut.Disable()
 	} else {
@@ -198,7 +198,7 @@ func Lstn() {
 		connEnable()
 		Log(ezcomm.StringTran["StrListeningOn"], err)
 	} else {
-		lstBut.OnTapped = Stop
+		lstBut.OnTapped = Stp
 		if addrStruc != nil {
 			Log(ezcomm.StringTran["StrListeningOn"],
 				addrStruc.String())
@@ -242,6 +242,12 @@ func tcpConnAct(comm ezcomm.RoutCommStruc) {
 
 // TcpClnConnected is TCP client routine
 func TcpClnConnected(addr [4]string, chnC [2]chan ezcomm.RoutCommStruc) {
+	if eztools.Debugging && eztools.Verbose > 1 {
+		Log("entering TCP client routine", addr)
+		defer func() {
+			Log("exiting TCP client routine", addr)
+		}()
+	}
 	for _, ch := range chnC {
 		if ch == nil {
 			connEnable()
@@ -261,7 +267,8 @@ func TcpClnConnected(addr [4]string, chnC [2]chan ezcomm.RoutCommStruc) {
 func clntRoutine() {
 	go func(chn chan ezcomm.RoutCommStruc) {
 		if eztools.Debugging && eztools.Verbose > 1 {
-			defer Log("client routine ends")
+			Log("entering client routine")
+			defer Log("exiting client routine")
 		}
 		for {
 			comm := <-chn
@@ -394,6 +401,10 @@ func svrStopped() {
 }
 
 func chkSvrStopped(clients bool) {
+	if eztools.Debugging && eztools.Verbose > 1 {
+		Log("entering server stop check routine")
+		defer Log("exiting server stop check routine")
+	}
 	svrTcp.Wait(clients)
 	if lstBut.Disabled() {
 		if svrTcp.HasStopped() {
@@ -403,7 +414,7 @@ func chkSvrStopped(clients bool) {
 }
 
 // Stop stops current server
-func Stop() {
+func Stp() {
 	lstBut.OnTapped = Lstn
 	Log(ezcomm.StringTran["StrStopLstn"])
 	if chn[0] != nil {
@@ -654,6 +665,7 @@ func makeControlsLcl() *fyne.Container {
 		if len(str) < 1 {
 			protRd.SetSelected("udp")
 		}
+		filLclChk()
 		butSndByProt(str)
 	}
 
@@ -756,8 +768,13 @@ func makeTabMsg() *container.TabItem {
 	return tabMsg
 }
 
-func chkNEnableSnd() {
-	if sndEnable {
+func chkNEnableSnd(filShown bool) {
+	filEnabled := true
+	if filShown {
+		filEnabled = filEnable
+	}
+
+	if filEnabled && sndEnable {
 		sndBut.Enable()
 	} else {
 		sndBut.Disable()
@@ -765,5 +782,5 @@ func chkNEnableSnd() {
 }
 
 func tabMsgShown() {
-	chkNEnableSnd()
+	chkNEnableSnd(false)
 }

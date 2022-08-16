@@ -23,35 +23,42 @@ var (
 	filEnable      bool
 )
 
+func filLclChk() {
+	if len(filNmO) < 1 {
+		return
+	}
+	cap := filepath.Base(filNmO)
+	if inf, err := os.Stat(filNmO); err != nil {
+		cap += "\n" + err.Error()
+		filEnable = false
+
+	} else {
+		filEnable = true
+		if inf.Size() >= ezcomm.FlowRcvLen {
+			switch protRd.Selected {
+			case ezcomm.StrUdp:
+				cap += "\n>" + strconv.Itoa(ezcomm.FlowRcvLen) + "\n" + ezcomm.StringTran["StrTooLarge2Rcv"]
+				filEnable = false
+			case ezcomm.StrTcp:
+			}
+		}
+	}
+	filLcl.SetText(cap)
+	if filEnable {
+		chkNEnableSnd(true)
+	} else {
+		if sndBut.Text == ezcomm.StringTran["StrSnd"] {
+			sndBut.Disable()
+		}
+		//filNmO = ""
+	}
+}
+
 func filButLcl() {
 	dialog.ShowFileOpen(func(uri fyne.URIReadCloser, err error) {
 		if err == nil && uri != nil {
 			filNmO = uri.URI().Path()
-			cap := uri.URI().Name()
-			if inf, err := os.Stat(filNmO); err != nil {
-				cap += "\n" + err.Error()
-				filEnable = false
-
-			} else {
-				filEnable = true
-				if inf.Size() >= ezcomm.FlowRcvLen {
-					switch protRd.Selected {
-					case ezcomm.StrUdp:
-						cap += "\n>" + strconv.Itoa(ezcomm.FlowRcvLen) + "\n" + ezcomm.StringTran["StrTooLarge2Rcv"]
-						filEnable = false
-					case ezcomm.StrTcp:
-					}
-				}
-			}
-			filLcl.SetText(cap)
-			if filEnable {
-				chkNEnableSnd()
-			} else {
-				if sndBut.Text == ezcomm.StringTran["StrSnd"] {
-					sndBut.Disable()
-				}
-				filNmO = ""
-			}
+			filLclChk()
 		}
 	}, ezcWin)
 }
@@ -67,9 +74,11 @@ func filButRmt() {
 
 func isSndFile(wrapperFunc func(fn string, proc func([]byte) error) error,
 	fun func(buf []byte) error) bool {
-	if tabFil.Content.Visible() && len(filNmO) > 0 {
-		if err := wrapperFunc(filNmO, fun); err != nil {
-			Log(ezcomm.StringTran["StrFl2Snd"], err)
+	if tabFil.Content.Visible() {
+		if len(filNmO) > 0 {
+			if err := wrapperFunc(filNmO, fun); err != nil {
+				Log(ezcomm.StringTran["StrFl2Snd"], err)
+			}
 		}
 		return true
 	}
@@ -207,6 +216,6 @@ func tabFilShown() {
 			sndBut.Disable()
 		}
 	} else {
-		chkNEnableSnd()
+		chkNEnableSnd(true)
 	}
 }

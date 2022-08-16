@@ -73,12 +73,23 @@ func ConnectedUdp(logFunc FuncLog, chn [2]chan RoutCommStruc, conn *net.UDPConn)
 	defer conn.Close()
 	buf := make([]byte, FlowRcvLen)
 	lcl := conn.LocalAddr().String()
+	if eztools.Debugging && eztools.Verbose > 1 {
+		logFunc("entering udp routine", lcl)
+		defer func() {
+			logFunc("exiting udp routine", lcl)
+		}()
+	}
 	go func() {
+		if eztools.Debugging && eztools.Verbose > 1 {
+			logFunc("entering routine", lcl)
+		}
 		defer func() {
 			chn[1] <- RoutCommStruc{
 				Act: FlowChnEnd,
 			}
-			logFunc("exiting routine", lcl)
+			if eztools.Debugging && eztools.Verbose > 1 {
+				logFunc("exiting routine", lcl)
+			}
 		}()
 		floodRecs := make(map[string][2]int64)
 		for {
@@ -246,10 +257,15 @@ func ConnectedTcp(logFunc FuncLog, connFunc FuncConn, conn net.Conn, addrReq [2]
 	//}
 	buf := make([]byte, FlowRcvLen)
 	go func() {
+		if eztools.Debugging && eztools.Verbose > 1 {
+			logFunc("entering routine", localAddr)
+		}
 		var floodRecs [2]int64
 		var comm RoutCommStruc
 		defer func() {
-			logFunc("exiting TCP", localAddr, "routine peer", peerAddr)
+			if eztools.Debugging && eztools.Verbose > 1 {
+				logFunc("exiting TCP", localAddr, "routine peer", peerAddr)
+			}
 			comm.Act = FlowChnEnd
 			chn[1] <- comm
 		}()
@@ -438,6 +454,9 @@ func ListenTcp(logFunc FuncLog, connFunc FuncConn,
 	//log("serving", lstnr)
 	//defer lstnr.Close()
 	go func() {
+		if eztools.Debugging && eztools.Verbose > 1 {
+			logFunc("entering listener routine")
+		}
 		var (
 			err  error
 			conn net.Conn
@@ -446,7 +465,9 @@ func ListenTcp(logFunc FuncLog, connFunc FuncConn,
 			if errChan != nil {
 				errChan <- err
 			}
-			logFunc("exiting listener routine")
+			if eztools.Debugging && eztools.Verbose > 1 {
+				logFunc("exiting listener routine")
+			}
 		}()
 		for {
 			/*select {

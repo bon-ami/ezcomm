@@ -73,10 +73,13 @@ func (s SvrTcp) listening() {
 	chnLstn := s.chnLstn
 	chnStp := s.chnStp
 	peerMpO := make(map[string]chan RoutCommStruc)
-	defer func() {
-		//chnStp <- struct{}{}
-		s.LogFunc("listening routine exit")
-	}()
+	if eztools.Debugging && eztools.Verbose > 1 {
+		s.LogFunc("entering TCP server listening routine")
+		defer func() {
+			//chnStp <- struct{}{}
+			s.LogFunc("exiting TCP server listening routine")
+		}()
+	}
 	svrDone := false
 	chkDone := func() (noClients, allDone bool) {
 		//s.LogFunc("chkDone", peerMpO)
@@ -188,7 +191,10 @@ func (s SvrTcp) connected(addr [4]string, chn [2]chan RoutCommStruc) {
 	s.ConnFunc(addr)
 
 	go func(chnLstn, chnComm chan RoutCommStruc, addr string) {
-		defer s.LogFunc("connection routine exit")
+		if eztools.Debugging && eztools.Verbose > 1 {
+			s.LogFunc("entering TCP server connection routine")
+			defer s.LogFunc("exiting TCP server connection routine")
+		}
 		for {
 			comm := <-chnComm
 			//s.LogFunc("connection got", addr, comm)
@@ -249,6 +255,9 @@ func (s *SvrTcp) Listen(network, addr string) (err error) {
 	s.lstnr, err = ListenTcp(s.LogFunc, s.connected,
 		network, addr, ConnectedTcp, s.chnErr)
 	if err != nil {
+		s.chnErr = nil
+		s.chnLstn = nil
+		s.chnStp[0] = nil
 		return
 	}
 	s.ConnFunc([4]string{s.lstnr.Addr().String(), "", "", ""})
