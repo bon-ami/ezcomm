@@ -22,7 +22,10 @@ Features
 
  - TCP/UDP
  - client/server. send to different clients with different text as a server.
+ - flow script to automatically listen, accept, receive and send messages or files.
+ - file transfer. files or pieces are encapsuled to avoid confusion with text messages.
  - incoming/outgoing message history
+ - anti-flood to neglect frequent incoming traffic from same IP
  - customizable and in-built fonts
  - multilingual interface. Current languages:
    - English
@@ -40,7 +43,7 @@ Tracked by [Issues](https://gitlab.com/bon-ami/ezcomm/-/issues)
 [Requirements](https://gitlab.com/bon-ami/ezcomm/-/requirements_management/requirements)
 [Milestones](https://gitlab.com/bon-ami/ezcomm/-/milestones)
 
-## License
+## EULA, License
 
 Refer to [COPYRIGHT](COPYRIGHT) for Explicit Distribution Declaration in addition to [Apache V2.0](LICENSE-2.0.txt).
 
