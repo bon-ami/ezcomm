@@ -23,7 +23,7 @@ Features
  - TCP/UDP
  - client/server. send to different clients with different text as a server.
  - flow script to automatically listen, accept, receive and send messages or files.
- - file transfer. files or pieces are encapsuled to avoid confusion with text messages.
+ - file transfer. files or pieces are encapsulated to avoid confusion with text messages.
  - incoming/outgoing message history
  - anti-flood to neglect frequent incoming traffic from same IP
  - customizable and in-built fonts

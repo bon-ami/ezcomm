@@ -69,8 +69,11 @@ function windows1() {
         echo building Windows $M `grep "Build" FyneApp.toml`
         fyne package -os windows $1 -appVersion $V
         if [ -f "$W" ]; then
-                mv ${W}.exe "${A}$M.exe"
+                mv ${A}.exe "${A}$M.exe"
                 echo done with ${A}$M.exe
+        else
+                mv ${A}.exe "${A}_$V.exe"
+                echo done with ${A}_$V.exe
         fi
 }
 
