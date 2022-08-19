@@ -3,8 +3,7 @@ package ezcomm
 import (
 	"bytes"
 	"encoding/binary"
-	"io/fs"
-	"io/ioutil"
+	"io"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -18,7 +17,7 @@ import (
 
 /* bytes of packed files. the order must be guaranteed (by TCP).
 ID, ranging [FileIdMin=1, FileIdMax=255], cannot promise matching, if multiple transfers are concurrent.
-FileHdrLen=6
+FileHdr1stLen=6 FileHdrRstLen=6
 
 only one piece
 bytes:0 1          2-5             6-         -
@@ -29,10 +28,10 @@ bytes:0 1          2-5             6-         -
    1   ID  length of file name  file name  content
 final piece
 bytes:0 1   2-5      6-
-   2   ID  offset  content
+   2   ID  reserved  content
 other pieces
 bytes:0 1   2-5      6-
-   1   ID  offset  content
+   1   ID  reserved  content
 */
 
 // IsDataFile checks whether received data a file (piece)
@@ -43,7 +42,7 @@ func IsDataFile(data []byte) bool {
 	}
 	switch data[0] {
 	case 1, 2:
-		if len(data) > FileHdrLen {
+		if len(data) > FileHdr1stLen {
 			return true
 		}
 	}
@@ -79,14 +78,14 @@ func GetAvailFileName(fn, addr string) (string, bool) {
 // BulkFile parses data into meaningful parts
 // IsDataFile() must be called beforehand to ensure min length
 func BulkFile(dir, affix string, data []byte) (fn string,
-	offset uint32, cont []byte, end bool) {
+	first bool, cont []byte, end bool) {
 	getFN := func() (fn string, fnEnd int) {
-		fl := binary.LittleEndian.Uint32(data[2:FileHdrLen])
-		fnEnd = int(FileHdrLen + fl)
+		fl := binary.LittleEndian.Uint32(data[2:FileHdr1stLen])
+		fnEnd = int(FileHdr1stLen + fl)
 		if len(data) < fnEnd {
 			fnEnd = -1
 		} else {
-			fn = string(data[FileHdrLen:fnEnd])
+			fn = string(data[FileHdr1stLen:fnEnd])
 		}
 		return
 	}
@@ -103,6 +102,7 @@ func BulkFile(dir, affix string, data []byte) (fn string,
 	switch {
 	case !rec:
 		filePMLock.Unlock()
+		first = true
 		var fnEnd int
 		fn, fnEnd = getFN()
 		if fnEnd < 0 {
@@ -136,8 +136,7 @@ func BulkFile(dir, affix string, data []byte) (fn string,
 	default:
 		filePMLock.Unlock()
 	}
-	offset = binary.LittleEndian.Uint32(data[2:FileHdrLen])
-	cont = data[FileHdrLen:]
+	cont = data[FileHdrRstLen:]
 	return
 }
 
@@ -149,9 +148,10 @@ var (
 )
 
 const (
-	FileIdMax  = 255
-	FileIdMin  = 1
-	FileHdrLen = 6
+	FileIdMax     = 255
+	FileIdMin     = 1
+	FileHdr1stLen = 6
+	FileHdrRstLen = 6
 )
 
 func makeFileID() (ret int) {
@@ -174,7 +174,7 @@ func makeFileID() (ret int) {
 // Return values:
 //	prefix slice
 //	errors from binary.Write()
-func prefix4File(id int, end bool, fn string, offset uint32) ([]byte, error) {
+func prefix4File(id int, indx uint32, end bool, fn string) ([]byte, error) {
 	int2byte := func(i uint32, n int) (data []byte, err error) {
 		buf := new(bytes.Buffer)
 		err = binary.Write(buf, binary.LittleEndian, i)
@@ -209,7 +209,7 @@ func prefix4File(id int, end bool, fn string, offset uint32) ([]byte, error) {
 	}
 	ret = append(ret, idb...)
 
-	if offset == 0 && len(fn) > 0 {
+	if indx == 0 && len(fn) > 0 {
 		// file name
 		fb, err := int2byte(uint32(len(fn)), 4)
 		if err != nil {
@@ -219,14 +219,48 @@ func prefix4File(id int, end bool, fn string, offset uint32) ([]byte, error) {
 		//eztools.Log("FL", ret)
 		ret = append(ret, []byte(fn)...)
 	} else {
-		// offset
-		fb, err := int2byte(offset, 4)
-		if err != nil {
-			return nil, err
-		}
+		// reserved
+		fb := make([]byte, 4)
 		ret = append(ret, fb...)
 	}
 	return ret, nil
+}
+
+// Sz41stChunk returns max data size to transfer in first chunk
+//	if input file name is too long, a valid one is returned
+func Sz41stChunk(fnI string) (int, string) {
+	ret := FlowRcvLen - FileHdr1stLen - len(fnI)
+	if ret > 0 {
+		return ret, fnI
+	}
+	fnO := EzcName
+	return FlowRcvLen - FileHdr1stLen - len(fnO), fnO
+}
+
+// TryOnlyChunk try to read the file in one chunk
+// Return values:
+//	a possible long file name
+//	read buffer
+//	ErrOutOfBound if no valid data fits
+//	ErrInvalidInput file larger than one chunk
+func TryOnlyChunk(fnI string, rdr io.ReadCloser) (string, []byte, error) {
+	defer rdr.Close()
+	m, fnO := Sz41stChunk(fnI)
+	if m <= 0 {
+		return fnO, nil, eztools.ErrOutOfBound
+	}
+	buf := make([]byte, m+1)
+	n, err := rdr.Read(buf)
+	if err != nil && err == io.EOF {
+		return fnO, buf[:n], nil
+	}
+	if err != nil {
+		return fnO, nil, err
+	}
+	if n <= m {
+		return fnO, buf[:n], nil
+	}
+	return fnO, nil, eztools.ErrInvalidInput
 }
 
 // SndFile sends a file without splitting.
@@ -234,54 +268,31 @@ func prefix4File(id int, end bool, fn string, offset uint32) ([]byte, error) {
 //	ErrOutOfBound if file+prefix larger than FlowRcvLen
 //	other error from os.Stat(), ioutil.ReadFile(), or prefix4File()
 //	value from proc()
-func SndFile(fn string, proc func([]byte) error) error {
-	fi, err := os.Stat(fn)
+func SndFile(fn string, rdr io.ReadCloser, proc func([]byte) error) error {
+	fn, buf, err := TryOnlyChunk(fn, rdr)
 	if err != nil {
 		return err
 	}
-	if fi.Size() > FlowRcvLen {
-		return eztools.ErrOutOfBound
-	}
-	buf, err := ioutil.ReadFile(fn)
+	ret, err := prefix4File(makeFileID(), 0, true, fn)
 	if err != nil {
 		return err
-	}
-	ret, err := prefix4File(makeFileID(), true, filepath.Base(fn), 0)
-	if err != nil {
-		return err
-	}
-	if fi.Size()+int64(len(ret)) > FlowRcvLen {
-		return eztools.ErrOutOfBound
 	}
 	return proc(append(ret, buf...))
 }
 
-func SplitFile(fn string, proc func([]byte) error) error {
-	readSz := func(indx uint32, inf fs.FileInfo, done uint32) uint32 {
-		var pad, sz uint32
+func SplitFile(fn string, rdr io.ReadCloser, proc func([]byte) error) error {
+	readSz := func(indx uint32, name string) (uint32, string) {
 		switch indx {
 		case 0:
-			nm := inf.Name()
-			pad = FileHdrLen + (uint32)(len(nm))
-			sz = uint32(inf.Size()) + pad
+			sz, fnO := Sz41stChunk(fn)
+			return uint32(sz), fnO
 		default:
-			sz = uint32(inf.Size()) - done
-			pad = FileHdrLen
+			return FlowRcvLen - FileHdrRstLen, name
 		}
-		//eztools.Log("size for pad", indx, pad, done, sz)
-		if sz <= FlowRcvLen {
-			return sz
-		}
-		return uint32(FlowRcvLen - pad)
 	}
 	id := makeFileID()
-	fun := func(indx uint32, inf fs.FileInfo,
-		offset uint32, data []byte) error {
-		var end bool
-		if offset+uint32(len(data)) >= uint32(inf.Size()) {
-			end = true
-		}
-		ret, err := prefix4File(id, end, inf.Name(), offset)
+	fun := func(indx uint32, name string, data []byte, done bool) error {
+		ret, err := prefix4File(id, indx, done, name)
 		if err != nil {
 			return err
 		}
@@ -291,5 +302,5 @@ func SplitFile(fn string, proc func([]byte) error) error {
 		//eztools.Log("file sending", len(data), len(ret), ret)
 		return proc(ret)
 	}
-	return eztools.FileReadByPiece(fn, readSz, fun)
+	return eztools.FileReaderByPiece(rdr, fn, readSz, fun)
 }

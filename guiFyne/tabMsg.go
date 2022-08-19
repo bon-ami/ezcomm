@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"net/url"
 	"strings"
@@ -477,7 +478,7 @@ func Snd() {
 	}
 	var (
 		sndFunc     func([]byte) error
-		wrapperFunc func(fn string, proc func([]byte) error) error
+		wrapperFunc func(fn string, rdr io.ReadCloser, proc func([]byte) error) error
 	)
 	switch protRd.Selected {
 	case ezcomm.StrUdp: // listen before sending

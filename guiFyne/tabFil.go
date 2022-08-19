@@ -1,13 +1,14 @@
 package main
 
 import (
-	"os"
+	"io"
 	"path/filepath"
 	"strconv"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
 	"gitee.com/bon-ami/eztools/v4"
 	"gitlab.com/bon-ami/ezcomm"
@@ -15,33 +16,43 @@ import (
 
 var (
 	filLcl, filRmt *widget.Button
-	filNmO, filNmI string
+	filNmI         string
 	tabFil         *container.TabItem
 	// filPieces maps peer address to former file name to append to
 	//filPieces      map[string]string
 	refRcv, refSnd *widget.Select
 	filEnable      bool
+	rc             fyne.URIReadCloser
 )
 
 func filLclChk() {
-	if len(filNmO) < 1 {
+	if rc == nil {
 		return
 	}
-	cap := filepath.Base(filNmO)
-	if inf, err := os.Stat(filNmO); err != nil {
-		cap += "\n" + err.Error()
-		filEnable = false
-
-	} else {
-		filEnable = true
-		if inf.Size() >= ezcomm.FlowRcvLen {
-			switch protRd.Selected {
-			case ezcomm.StrUdp:
-				cap += "\n>" + strconv.Itoa(ezcomm.FlowRcvLen) + "\n" + ezcomm.StringTran["StrTooLarge2Rcv"]
-				filEnable = false
-			case ezcomm.StrTcp:
-			}
+	cap := rc.URI().Name()
+	filEnable = true
+	switch protRd.Selected {
+	case ezcomm.StrUdp:
+		r, err := storage.Reader(rc.URI())
+		if err != nil {
+			cap += "\n" + err.Error()
+			filEnable = false
+			break
 		}
+		cap, _, err = ezcomm.TryOnlyChunk(cap, r)
+		if err == nil {
+			break
+		}
+		if err == eztools.ErrOutOfBound ||
+			err == eztools.ErrInvalidInput {
+			ml, _ := ezcomm.Sz41stChunk(cap)
+			cap += "\n>" + strconv.Itoa(ml) +
+				"\n" + ezcomm.StringTran["StrTooLarge2Rcv"]
+		} else {
+			cap += "\n" + err.Error()
+		}
+		filEnable = false
+	case ezcomm.StrTcp:
 	}
 	filLcl.SetText(cap)
 	if filEnable {
@@ -50,14 +61,14 @@ func filLclChk() {
 		if sndBut.Text == ezcomm.StringTran["StrSnd"] {
 			sndBut.Disable()
 		}
-		//filNmO = ""
 	}
 }
 
 func filButLcl() {
 	dialog.ShowFileOpen(func(uri fyne.URIReadCloser, err error) {
 		if err == nil && uri != nil {
-			filNmO = uri.URI().Path()
+			rc = uri
+			uri.Close()
 			filLclChk()
 		}
 	}, ezcWin)
@@ -72,11 +83,16 @@ func filButRmt() {
 	}, ezcWin)
 }
 
-func isSndFile(wrapperFunc func(fn string, proc func([]byte) error) error,
+func isSndFile(wrapperFunc func(string, io.ReadCloser, func([]byte) error) error,
 	fun func(buf []byte) error) bool {
 	if tabFil.Content.Visible() {
-		if len(filNmO) > 0 {
-			if err := wrapperFunc(filNmO, fun); err != nil {
+		if rc != nil {
+			r, err := storage.Reader(rc.URI())
+			if err != nil {
+				Log(ezcomm.StringTran["StrFl2Snd"], err)
+				return true
+			}
+			if err = wrapperFunc(rc.URI().Name(), r, fun); err != nil {
 				Log(ezcomm.StringTran["StrFl2Snd"], err)
 			}
 		}
@@ -116,11 +132,11 @@ func RcvFile(comm ezcomm.RoutCommStruc, addr string) (string, string) {
 		return addr, ezcomm.StringTran["StrDirI"]
 	}
 	wr := eztools.FileAppend
-	fn, offset, data, end := ezcomm.BulkFile(filNmI, addr, comm.Data)
+	fn, first, data, end := ezcomm.BulkFile(filNmI, addr, comm.Data)
 	if data == nil {
 		return "", ""
 	}
-	if offset == 0 {
+	if first {
 		wr = eztools.FileWrite
 	}
 	/*if fn, appending = filPieces[addr]; !appending {
