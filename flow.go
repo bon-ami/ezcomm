@@ -663,8 +663,9 @@ func runFlow(flow FlowStruc) bool {
 	return true
 }
 
-func RunFlowReaderBG(rdr io.Reader, res chan bool) bool {
+func RunFlowReaderBG(rdr io.ReadCloser, res chan bool) bool {
 	bytes, err := ioutil.ReadAll(rdr)
+	rdr.Close()
 	//n, err = uri.Read(bytes)
 	if err != nil {
 		eztools.Log("read flow file", err)
