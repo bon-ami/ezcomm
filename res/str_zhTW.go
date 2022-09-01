@@ -84,5 +84,7 @@ func I18nZhtw() {
 		StrLmt = "每秒限制"
 		StrPrd = "駁回期限"
 		StrTooLarge2Rcv = "太大，無法由UDP接收"
+		StrFileAwareness = "輸出需感知檔"
+		StrFileSave = "在下一步中選擇以下檔以允許輸出"
 	`)
 }

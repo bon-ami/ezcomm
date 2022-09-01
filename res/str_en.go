@@ -9,7 +9,7 @@ func I18nEn() {
 		StrInt = "interative"
 		StrFil = "files"
 		StrDir = "directory"
-		StrFilO = "Choose a file below to send. TCP is recommended to for transfer of split big files."
+		StrFilO = "Choose a file below to send. TCP is recommended for transfer of split big files."
 		StrDirI = "Choose a directory below to save received files."
 		StrCfg = "config"
 		StrLcl = "local"
@@ -84,5 +84,7 @@ func I18nEn() {
 		StrLmt = "Limit per second"
 		StrPrd = "Period of refusal"
 		StrTooLarge2Rcv  = "too large to receive by UDP"
+		StrFileAwareness = "File awareness needed for output"
+		StrFileSave = "Choose following file in next step to allow output"
 	`)
 }

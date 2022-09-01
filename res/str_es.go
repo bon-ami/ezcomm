@@ -84,5 +84,7 @@ func I18nEs() { // by bing.com
 		StrLmt = "Límite por segundo"
 		StrPrd = "Plazo de denegación"
 		StrTooLarge2Rcv = "demasiado grande para recibir por UDP"
+		StrFileAwareness = "Reconocimiento de archivos necesario para la salida"
+		StrFileSave = "Elija el siguiente archivo en el siguiente paso para permitir la salida"
 	`)
 }

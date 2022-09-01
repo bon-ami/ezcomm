@@ -85,5 +85,7 @@ func I18nJa() {
 		StrLmt = "1 秒あたりの制限"
 		StrPrd = "拒絶期間"
 		StrTooLarge2Rcv = "大きすぎて UDP で受信できない"
+		StrFileAwareness = "出力に必要なファイル認識"
+		StrFileSave = "出力を許可するには、次の手順で次のファイルを選択してください"
 	`)
 }

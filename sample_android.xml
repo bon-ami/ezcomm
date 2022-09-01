@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ezcommFlow>
+        <!-- same as TestFlow -->
+        <conn name="consumer" protocol="udp" >
+                <!-- server -->
+                <step action="receive" name="receiver" block="true">
+                        <!-- echo -->
+                        <step action="send" dest="%receiver%dest%" data="%receiver%data%" block="true" />
+                </step>
+        </conn>
+        <conn protocol="udp" peer="%consumer%listen%" >
+                <!-- client, greet the server -->
+                <step action="send" dest="%peer%" data="Bonjour" block="true" >
+                        <!-- wait for echo and output it to r on Android's internal storage, i.e, /sdcard/. relative directory may be added here, which should have existed. If the file does not exist or cannot be detected by the app, user will be prompted to choose to permit the writing when the flow is run. -->
+                        <step action="receive" data="%file%r%" block="true"/>
+                </step>
+        </conn>
+</ezcommFlow>

@@ -1,10 +1,22 @@
 package ezcomm
 
 import (
+	"io"
+	"os"
 	"testing"
+
+	"gitee.com/bon-ami/eztools/v4"
 )
 
 func TestFlow(t *testing.T) {
+	FlowReaderNew = func(p string) (io.ReadCloser, error) {
+		return os.OpenFile(p, os.O_RDONLY,
+			eztools.FileCreatePermission)
+	}
+	FlowWriterNew = func(p string) (io.WriteCloser, error) {
+		return os.OpenFile(p, os.O_CREATE|os.O_WRONLY|os.O_TRUNC,
+			eztools.FileCreatePermission)
+	}
 	init4Tests(t)
 	var flows FlowStruc
 	snd := make([]FlowStepStruc, 1)
@@ -50,5 +62,5 @@ func TestFlow(t *testing.T) {
 		Steps:    snd1,
 	}
 	//t.Log(flows)
-	runFlow(flows)
+	RunFlow(flows)
 }

@@ -1,11 +1,13 @@
 package main
 
 import (
+	"io"
 	"strconv"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
+	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
 	"gitee.com/bon-ami/eztools/v4"
 	"gitlab.com/bon-ami/ezcomm"
@@ -36,9 +38,130 @@ func writeCfg() {
 }
 
 func makeTabCfg() *container.TabItem {
+	ezcomm.FlowReaderNew = func(p string) (io.ReadCloser, error) {
+		uri := storage.NewFileURI(p)
+		return storage.Reader(uri)
+	}
+	ezcomm.FlowWriterNew = func(p string) (io.WriteCloser, error) {
+		uri, err := encodeFilePath(p)
+		if err != nil {
+			return nil, err
+		}
+		if b, err := storage.CanWrite(uri); err != nil {
+			return nil, err
+		} else {
+			if !b {
+				return nil, eztools.ErrAccess
+			}
+		}
+		return storage.Writer(uri)
+	}
 	return container.NewTabItem(ezcomm.StringTran["StrCfg"],
 		makeControlsCfg())
 }
+
+// chkFlowStruc go over all steps and check file existence for output
+// Android requires user to allow file creation
+// Return value: whether to abort flow
+func chkFlowStruc(flow ezcomm.FlowStruc) (string, bool) {
+	/*switch runtime.GOOS {
+	case "android":
+	default:
+		return false
+	}*/
+	var loopSteps func(ezcomm.FlowConnStruc, []ezcomm.FlowStepStruc) (string, bool)
+	loopSteps = func(conn ezcomm.FlowConnStruc, stp []ezcomm.FlowStepStruc) (string, bool) {
+		for _, step := range stp {
+			if step.Act == ezcomm.FlowActRcv &&
+				len(step.Data) > 0 {
+				fn, fil := step.ParseData(flow, conn)
+				if fil == 1 {
+					wr, err := ezcomm.FlowWriterNew(fn)
+					if err == nil {
+						wr.Close()
+					} else {
+						ch := make(chan bool, 1)
+						dialog.ShowConfirm(
+							ezcomm.StringTran["StrFileAwareness"],
+							ezcomm.StringTran["StrFileSave"]+
+								"\n"+fn,
+							func(res bool) {
+								ch <- res
+							},
+							ezcWin)
+						if !<-ch {
+							return "", true
+						}
+						var res string
+						dialog.ShowFileSave(func(wr fyne.URIWriteCloser, err error) {
+							if err == nil && wr != nil {
+								wr.Close()
+							}
+							if err == nil {
+								ch <- true
+							} else {
+								res = err.Error()
+								ch <- false
+							}
+						}, ezcWin)
+						if !<-ch {
+							return res, true
+						}
+					}
+				}
+			}
+			if res, ng := loopSteps(conn, step.Steps); ng {
+				return res, true
+			}
+		}
+		return "", false
+	}
+	for _, conn := range flow.Conns {
+		if res, ng := loopSteps(conn, conn.Steps); ng {
+			return res, true
+		}
+	}
+	return "", false
+}
+
+func runFlow(uri fyne.URIReadCloser) {
+	var (
+		err    error
+		resStr string
+	)
+	resTxt := ezcomm.StringTran["StrFlowRunNot"]
+	defer func() {
+		if len(resStr) > 0 {
+			resTxt = ezcomm.StringTran["StrFlowFinAs"] + resStr
+		}
+		flowFnStt.SetText(resTxt)
+		flowFnStt.Refresh()
+		flowFlBut.Enable()
+	}()
+	flow, err := ezcomm.ReadFlowReader(uri)
+	if err != nil {
+		Log("flow file NOT read", err)
+		return
+	}
+	if res, ng := chkFlowStruc(flow); ng {
+		Log("flow output creation skipped")
+		if len(res) > 0 {
+			resTxt = res
+		}
+		return
+	}
+	if ezcomm.RunFlow(flow) {
+		resStr = ezcomm.StringTran["StrOK"]
+	} else {
+		resStr = ezcomm.StringTran["StrNG"]
+	}
+}
+
+var (
+	flowFlBut, fontBut *widget.Button
+	flowFnStt          *widget.Entry
+	flowResChn         chan bool
+)
 
 func makeControlsCfg() *fyne.Container {
 	rowFloodLbl := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrAntiFld"]))
@@ -70,13 +193,13 @@ func makeControlsCfg() *fyne.Container {
 		floodLblLmt, floodInpLmt, floodLblPrd, floodInpPrd)
 
 	// flow part begins
-	flowFnStt := widget.NewEntry()
+	flowFnStt = widget.NewEntry()
 	flowFnStt.PlaceHolder = ezcomm.StringTran["StrStb"]
 	flowFnStt.Disable()
 	flowFnTxt := widget.NewEntry()
 	flowFnTxt.SetText(ezcomm.StringTran["StrFlw"])
 	flowFnTxt.Disable()
-	var flowFlBut *widget.Button
+	flowResChn = make(chan bool, 1)
 	flowFlBut = widget.NewButton(ezcomm.StringTran["StrFlw"], func() {
 		dialog.ShowFileOpen(func(uri fyne.URIReadCloser, err error) {
 			flowFnStt.SetText("")
@@ -93,28 +216,9 @@ func makeControlsCfg() *fyne.Container {
 			flowFlBut.Disable()
 			flowFnStt.SetText(ezcomm.StringTran["StrFlowRunning"])
 			flowFnStt.Refresh()
-			fn := uri.URI().String()
-			flowFnTxt.SetText(fn)
+			flowFnTxt.SetText(decodeFilePath(uri.URI()))
 			flowFnTxt.Refresh()
-			resChn := make(chan bool)
-			if !ezcomm.RunFlowReaderBG(uri, resChn) {
-				Log("flow file NOT run", fn)
-				flowFnStt.SetText(ezcomm.StringTran["StrFlowRunNot"])
-				flowFnStt.Refresh()
-				flowFlBut.Enable()
-				return
-			}
-			go func() {
-				var resStr string
-				if <-resChn {
-					resStr = ezcomm.StringTran["StrOK"]
-				} else {
-					resStr = ezcomm.StringTran["StrNG"]
-				}
-				flowFnStt.SetText(ezcomm.StringTran["StrFlowFinAs"] + resStr)
-				flowFnStt.Refresh()
-				flowFlBut.Enable()
-			}()
+			go runFlow(uri)
 		}, ezcWin)
 	})
 	// flow part ends
@@ -176,7 +280,7 @@ func makeControlsCfg() *fyne.Container {
 	})
 	markFont(useFontFromCfg(false, ezcomm.CfgStruc.Language))
 
-	fontBut := widget.NewButton(ezcomm.StringTran["StrFnt4Lang"], func() {
+	fontBut = widget.NewButton(ezcomm.StringTran["StrFnt4Lang"], func() {
 		lang := langMap[langSel.Selected]
 		if len(lang) < 1 {
 			return
@@ -327,5 +431,6 @@ func verboseFrmStr(str string) int {
 }
 
 func tabCfgShown() {
-
+	flowFlBut.Refresh()
+	fontBut.Refresh()
 }

@@ -60,9 +60,8 @@ func (c ezcommCfg) GetFont() string {
 }
 
 var (
-	CfgStruc  ezcommCfg
-	cfgPath   string
-	LogWtTime bool
+	CfgStruc ezcommCfg
+	cfgPath  string
 )
 
 func WriteCfg() error {
@@ -94,7 +93,10 @@ func WriterCfg(wrt io.WriteCloser) error {
 	return err
 }
 
-func ReaderCfg(rdr io.ReadCloser, paramLogI string) error {
+// ReaderCfg read config from a Reader and use a file as log
+// Parameters: paramLogI overrides log config from Reader
+// Return values: log file path and error
+func ReaderCfg(rdr io.ReadCloser, paramLogI string) (string, error) {
 	if rdr != nil {
 		setDefCfg()
 		eztools.XMLReader(rdr, &CfgStruc)
@@ -103,7 +105,10 @@ func ReaderCfg(rdr io.ReadCloser, paramLogI string) error {
 	return procCfg(paramLogI)
 }
 
-func ReadCfg(cfg, paramLogI string) error {
+// ReadCfg read config from a file and use a file as log
+// Parameters: paramLogI overrides log config from Reader
+// Return values: log file path and error
+func ReadCfg(cfg, paramLogI string) (string, error) {
 	setDefCfg()
 	cfgPath, _ = eztools.XMLReadDefault(cfg, EzcName, &CfgStruc)
 	if len(cfgPath) < 1 && len(cfg) > 0 {
@@ -118,7 +123,7 @@ func setDefCfg() {
 	CfgStruc.AntiFlood.Period = DefAntFldPrd
 }
 
-func procCfg(paramLogI string) error {
+func procCfg(paramLogI string) (string, error) {
 	paramLogO := paramLogI
 	if len(CfgStruc.LogFile) > 0 {
 		if len(paramLogI) < 1 {
@@ -145,10 +150,6 @@ func procCfg(paramLogI string) error {
 		}
 		//log("verbose", eztools.Verbose, ",log file =", paramLogO)
 	}
-	if len(paramLogO) > 0 {
-		setLog(paramLogO)
-		LogWtTime = true
-	}
 
 	// anti-flood
 	AntiFlood.Limit = CfgStruc.AntiFlood.Limit
@@ -172,7 +173,7 @@ func procCfg(paramLogI string) error {
 	/*if CfgStruc.Verbose > 2 {
 		log(CfgStruc)
 	}*/
-	return err
+	return paramLogO, err
 }
 
 func MatchFontFromCurrLanguageCfg() {
@@ -193,15 +194,28 @@ func MatchFontFromCurrLanguageCfg() {
 	return
 }
 
-func setLog(fil string) error {
-	logger, err := os.OpenFile(fil,
-		os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
-	if err == nil {
-		/*if*/ err = eztools.InitLogger(logger) /*; err != nil {
-				log(err)
-			}
-		} else {
-			log("Failed to open log file "+fil, err)*/
+// SetLog sets a writer or file as log
+// date and time will be prefixed to the file;
+// none to a writer, otherwise.
+func SetLog(fil string, wr io.Writer) (err error) {
+	if wr == nil {
+		wr, err = os.OpenFile(fil,
+			os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
 	}
-	return err
+	if err != nil {
+		return err
+	}
+	if err = eztools.InitLogger(wr); err != nil {
+		return err
+	}
+	if len(fil) > 0 {
+		flags := eztools.LogFlagDateNTime
+		/*if eztools.Verbose > 2 {
+			flags = eztools.LogFlagDateTimeNFile
+		}*/
+		eztools.SetLogFlags(flags)
+	} else {
+		eztools.SetLogFlags(0)
+	}
+	return nil
 }

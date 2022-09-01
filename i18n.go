@@ -88,6 +88,8 @@ var (
 		"StrLmt",
 		"StrPrd",
 		"StrTooLarge2Rcv",
+		"StrFileAwareness",
+		"StrFileSave",
 	}
 )
 

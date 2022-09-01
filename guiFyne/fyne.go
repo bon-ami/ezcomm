@@ -2,12 +2,15 @@ package main
 
 import (
 	"flag"
+	"net/url"
 	"runtime"
 	"strconv"
+	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/storage"
 	"gitee.com/bon-ami/eztools/v4"
 	"gitlab.com/bon-ami/ezcomm"
 )
@@ -41,6 +44,55 @@ func parseParams() {
 	}
 }
 
+const extPrefAnd = "content://com.android.externalstorage.documents/document/primary"
+
+func encodeFilePath(p string) (fyne.URI, error) {
+	switch runtime.GOOS {
+	case "android":
+		// change a/b into {extPref}%3Aa%2Fb meaning {extPref}:a/b
+		p = extPrefAnd + url.QueryEscape(":"+p)
+		/*ua, err := url.Parse(extPref+p)
+		if err != nil {
+			return nil, err
+		}
+		if ua == nil {
+			return nil, eztools.ErrInvalidInput
+		}
+		uaParts := strings.SplitN(ua.Path, ":", 2) // document/primary a/b
+		if uaParts != nil && len(uaParts) == 2 {
+			uaParts[1] = url.QueryEscape(":" + uaParts[1])
+		}
+		ua.Path = strings.Join(uaParts, "")
+		// then ua.Path=document/primary%3Aa%2Fb
+		// and us.String=content://com.android.externalstorage.documents/document/primary%253Aa%252Fb
+		p, err = url.QueryUnescape(ua.String()) // and then content://com.android.externalstorage.documents/document/primary%3Aa%2Fb
+		if err != nil {
+			return nil, err
+		}*/
+		return storage.ParseURI(p)
+	default:
+		uri := storage.NewFileURI(p)
+		if uri == nil || len(uri.String()) < 1 {
+			return nil, eztools.ErrInvalidInput
+		}
+		return uri, nil
+	}
+}
+
+func decodeFilePath(uri fyne.URI) string {
+	switch runtime.GOOS {
+	case "android":
+		fn, err := url.PathUnescape(uri.String())
+		if err != nil {
+			Log("failed to unescape", uri)
+			return ""
+		}
+		return strings.TrimPrefix(fn, extPrefAnd+":")
+	default:
+		return uri.String()
+	}
+}
+
 func main() {
 	parseParams()
 	/*for i := range chn {
@@ -53,7 +105,13 @@ func main() {
 	if err != nil {
 		eztools.Log("failed to open config file", err)
 	}
-	ezcomm.ReaderCfg(rdr, "")
+	paramLog, err := ezcomm.ReaderCfg(rdr, "")
+	if err != nil {
+		err = initLog(paramLog)
+		if err != nil {
+			eztools.Log("failed to set log file", err)
+		}
+	}
 
 	useFontFromCfg(true, ezcomm.CfgStruc.Language)
 
@@ -101,6 +159,9 @@ func main() {
 	ezcApp.Run()
 	if eztools.Debugging {
 		eztools.Log("routines (5 is normal) left", runtime.NumGoroutine())
+	}
+	if logger != nil {
+		logger.Close()
 	}
 }
 

@@ -68,11 +68,7 @@ func Log(inf ...any) {
 			str)
 		fyneRowLog.CursorRow++
 	}
-	if ezcomm.LogWtTime {
-		eztools.LogWtTime(inf)
-	} else {
-		eztools.Log(inf)
-	}
+	eztools.Log(inf)
 }
 
 func setLclSck(addr string) {

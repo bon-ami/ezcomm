@@ -53,7 +53,10 @@ func main() {
 		eztools.Verbose = 3
 	}
 
-	ezcomm.ReadCfg(paramCfg, paramLog)
+	paramLog, err = ezcomm.ReadCfg(paramCfg, paramLog)
+	if err == nil {
+		ezcomm.SetLog(paramLog, nil)
+	}
 
 	if paramH {
 		flag.Usage()
@@ -103,6 +106,10 @@ func main() {
 	// db ends
 
 	if len(paramFlw) > 0 {
-		ezcomm.RunFlowFile(paramFlw)
+		if flow, err := ezcomm.ReadFlowFile(paramFlw); err != nil {
+			eztools.LogPrint(err)
+		} else {
+			ezcomm.RunFlow(flow)
+		}
 	}
 }

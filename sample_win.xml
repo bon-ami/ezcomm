@@ -5,14 +5,14 @@
                 <!-- server -->
                 <step action="receive" name="receiver" block="true">
                         <!-- echo -->
-                        <step action="send" dest="%receiver.dest%" data="%receiver.data%" block="true" />
+                        <step action="send" dest="%receiver%dest%" data="%receiver%data%" block="true" />
                 </step>
         </conn>
-        <conn protocol="udp" peer="%consumer.listen%" >
+        <conn protocol="udp" peer="%consumer%listen%" >
                 <!-- client, greet the server -->
                 <step action="send" dest="%peer%" data="Bonjour" block="true" >
-                        <!-- wait for echo -->
-                        <step action="receive" data="%file.result.data%" block="true"/>
+                        <!-- wait for echo and output it to C:\r -->
+                        <step action="receive" data="%file%C:\\r%" block="true"/>
                 </step>
         </conn>
 </ezcommFlow>

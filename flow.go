@@ -6,7 +6,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
-	"os"
 	"reflect"
 	"strings"
 
@@ -31,7 +30,6 @@ const (
 
 	FlowVarSign = "%"
 	FlowVarSep  = "."
-	FlowVarSvr  = "svr"
 	FlowVarLst  = "listen"
 	FlowVarLcl  = "local"
 	FlowVarPee  = "peer"
@@ -101,9 +99,7 @@ type FlowConnStruc struct {
 	Block    bool   `xml:"block,attr"`
 	// TODO: use Wait?
 	Wait  string          `xml:"wait,attr"`
-	Steps []FlowStepStruc `xml:"step,attr"`
-	// curr: current step
-	//curr  int
+	Steps []FlowStepStruc `xml:"step"`
 	lstnr net.Listener
 	conn  *net.UDPConn
 	// chanErrs is for Server()
@@ -132,16 +128,19 @@ type FlowStruc struct {
 }
 
 const (
-	// FlowParseValSimple is a sstring without <FlowVarSign>
+	// FlowParseValSimple is a string without <FlowVarSign>
 	FlowParseValSimple = iota
-	// FlowParseValSign is <FlowVarSign><string><FlowVarSign>
+	// FlowParseValSign is for <FlowVarSign><string><FlowVarSign>
 	FlowParseValSign
-	// FlowParseValVar is <FlowVarSign><xml tag name of FlowConnStruc or FlowStepStruc><FlowVarSep><string><FlowVarSign>
+	// FlowParseValVar is for <FlowVarSign><xml tag name of FlowConnStruc/FlowStepStruc><FlowVarSign><string><FlowVarSign>
 	FlowParseValVar
 )
 
+var FlowWriterNew func(string) (io.WriteCloser, error)
+var FlowReaderNew func(string) (io.ReadCloser, error)
+
 // ParseVar parses a string of a simple string or
-//   <FlowVarSign>[<xml tag name of FlowConnStruc or FlowStepStruc><FlowVarSep>]<string><FlowVarSign>
+//   <FlowVarSign>[<xml tag name of FlowConnStruc/FlowStepStruc><FlowVarSign>]<string><FlowVarSign>
 //   fun() is invoked for matched FlowConnStruc,
 //	with index of it in FlowStruc.Conns and <string>
 // Return values:
@@ -157,30 +156,29 @@ func (flow FlowStruc) ParseVar(str string,
 		return str, FlowParseValSimple
 	}
 	parts := strings.Split(str, FlowVarSign)
-	if len(parts) != 3 {
+	if len(parts) == 3 {
+		return parts[1], FlowParseValSign
+	}
+	if len(parts) != 4 {
 		//eztools.LogWtTime("unrecognized var", str)
 		return str, FlowParseValSimple
 	}
-	vars := strings.Split(parts[1], FlowVarSep)
-	if len(vars) != 2 {
-		return parts[1], FlowParseValSign
-	}
 	if fun != nil {
 		for i := range flow.Conns {
-			if vars[0] != flow.Conns[i].Name {
+			if parts[1] != flow.Conns[i].Name {
 				continue
 			}
-			fun(i, vars[1])
+			fun(i, parts[2])
 		}
 	}
-	if step1, ok := flow.Vals[vars[0]]; ok && step1 != nil {
-		//eztools.Log("parsevar", vars[0], vars[1], *step1)
+	if step1, ok := flow.Vals[parts[1]]; ok && step1 != nil {
+		//eztools.Log("parsevar", parts, *step1)
 		stepTp := reflect.TypeOf(*step1)
 		for i := 0; i < stepTp.NumField(); i++ {
 			fld := stepTp.Field(i)
 			tg := fld.Tag.Get("xml")
 			tg = strings.TrimSuffix(tg, ",attr")
-			if vars[1] != tg {
+			if parts[2] != tg {
 				//eztools.Log("passing", tg)
 				continue
 			}
@@ -195,7 +193,7 @@ func (flow FlowStruc) ParseVar(str string,
 		}
 	}
 
-	return parts[1], FlowParseValSign
+	return parts[1] + FlowVarSign + parts[2], FlowParseValSign
 }
 
 // ParseData parses data in step
@@ -210,10 +208,10 @@ func (flow FlowStruc) ParseVar(str string,
 func (step FlowStepStruc) ParseData(flow FlowStruc, conn FlowConnStruc) (string, int) {
 	retWhole, parseRes := flow.ParseVar(step.Data, nil) // TODO: match a server
 	switch parseRes {
-	case FlowParseValSign:
+	case FlowParseValSimple, FlowParseValSign:
 		switch {
-		case strings.HasPrefix(retWhole, FlowVarFil+FlowVarSep):
-			return strings.TrimPrefix(retWhole, FlowVarFil+FlowVarSep), 1
+		case strings.HasPrefix(retWhole, FlowVarFil+FlowVarSign):
+			return strings.TrimPrefix(retWhole, FlowVarFil+FlowVarSign), 1
 		}
 	}
 	return retWhole, 0
@@ -407,31 +405,36 @@ func (connStruc *FlowConnStruc) Connected(logFunc FuncLog,
 		case FlowChnSnd:
 			com.Err = sndFunc(com.Data)
 		case FlowChnSndFil:
+			if FlowReaderNew == nil {
+				break
+			}
 			buf := make([]byte, FlowFilLen)
-			fil, err := os.Open(string(com.Data))
+			fr, err := FlowReaderNew(string(com.Data))
 			if err != nil {
-				eztools.LogWtTime(connUdp.LocalAddr().String, "reading", err)
+				eztools.LogWtTime("failed to open file to read!", string(com.Data), err)
 				com.Err = err
 				break
 			}
-			defer fil.Close()
+			defer fr.Close()
 			// TODO: how to tell of pieces on peer?
 			for {
 				var ln int
-				ln, err = fil.Read(buf)
+				ln, err = fr.Read(buf)
 				if err != nil {
 					if !errors.Is(err, io.EOF) {
-						eztools.LogWtTime(connUdp.LocalAddr().String, "reading", err)
+						eztools.LogWtTime(connUdp.LocalAddr().String, "error reading!", err)
 						com.Err = err
 					}
 					break
 				}
 				err = sndFunc([]byte(buf[:ln]))
 				if err != nil {
+					eztools.LogWtTime("failed send!", err)
 					com.Err = err
 					break
 				}
 			}
+			fr.Close()
 		case FlowChnRcv:
 			// com.Peer must be empty
 			// com.Data is appended
@@ -452,30 +455,39 @@ func (connStruc *FlowConnStruc) Connected(logFunc FuncLog,
 				//}
 			}
 		case FlowChnRcvFil:
-			fil, err := os.OpenFile(string(com.Data), os.O_CREATE|os.O_WRONLY|os.O_TRUNC, eztools.FileCreatePermission)
+			if FlowWriterNew == nil {
+				break
+			}
+			fw, err := FlowWriterNew(string(com.Data))
 			if err != nil {
+				eztools.LogWtTime("failed to open file to save!", string(com.Data), err)
 				com.Err = err
 				break
 			}
-			defer fil.Close()
 			bytes := make([]byte, FlowFilLen)
-			for {
-				err := rcvFunc(bytes, func(buf []byte, ln int) error {
-					if _, err := fil.Write(buf[:ln]); err != nil {
-						eztools.LogWtTime("failed to write to", com.Data, err)
-						com.Err = err
-						return err
-					}
-					return nil
-				})
-				if eztools.Verbose > 2 {
-					eztools.LogWtTime(connStruc.Name,
-						"saved", err, com.Data)
+			//for {
+			err = rcvFunc(bytes, func(buf []byte, ln int) error {
+				/*if fw == nil {
+					return eztools.ErrOutOfBound
+				}*/
+				if _, err := fw.Write(buf[:ln]); err != nil {
+					eztools.LogWtTime("failed to write to", string(com.Data), err)
+					com.Err = err
+					return err
 				}
-				//if err != nil {
-				break
-				//}
+				/*fw.Close()
+				fw = nil*/
+				return nil
+			})
+			if eztools.Verbose > 2 {
+				eztools.LogWtTime(connStruc.Name,
+					"saved", err, com.Data)
 			}
+			//if err != nil {
+			//break
+			//}
+			//}
+			fw.Close()
 		}
 		if eztools.Verbose > 2 {
 			eztools.LogWtTime(connStruc.Name, "replying", com)
@@ -632,7 +644,9 @@ func (svr *FlowConnStruc) RunSvr(flow FlowStruc) {
 	}
 }
 
-func runFlow(flow FlowStruc) bool {
+// RunFlow runs a read flow structure
+// Return value: whether succeeded
+func RunFlow(flow FlowStruc) bool {
 	if len(flow.Conns) < 1 {
 		eztools.Log("NO server defined. NO flow runs.")
 		return false
@@ -663,31 +677,26 @@ func runFlow(flow FlowStruc) bool {
 	return true
 }
 
-func RunFlowReaderBG(rdr io.ReadCloser, res chan bool) bool {
+func ReadFlowReader(rdr io.ReadCloser) (flow FlowStruc, err error) {
 	bytes, err := ioutil.ReadAll(rdr)
 	rdr.Close()
 	//n, err = uri.Read(bytes)
 	if err != nil {
-		eztools.Log("read flow file", err)
-		return false
+		//eztools.Log("read flow file", err)
+		return
 	}
-	var flow FlowStruc
 	err = xml.Unmarshal(bytes, &flow)
 	if err != nil {
-		eztools.Log("parse flow file", err)
-		return false
+		//eztools.Log("parse flow file", err)
+		return
 	}
-	go func() {
-		res <- runFlow(flow)
-	}()
-	return true
+	return
 }
 
-func RunFlowFile(file string) bool {
-	var flow FlowStruc
-	if err := eztools.XMLRead(file, &flow); err != nil {
-		eztools.Log(file, "failed to be read/parsed", err)
-		return false
+func ReadFlowFile(file string) (flow FlowStruc, err error) {
+	if err = eztools.XMLRead(file, &flow); err != nil {
+		//eztools.Log(file, "failed to be read/parsed", err)
+		return
 	}
-	return runFlow(flow)
+	return
 }
