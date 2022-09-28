@@ -22,6 +22,9 @@ function android1() {
                 M="/${M}"
         fi
 	echo building Android $M `grep "Build" FyneApp.toml`
+        if [ -f "${A}.apk" ]; then
+			rm ${A}.apk
+        fi
 	fyne package -os android$M -appVersion $V
         if [ -f "${A}.apk" ]; then
                 mv ${A}.apk ${A}_debug.apk
@@ -46,6 +49,9 @@ function android1() {
                 M=$1
                 if [ -n "$M" ]; then
                         M="_$M"
+                fi
+                if [ -f "${A}_${V}${M}.apk" ]; then
+					rm ${A}_${V}${M}.apk
                 fi
                 #$S sign --ks $K --out ${A}_${M}.apk ${A}.apk
                 if [ -f "$P" ]; then
@@ -75,13 +81,29 @@ function lwin1() {
         fi
         cp FyneApp.bak FyneApp.toml
         echo building $1 $M `grep "Build" FyneApp.toml`
-        fyne package -os $1 $3 -appVersion $V
         if [ -f "${A}.tar.xz" ]; then
+			rm ${A}.tar.xz
+        fi
+        if [ -f "$W$2" ]; then
+                rm ${W}$2
+        elif [ -f "$A$2" ]; then
+                rm ${A}$2
+        fi
+        fyne package -os $1 $3 -appVersion $V
+
+        if [ -f "${A}.tar.xz" ]; then
+			echo "Extracting ${W} from ${A}.tar.xz"
 			tar -xf ${A}.tar.xz usr/local/bin/${W}
-			mv usr/local/bin/${W} ${W}
-			rmdir usr/local/bin
-			rmdir usr/local
-			rmdir usr
+			if (( "$?" == 0 )); then
+				mv usr/local/bin/${W} ${W}
+				rmdir usr/local/bin
+				rmdir usr/local
+				rmdir usr
+				rm ${A}.tar.xz
+			else
+				echo "${W} NOT found in ${A}.tar.xz"
+				return
+			fi
         fi
 
         if [ -z "$M" ]; then
@@ -116,7 +138,7 @@ else
 			lwin1 windows .exe ""
 			lwin1 windows .exe "--release"
 		else
-			lwin1 linux "" ""
+			#lwin1 linux "" ""
 			lwin1 linux "" "--release"
 		fi
 

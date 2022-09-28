@@ -4,4 +4,4 @@ Website = "https://ezproject.sourceforge.io/"
   Icon = "Icon.png"
   Name = "EZComm"
   ID = "io.sourceforge.ezproject.ezcomm"
-  Build = 15
+  Build = 2
