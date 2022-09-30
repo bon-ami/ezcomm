@@ -646,7 +646,7 @@ func makeControlsLcl() *fyne.Container {
 	for i := 0; i < 2; i++ {
 		sockLcl[i] = widget.NewSelectEntry(nil)
 	}
-	sockLcl[0].PlaceHolder = ezcomm.DefAdr
+	sockLcl[0].PlaceHolder = ""
 	rowSock := container.NewGridWithRows(2,
 		addrLbl, sockLcl[0], portLbl, sockLcl[1])
 
@@ -779,5 +779,7 @@ func chkNEnableSnd(filShown bool) {
 }
 
 func tabMsgShown() {
+	protRd.Refresh()
+	lstBut.Refresh()
 	chkNEnableSnd(false)
 }

@@ -90,6 +90,9 @@ var (
 		"StrTooLarge2Rcv",
 		"StrFileAwareness",
 		"StrFileSave",
+		"StrInfLan",
+		"StrPokePeer",
+		"StrDiscoverFail",
 	}
 )
 

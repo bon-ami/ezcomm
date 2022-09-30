@@ -10,7 +10,8 @@ import (
 
 const (
 	EzcName      = "EZComm"
-	DefAdr       = "localhost"
+	DefAdr       = "localhost"       // use "" instead to listen on all interfaces
+	DefBrd       = "255.255.255.255" // broadcast addr
 	StrUdp       = "udp"
 	StrTcp       = "tcp"
 	DefAntFldLmt = 10
@@ -218,4 +219,11 @@ func SetLog(fil string, wr io.Writer) (err error) {
 		eztools.SetLogFlags(0)
 	}
 	return nil
+}
+
+func DefLan() (ret int) {
+	for _, c := range EzcName {
+		ret += int(c)
+	}
+	return ret * 10 //==5550
 }

@@ -86,5 +86,8 @@ func I18nEs() { // by bing.com
 		StrTooLarge2Rcv = "demasiado grande para recibir por UDP"
 		StrFileAwareness = "Reconocimiento de archivos necesario para la salida"
 		StrFileSave = "Elija el siguiente archivo en el siguiente paso para permitir la salida"
+		StrInfLan       = "LAN"
+		StrPokePeer     = "Buscar un compañero"
+		StrDiscoverFail = "Error de descubrimiento"
 	`)
 }

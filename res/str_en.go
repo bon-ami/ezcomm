@@ -86,5 +86,8 @@ func I18nEn() {
 		StrTooLarge2Rcv  = "too large to receive by UDP"
 		StrFileAwareness = "File awareness needed for output"
 		StrFileSave = "Choose following file in next step to allow output"
+		StrInfLan       = "LAN"
+		StrPokePeer     = "Look for a peer"
+		StrDiscoverFail = "Discovery Failed"
 	`)
 }

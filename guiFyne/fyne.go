@@ -130,7 +130,9 @@ func main() {
 	tabFil := makeTabFil()
 	tabLog := makeTabLog()
 	tabCfg := makeTabCfg()
+	tabLan := makeTabLan()
 	tabs := container.NewAppTabs(
+		tabLan,
 		tabMsg,
 		tabFil,
 		tabLog,
@@ -138,6 +140,7 @@ func main() {
 	)
 	ezcWin.SetContent(tabs)
 	tabs.OnSelected = func(tb *container.TabItem) {
+		tabLanShown(false)
 		switch tb {
 		case tabMsg:
 			tabMsgShown()
@@ -147,6 +150,8 @@ func main() {
 			tabLogShown()
 		case tabCfg:
 			tabCfgShown()
+		case tabLan:
+			tabLanShown(true)
 		}
 	}
 
@@ -155,6 +160,7 @@ func main() {
 	svrTcp.LogFunc = Log
 
 	ezcWin.Show()
+	tabLanShown(true)
 	// 9 routines here
 	ezcApp.Run()
 	if eztools.Debugging {

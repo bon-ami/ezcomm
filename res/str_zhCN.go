@@ -86,5 +86,8 @@ func I18nZhcn() {
 		StrTooLarge2Rcv = "UDP无法接收过大文件"
 		StrFileAwareness = "为了保存文件需要进行识别"
 		StrFileSave = "在下一步选择此文件才能进行保存"
+		StrInfLan       = "局域网"
+		StrPokePeer     = "寻找对端"
+		StrDiscoverFail = "发现失败"
 	`)
 }

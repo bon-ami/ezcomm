@@ -86,5 +86,8 @@ func I18nZhtw() {
 		StrTooLarge2Rcv = "太大，無法由UDP接收"
 		StrFileAwareness = "輸出需感知檔"
 		StrFileSave = "在下一步中選擇以下檔以允許輸出"
+		StrInfLan       = "局域網"
+		StrPokePeer     = "尋找對端"
+		StrDiscoverFail = "發現失敗"
 	`)
 }

@@ -140,6 +140,7 @@ func ConnectedUdp(logFunc FuncLog, chn [2]chan RoutCommStruc, conn *net.UDPConn)
 		}
 	}()
 	//logFunc("listening on UDP", ChanComm)
+	var err error
 	for {
 		//logFunc("command udp", chn, "waiting")
 		cmd := <-chn[0]
@@ -150,7 +151,11 @@ func ConnectedUdp(logFunc FuncLog, chn [2]chan RoutCommStruc, conn *net.UDPConn)
 				logFunc("sending", cmd)
 			}
 			// TODO: confirm to anti-flood
-			_, err := conn.WriteToUDP(cmd.Data, cmd.PeerUdp)
+			if cmd.PeerUdp == nil {
+				err = eztools.ErrIncomplete
+			} else {
+				_, err = conn.WriteToUDP(cmd.Data, cmd.PeerUdp)
+			}
 			replyWtErr(cmd, err, chn[1])
 		case FlowChnEnd:
 			//logFunc("exiting", lcl)
