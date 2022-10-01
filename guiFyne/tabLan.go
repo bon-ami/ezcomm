@@ -141,7 +141,6 @@ func makeTabLan() *container.TabItem {
 }
 
 func tabLanShown(yes bool) {
-	eztools.Log("tab shown", yes)
 	switch yes {
 	case true:
 		lanBut.Refresh()
