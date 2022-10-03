@@ -51,24 +51,6 @@ func encodeFilePath(p string) (fyne.URI, error) {
 	case "android":
 		// change a/b into {extPref}%3Aa%2Fb meaning {extPref}:a/b
 		p = extPrefAnd + url.QueryEscape(":"+p)
-		/*ua, err := url.Parse(extPref+p)
-		if err != nil {
-			return nil, err
-		}
-		if ua == nil {
-			return nil, eztools.ErrInvalidInput
-		}
-		uaParts := strings.SplitN(ua.Path, ":", 2) // document/primary a/b
-		if uaParts != nil && len(uaParts) == 2 {
-			uaParts[1] = url.QueryEscape(":" + uaParts[1])
-		}
-		ua.Path = strings.Join(uaParts, "")
-		// then ua.Path=document/primary%3Aa%2Fb
-		// and us.String=content://com.android.externalstorage.documents/document/primary%253Aa%252Fb
-		p, err = url.QueryUnescape(ua.String()) // and then content://com.android.externalstorage.documents/document/primary%3Aa%2Fb
-		if err != nil {
-			return nil, err
-		}*/
 		return storage.ParseURI(p)
 	default:
 		uri := storage.NewFileURI(p)
@@ -95,9 +77,6 @@ func decodeFilePath(uri fyne.URI) string {
 
 func main() {
 	parseParams()
-	/*for i := range chn {
-		chn[i] = make(chan ezcomm.RoutCommStruc, ezcomm.FlowComLen)
-	}*/
 	ezcApp := app.NewWithID(ezcomm.EzcName)
 	appStorage = ezcApp.Storage()
 	cfgFileName := ezcomm.EzcName + ".xml"

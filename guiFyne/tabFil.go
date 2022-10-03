@@ -15,9 +15,10 @@ import (
 )
 
 var (
-	filLcl, filRmt *widget.Button
-	filNmI         string
-	tabFil         *container.TabItem
+	filLcl *widget.Button
+	filRmt *widget.TextGrid
+	filNmI string
+	tabFil *container.TabItem
 	// filPieces maps peer address to former file name to append to
 	//filPieces      map[string]string
 	refRcv, refSnd *widget.Select
@@ -74,14 +75,14 @@ func filButLcl() {
 	}, ezcWin)
 }
 
-func filButRmt() {
+/*func filButRmt() {
 	dialog.ShowFolderOpen(func(uri fyne.ListableURI, err error) {
 		if err == nil && uri != nil {
 			filNmI = uri.Path()
 			filRmt.SetText(uri.Name())
 		}
 	}, ezcWin)
-}
+}*/
 
 func isSndFile(wrapperFunc func(string, io.ReadCloser, func([]byte) error) error,
 	fun func(buf []byte) error) bool {
@@ -123,11 +124,11 @@ func SntFileOk(fn string) {
 	}
 }
 
-func RcvFile(comm ezcomm.RoutCommStruc, addr string) (string, string) {
-	/*var (
-		appending bool
-		fn        string
-	)*/
+// RcvFile saves incoming file piece
+//   To avoid asking user for every file, when permission needed,
+//   all files saved to app directory.
+// Return values: fn=file name or error string
+func RcvFile(comm ezcomm.RoutCommStruc, addr string) (peer, fn string) {
 	if len(filNmI) < 1 {
 		return addr, ezcomm.StringTran["StrDirI"]
 	}
@@ -136,27 +137,16 @@ func RcvFile(comm ezcomm.RoutCommStruc, addr string) (string, string) {
 	if data == nil {
 		return "", ""
 	}
+	if _, ret := tryWriteFile(fn); ret {
+		return "", eztools.ErrAbort.Error()
+	}
+	// once user prompted, eztools can write to the file
 	if first {
 		wr = eztools.FileWrite
 	}
-	/*if fn, appending = filPieces[addr]; !appending {
-		wr = eztools.FileWrite
-	} else {
-		if eztools.Debugging && eztools.Verbose > 1 {
-			Log("appending to", fn)
-		}
-	}*/
-	//eztools.Log(wr, fnFull, data)
 	if err := wr(fn, data); err != nil {
 		Log(ezcomm.StringTran["StrFl2Rcv"], err)
 	} else {
-		/*if len(comm.Data) == ezcomm.FlowRcvLen {
-		filPieces[addr] = fn
-		appending = false // do not delete it*/
-		/*Log("to append")
-		} else {
-			Log("not to append", len(comm.DataI))*/
-		/*}*/
 		if end {
 			fn = filepath.Base(fn)
 			if len(fn) > MaxRecLen {
@@ -167,9 +157,6 @@ func RcvFile(comm ezcomm.RoutCommStruc, addr string) (string, string) {
 			return addr, fn
 		}
 	}
-	/*if appending {
-		delete(filPieces, addr)
-	}*/
 	return "", ""
 }
 
@@ -208,7 +195,9 @@ func makeControlsRF() *fyne.Container {
 	filLbl := widget.NewLabel(ezcomm.StringTran["StrDirI"])
 	filLbl.Wrapping = fyne.TextWrapWord
 	tops := container.NewVBox(rowLbl, rowTo, rowUdpSock2, rowTcpSock2, rowRec, filLbl)
-	filRmt = widget.NewButton(ezcomm.StringTran["StrDir"], filButRmt)
+	//filRmt = widget.NewButton(ezcomm.StringTran["StrDir"], filButRmt)
+	filRmt = widget.NewTextGrid()
+	filNmI = appStorage.RootURI().String()
 	return container.NewBorder(tops, nil, nil, nil, filRmt)
 }
 

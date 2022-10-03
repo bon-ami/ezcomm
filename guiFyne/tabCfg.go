@@ -60,6 +60,44 @@ func makeTabCfg() *container.TabItem {
 		makeControlsCfg())
 }
 
+// tryWriteFile prompts user to create the file,
+//    if no writer able to be created.
+// Return values: error string and whether to abort
+func tryWriteFile(fn string) (res string, abt bool) {
+	wr, err := ezcomm.FlowWriterNew(fn)
+	if err == nil {
+		wr.Close()
+		return
+	}
+	ch := make(chan bool, 1)
+	dialog.ShowConfirm(
+		ezcomm.StringTran["StrFileAwareness"],
+		ezcomm.StringTran["StrFileSave"]+
+			"\n"+fn,
+		func(ret bool) {
+			ch <- ret
+		},
+		ezcWin)
+	if !<-ch {
+		return "", true
+	}
+	dialog.ShowFileSave(func(wr fyne.URIWriteCloser, err error) {
+		if err == nil && wr != nil {
+			wr.Close()
+		}
+		if err == nil {
+			ch <- true
+		} else {
+			res = err.Error()
+			ch <- false
+		}
+	}, ezcWin)
+	if !<-ch {
+		return res, true
+	}
+	return
+}
+
 // chkFlowStruc go over all steps and check file existence for output
 // Android requires user to allow file creation
 // Return value: whether to abort flow
@@ -76,37 +114,8 @@ func chkFlowStruc(flow ezcomm.FlowStruc) (string, bool) {
 				len(step.Data) > 0 {
 				fn, fil := step.ParseData(flow, conn)
 				if fil == 1 {
-					wr, err := ezcomm.FlowWriterNew(fn)
-					if err == nil {
-						wr.Close()
-					} else {
-						ch := make(chan bool, 1)
-						dialog.ShowConfirm(
-							ezcomm.StringTran["StrFileAwareness"],
-							ezcomm.StringTran["StrFileSave"]+
-								"\n"+fn,
-							func(res bool) {
-								ch <- res
-							},
-							ezcWin)
-						if !<-ch {
-							return "", true
-						}
-						var res string
-						dialog.ShowFileSave(func(wr fyne.URIWriteCloser, err error) {
-							if err == nil && wr != nil {
-								wr.Close()
-							}
-							if err == nil {
-								ch <- true
-							} else {
-								res = err.Error()
-								ch <- false
-							}
-						}, ezcWin)
-						if !<-ch {
-							return res, true
-						}
+					if res, ret := tryWriteFile(fn); ret {
+						return res, ret
 					}
 				}
 			}

@@ -18,6 +18,9 @@ var (
 )
 
 func initLog(fp string) error {
+	if _, ret := tryWriteFile(fp); ret {
+		return eztools.ErrAbort
+	}
 	uri, err := storage.ParseURI(fp)
 	if err != nil {
 		return err
