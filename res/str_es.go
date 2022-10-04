@@ -10,7 +10,6 @@ func I18nEs() { // by bing.com
 		StrFil = "archivo"
 		StrDir = "carpeta"
 		StrFilO = "Elija un archivo a continuación para enviar. TCP se recomienda para la transferencia de archivos grandes divididos."
-		StrDirI = "Elija una carpeta a continuación para guardar los archivos recibidos."
 		StrCfg = "configuración"
 		StrLcl = "local"
 		StrRmt = "remoto"
@@ -89,5 +88,7 @@ func I18nEs() { // by bing.com
 		StrInfLan       = "LAN"
 		StrPokePeer     = "Buscar un compañero"
 		StrDiscoverFail = "Error de descubrimiento"
+		StrAlert        = "Alerta"
+		StrNoPerm       = "sin permiso"
 	`)
 }

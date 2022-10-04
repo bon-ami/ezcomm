@@ -10,7 +10,6 @@ func I18nJa() {
 		StrFil = "ファイル"
 		StrDir = "フォルダ"
 		StrFilO = "送信するファイルを以下に選択してください。TCPは、分割された大きなファイルの転送に推奨されます。"
-		StrDirI = "受信したフォルダを保存するには、以下のファイル名を選択してください。"
 		StrCfg = "設定"
 		StrLcl = "ローカル"
 		StrRmt = "リモート"
@@ -90,5 +89,7 @@ func I18nJa() {
 		StrInfLan       = "LAN"
 		StrPokePeer     = "ピアを探す"
 		StrDiscoverFail = "検出に失敗しました"
+		StrAlert        = "アラート"
+		StrNoPerm       = "権限なし"
 	`)
 }

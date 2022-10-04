@@ -105,9 +105,9 @@ func main() {
 	ezcApp.Settings().SetTheme(&thm)
 	ezcWin = ezcApp.NewWindow(ezcomm.EzcName)
 
+	tabLog := makeTabLog()
 	tabMsg := makeTabMsg()
 	tabFil := makeTabFil()
-	tabLog := makeTabLog()
 	tabCfg := makeTabCfg()
 	tabLan := makeTabLan()
 	tabs := container.NewAppTabs(

@@ -48,17 +48,7 @@ func lanListen() {
 		Log("bad broadcast addr", err)
 		return
 	}
-	localAddrMap := make(map[string]struct{})
-	localAddrs, err := net.InterfaceAddrs()
-	if err != nil || localAddrs == nil {
-		Log("bad local addr", err)
-		return
-	}
-	for _, localAddr1 := range localAddrs {
-		str := localAddr1.String()
-		ind := strings.LastIndex(str, "/")
-		localAddrMap[str[:ind]] = struct{}{}
-	}
+	var localAddrMap map[string]struct{}
 	for {
 		select {
 		case reqUI = <-chnLan:
@@ -80,7 +70,18 @@ func lanListen() {
 					chn[0] <- pckNt
 					break
 				}
-				var err error
+				localAddrs, err := net.InterfaceAddrs()
+				if err != nil || localAddrs == nil || len(localAddrs) < 1 {
+					Log("bad local addr", err)
+					lanLst.SetText(ezcomm.StringTran["StrDiscoverFail"])
+					break
+				}
+				localAddrMap = make(map[string]struct{})
+				for _, localAddr1 := range localAddrs {
+					str := localAddr1.String()
+					ind := strings.LastIndex(str, "/")
+					localAddrMap[str[:ind]] = struct{}{}
+				}
 				conn, err = ezcomm.ListenUdp(ezcomm.StrUdp,
 					":"+defLanS)
 				if err != nil {

@@ -16,7 +16,7 @@ import (
 
 var (
 	filLcl *widget.Button
-	filRmt *widget.TextGrid
+	filRmt *widget.Entry
 	filNmI string
 	tabFil *container.TabItem
 	// filPieces maps peer address to former file name to append to
@@ -122,6 +122,7 @@ func SntFileOk(fn string) {
 	} else {
 		refSnd.Options = append(refSnd.Options, fn)
 	}
+	filRmt.SetText(fn + " ->")
 }
 
 // RcvFile saves incoming file piece
@@ -130,25 +131,29 @@ func SntFileOk(fn string) {
 // Return values: fn=file name or error string
 func RcvFile(comm ezcomm.RoutCommStruc, addr string) (peer, fn string) {
 	if len(filNmI) < 1 {
-		return addr, ezcomm.StringTran["StrDirI"]
+		return addr, ""
 	}
 	wr := eztools.FileAppend
 	fn, first, data, end := ezcomm.BulkFile(filNmI, addr, comm.Data)
 	if data == nil {
 		return "", ""
 	}
-	if _, ret := tryWriteFile(fn); ret {
+	/*if _, ret := tryWriteFile(fn); ret {
 		return "", eztools.ErrAbort.Error()
-	}
-	// once user prompted, eztools can write to the file
+	}*/
 	if first {
 		wr = eztools.FileWrite
 	}
 	if err := wr(fn, data); err != nil {
 		Log(ezcomm.StringTran["StrFl2Rcv"], err)
 	} else {
+		/*if eztools.Debugging && eztools.Verbose > 1 {
+			Log("saved first piece",
+				first, "to", fn)
+		}*/
 		if end {
 			fn = filepath.Base(fn)
+			filRmt.SetText("<- " + fn)
 			if len(fn) > MaxRecLen {
 				refRcv.Options = append(refRcv.Options, fn[0:MaxRecLen])
 			} else {
@@ -192,12 +197,40 @@ func makeControlsRF() *fyne.Container {
 	refRcv = widget.NewSelect(nil, nil)
 	rowRec := container.NewGridWithRows(2, recLbl, refRcv)
 
-	filLbl := widget.NewLabel(ezcomm.StringTran["StrDirI"])
-	filLbl.Wrapping = fyne.TextWrapWord
-	tops := container.NewVBox(rowLbl, rowTo, rowUdpSock2, rowTcpSock2, rowRec, filLbl)
+	/*filLbl := widget.NewLabel(ezcomm.StringTran["StrDirI"])
+	filLbl.Wrapping = fyne.TextWrapWord*/
+	tops := container.NewVBox(rowLbl, rowTo, rowUdpSock2, rowTcpSock2, rowRec /*, filLbl*/)
+	const dldDir = "Downloads"
+	filNmI = appStorage.RootURI().Path()
+	dirDld := filepath.Join(filNmI, dldDir)
+	Log(dirDld)
+	uri := storage.NewFileURI(dirDld)
+	if exi, err := storage.Exists(uri); err != nil {
+		eztools.Log("NO", dirDld, "detectable!", err)
+	} else {
+		if exi {
+			if cn, err := storage.CanList(uri); err != nil {
+				eztools.Log("NO", dirDld, "listable!", err)
+			} else {
+				if !cn {
+					Log(dirDld, "is a file!", filNmI,
+						"will be used as download directory!")
+				} else {
+					filNmI = dirDld
+				}
+			}
+		} else {
+			if err = storage.CreateListable(uri); err != nil {
+				eztools.Log("NO", dirDld, "created!", err)
+			} else {
+				filNmI = dirDld
+			}
+		}
+	}
 	//filRmt = widget.NewButton(ezcomm.StringTran["StrDir"], filButRmt)
-	filRmt = widget.NewTextGrid()
-	filNmI = appStorage.RootURI().String()
+	filRmt = widget.NewMultiLineEntry()
+	filRmt.Wrapping = fyne.TextWrapWord
+	filRmt.SetText(filNmI)
 	return container.NewBorder(tops, nil, nil, nil, filRmt)
 }
 

@@ -1,12 +1,10 @@
 package main
 
 import (
-	"fmt"
 	"io"
 	"net"
 	"net/url"
 	"strings"
-	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -58,17 +56,6 @@ func connDisable() {
 	}
 	protRd.Disable()
 	lstBut.SetText(ezcomm.StringTran["StrStp"])
-}
-
-func Log(inf ...any) {
-	if fyneRowLog != nil {
-		str := fmt.Sprintf("%s%v\n",
-			time.Now().Format("01-02 15:04:05"), inf)
-		fyneRowLog.SetText(fyneRowLog.Text + //strconv.Itoa(rowLog.CursorRow) + ":" +
-			str)
-		fyneRowLog.CursorRow++
-	}
-	eztools.Log(inf)
 }
 
 func setLclSck(addr string) {

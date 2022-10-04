@@ -16,7 +16,6 @@ var (
 		"StrFil",
 		"StrDir",
 		"StrFilO",
-		"StrDirI",
 		"StrCfg",
 		"StrLcl",
 		"StrRmt",
@@ -93,6 +92,8 @@ var (
 		"StrInfLan",
 		"StrPokePeer",
 		"StrDiscoverFail",
+		"StrAlert",
+		"StrNoPerm",
 	}
 )
 

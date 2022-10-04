@@ -10,7 +10,6 @@ func I18nZhcn() {
 		StrFil = "文件"
 		StrDir = "目录"
 		StrFilO = "在下面选择要发送的文件。建议使用TCP以分片传输大文件。"
-		StrDirI = "在下面选择一个目录以保存收到的文件。"
 		StrCfg = "设置"
 		StrLcl = "本地"
 		StrRmt = "远端"
@@ -89,5 +88,7 @@ func I18nZhcn() {
 		StrInfLan       = "局域网"
 		StrPokePeer     = "寻找对端"
 		StrDiscoverFail = "发现失败"
+		StrAlert        = "警报"
+		StrNoPerm       = "没有权限"
 	`)
 }
