@@ -90,5 +90,6 @@ func I18nEn() {
 		StrDiscoverFail = "Discovery Failed"
 		StrAlert        = "Alert"
 		StrNoPerm       = "No permission"
+		StrRcvFil       = "Received files"
 	`)
 }

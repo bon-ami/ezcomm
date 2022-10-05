@@ -15,7 +15,8 @@ import (
 var (
 	chnLan chan bool
 	lanBut *widget.Button
-	lanLst *widget.TextGrid
+	lanLbl *widget.Label
+	lanLst *widget.RadioGroup
 )
 
 func lanListen() {
@@ -48,7 +49,7 @@ func lanListen() {
 		Log("bad broadcast addr", err)
 		return
 	}
-	var localAddrMap map[string]struct{}
+	var localAddrMap, peerMap map[string]struct{}
 	for {
 		select {
 		case reqUI = <-chnLan:
@@ -73,7 +74,7 @@ func lanListen() {
 				localAddrs, err := net.InterfaceAddrs()
 				if err != nil || localAddrs == nil || len(localAddrs) < 1 {
 					Log("bad local addr", err)
-					lanLst.SetText(ezcomm.StringTran["StrDiscoverFail"])
+					lanLbl.SetText(ezcomm.StringTran["StrDiscoverFail"])
 					break
 				}
 				localAddrMap = make(map[string]struct{})
@@ -85,11 +86,12 @@ func lanListen() {
 				conn, err = ezcomm.ListenUdp(ezcomm.StrUdp,
 					":"+defLanS)
 				if err != nil {
-					lanLst.SetText(ezcomm.StringTran["StrDiscoverFail"])
+					lanLbl.SetText(ezcomm.StringTran["StrDiscoverFail"])
 					Log("discovery failure", err)
 					break
 				}
-				lanLst.SetText(ezcomm.StringTran["StrLst"])
+				lanLbl.SetText(ezcomm.StringTran["StrLst"])
+				peerMap = make(map[string]struct{})
 				go ezcomm.ConnectedUdp(Log, chn, conn)
 			}
 		case pckNt = <-chn[1]:
@@ -116,12 +118,12 @@ func lanListen() {
 				if ok {
 					break
 				}
-				add2Rmt(0, peer)
-				txt := lanLst.Text()
-				if len(txt) > 0 {
-					txt += "\n"
+				if _, ok := peerMap[peer]; ok {
+					// duplicate
+					break
 				}
-				lanLst.SetText(txt + peer)
+				add2Rmt(0, peer)
+				lanLst.Append(peer)
 				if eztools.Debugging && eztools.Verbose > 1 {
 					eztools.Log("discovered", peer)
 				}
@@ -132,11 +134,15 @@ func lanListen() {
 
 func makeTabLan() *container.TabItem {
 	chnLan = make(chan bool, 1)
+	lanLbl = widget.NewLabel("")
 	go lanListen()
 	lanBut = widget.NewButton(ezcomm.StringTran["StrPokePeer"], func() {
 		chnLan <- true
 	})
-	lanLst = widget.NewTextGrid()
+	lanLst = widget.NewRadioGroup([]string{},
+		func(sel string) {
+			sockRmt[0].SetText(sel)
+		})
 	return container.NewTabItem(ezcomm.StringTran["StrInfLan"],
 		container.NewVBox(lanBut, lanLst))
 }

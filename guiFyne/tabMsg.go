@@ -81,15 +81,6 @@ func getRmtSck() *net.UDPAddr {
 	return ret
 }
 
-/*func guiFyneGetLclSck() *net.UDPAddr {
-	ret, err := net.ResolveUDPAddr(prot.Selected, sockLcl[0].Text+":"+sockLcl[1].Text)
-	if err != nil {
-		guiFyneLog(false, err)
-		return nil
-	}
-	return ret
-}*/
-
 func sockF(str string) {
 	if str != ezcomm.StringTran["StrAll"] {
 		recRcv.Options = recMap[str]
@@ -117,18 +108,8 @@ func butSndByProt(prot string) {
 		butSnd(true)
 	case ezcomm.StrTcp:
 		butSnd(false)
-		//if len(sockRmt[1].Text) > 0 {
-		/*} else {
-			//sndBut.Text = STR_SND
-			sndBut.OnTapped = guiFyneSnd
-		}*/
 	}
 	chkNEnableSnd(tabFil.Content.Visible())
-	/*if !filEnable {
-		sndBut.Disable()
-	} else {
-		sndBut.Enable()
-	}*/
 }
 
 // sckRmt sets remote as single/combined sockets for TCP or UDP
@@ -170,9 +151,6 @@ func Lstn() {
 		clntRoutine()
 	case ezcomm.StrTcp:
 		err = svrTcp.Listen("", addr)
-		//var lstnr net.Listener
-		/*lstnr, err = ezcomm.ListenTcp(Log, Connected, ezcomm.StrTcp, addr,
-		ezcomm.ConnectedTcp, nil)*/
 		if err != nil {
 			//Log(ezcomm.StringTran["StrListeningOn"], err)
 			break
@@ -195,16 +173,14 @@ func Connect() {
 	//Log("Connect clicked")
 	pr := getRmtSckStr()
 	connDisable()
-	/*conn*/ _, err := ezcomm.Client(Log, TcpClnConnected,
+	_, err := ezcomm.Client(Log, TcpClnConnected,
 		protRd.Selected, pr, ezcomm.ConnectedTcp)
 	if err != nil {
 		connEnable()
 		Log(ezcomm.StringTran["StrConnFail"]+pr, err)
 		return
 	}
-	//lstBut.OnTapped = Stop
 	sckRmt(true)
-	//guiFyneConnected(conn.LocalAddr().String(), conn.RemoteAddr().String())
 }
 
 func tcpConnAct(comm ezcomm.RoutCommStruc) {
@@ -279,13 +255,11 @@ func TcpSvrConnected(addr [4]string) {
 		svrConnected(addr)
 		return
 	}
-	//butSnd(true)
 	disBut.Show()
 	if isFilEnable() {
 		sndBut.Enable()
 	}
 	sndEnable = true
-	//setLclSck(addr[0])
 	rowTcpSock2.Options = append(rowTcpSock2.Options, addr[1])
 	if len(rowTcpSock2.Selected) < 1 {
 		rowTcpSock2.SetSelectedIndex(0)
@@ -315,17 +289,8 @@ func Disconnected(rmt string) {
 		rowTcpSock2.Refresh()
 		disBut.Enable()
 		disBut.Hide()
-		/*if lstBut.Hidden { //client
-			lstBut.Show()
-			connEnable()
-			//guiFyneSckRmt(false)
-			butSnd(false)
-			sndBut.Enable()
-			Log(rmt, ezcomm.StringTran["StrDisconnected"])
-		} else { //server*/
 		sndBut.Disable()
 		sndEnable = false
-		//if protRd.Selected == ezcomm.StrTcp {
 		if chn[0] == nil {
 			go chkSvrStopped(true)
 			Log(rmt, ezcomm.StringTran["StrDisconnected"],
@@ -333,9 +298,6 @@ func Disconnected(rmt string) {
 		} else {
 			svrStopped()
 		}
-		//} /*else {
-		//svrStopped()}*/
-		//}
 		return
 	}
 	// reorder the records
@@ -361,7 +323,6 @@ func Disconn1() {
 			Act: ezcomm.FlowChnEnd,
 		}
 	}
-	//Disconnected(rmtTcp)
 }
 
 func svrStopped() {
@@ -408,28 +369,17 @@ func Stp() {
 	}
 	if protRd.Selected == ezcomm.StrTcp {
 		lstBut.Disable()
-		//if chn[0] == nil {
 		svrTcp.Stop()
 		go chkSvrStopped(false)
-		//}
 		return
 	}
 	disBut.Disable()
-	/*if !disBut.Hidden { //clients still running
-		lstBut.Hide()
-	} else {
-		svrStopped()
-	}*/
 }
 
 func add2Rmt(indx int, txt string) {
 	if len(txt) < 1 {
 		return
 	}
-	/*if _, ok := sndMap[indx][txt]; ok {
-		return
-	}
-	sndMap[indx][txt] = struct{}{}*/
 	if _, ok := sndMap[indx][txt]; ok {
 		return
 	}

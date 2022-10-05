@@ -22,7 +22,9 @@ var (
 	// chn is for TCP client and UDP
 	chn [2]chan ezcomm.RoutCommStruc
 	// svrTcp is for TCP server only
-	svrTcp ezcomm.SvrTcp
+	svrTcp         ezcomm.SvrTcp
+	tabs           *container.AppTabs
+	tabFil, tabLAf *container.TabItem
 )
 
 // uiFyne implements Uis
@@ -107,13 +109,15 @@ func main() {
 
 	tabLog := makeTabLog()
 	tabMsg := makeTabMsg()
-	tabFil := makeTabFil()
+	tabFil = makeTabFil()
 	tabCfg := makeTabCfg()
 	tabLan := makeTabLan()
-	tabs := container.NewAppTabs(
+	tabLAf = makeTabLAf()
+	tabs = container.NewAppTabs(
 		tabLan,
 		tabMsg,
 		tabFil,
+		tabLAf,
 		tabLog,
 		tabCfg,
 	)
@@ -131,6 +135,8 @@ func main() {
 			tabCfgShown()
 		case tabLan:
 			tabLanShown(true)
+		case tabLAf:
+			tabLAfShown()
 		}
 	}
 

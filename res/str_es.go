@@ -90,5 +90,6 @@ func I18nEs() { // by bing.com
 		StrDiscoverFail = "Error de descubrimiento"
 		StrAlert        = "Alerta"
 		StrNoPerm       = "sin permiso"
+		StrRcvFil       = "Archivos recibidos"
 	`)
 }

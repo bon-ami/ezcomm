@@ -91,5 +91,6 @@ func I18nJa() {
 		StrDiscoverFail = "検出に失敗しました"
 		StrAlert        = "アラート"
 		StrNoPerm       = "権限なし"
+		StrRcvFil       = "受信したファイル"
 	`)
 }

@@ -94,6 +94,7 @@ var (
 		"StrDiscoverFail",
 		"StrAlert",
 		"StrNoPerm",
+		"StrRcvFil",
 	}
 )
 

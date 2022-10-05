@@ -90,5 +90,6 @@ func I18nZhcn() {
 		StrDiscoverFail = "发现失败"
 		StrAlert        = "警报"
 		StrNoPerm       = "没有权限"
+		StrRcvFil       = "收到的文件"
 	`)
 }

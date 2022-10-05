@@ -18,7 +18,6 @@ var (
 	filLcl *widget.Button
 	filRmt *widget.Entry
 	filNmI string
-	tabFil *container.TabItem
 	// filPieces maps peer address to former file name to append to
 	//filPieces      map[string]string
 	refRcv, refSnd *widget.Select
@@ -185,7 +184,11 @@ func makeControlsLF() *fyne.Container {
 	tops := container.NewVBox(rowLbl, rowSock, rowProt, rowRec, filLbl)
 
 	filLcl = widget.NewButton(ezcomm.StringTran["StrFil"], filButLcl)
-	return container.NewBorder(tops, sndBut, nil, nil, filLcl)
+	filLAf := widget.NewButton(ezcomm.StringTran["StrRcvFil"], func() {
+		tabs.Select(tabLAf)
+	})
+	bots := container.NewVBox(filLAf, sndBut)
+	return container.NewBorder(tops, bots, nil, nil, filLcl)
 }
 
 func makeControlsRF() *fyne.Container {
@@ -235,10 +238,8 @@ func makeControlsRF() *fyne.Container {
 }
 
 func makeTabFil() *container.TabItem {
-	//filPieces = make(map[string]string)
-	tabFil = container.NewTabItem(ezcomm.StringTran["StrFil"],
+	return container.NewTabItem(ezcomm.StringTran["StrFil"],
 		container.NewGridWithColumns(2, makeControlsLF(), makeControlsRF()))
-	return tabFil
 }
 
 func isFilEnable() bool {
