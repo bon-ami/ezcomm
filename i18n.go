@@ -108,6 +108,10 @@ func I18nInit() {
 	StringTran = make(map[string]string)
 }
 
+// I18nLoad loads a language
+// Parameter: name of the language, as a param of eztools.AddLanguage.
+//	It should be locale.
+// Return values: input language, or detected one if no param input.
 func I18nLoad(lang string) (string, error) {
 	langOut, err := eztools.LoadLanguage(lang)
 	if err != nil {

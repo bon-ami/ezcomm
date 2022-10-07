@@ -167,9 +167,11 @@ func runFlow(uri fyne.URIReadCloser) {
 }
 
 var (
-	flowFlBut, fontBut *widget.Button
-	flowFnStt          *widget.Entry
-	flowResChn         chan bool
+	flowFlBut, fontBut, currLngBut *widget.Button
+	flowFnStt                      *widget.Entry
+	flowResChn                     chan bool
+	currLang                       string
+	langResMap                     map[string]int
 )
 
 func makeControlsCfg() *fyne.Container {
@@ -232,7 +234,6 @@ func makeControlsCfg() *fyne.Container {
 	})
 	// flow part ends
 
-	langMap := make(map[string]string)
 	rowFont := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrFnt"]))
 	fontSel = widget.NewSelect(nil, func(font string) {
 		suggestion, builtin := chkFontBltIn()
@@ -242,17 +243,21 @@ func makeControlsCfg() *fyne.Container {
 		}
 	})
 	fontSel.PlaceHolder = ezcomm.StringTran["StrFnt"]
-	for _, font := range FontsBuiltin {
-		fontSel.Options = append(fontSel.Options, font.locale)
+	langResMap = make(map[string]int)
+	for i, res := range LangsBuiltin {
+		langResMap[res.locale] = i
+		if res.fnt == nil {
+			continue
+		}
+		fontSel.Options = append(fontSel.Options, res.locale)
 	}
 	fontsNumBuiltin = len(fontSel.Options)
 	for _, font := range ezcomm.ListSystemFonts([]string{".ttf"}) {
 		fontSel.Options = append(fontSel.Options, font)
 	}
 
-	fontRch := widget.NewRichTextWithText(ezcomm.StringTran["StrFntRch"])
-
 	rowLang := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrLang"]))
+	/*langMap := make(map[string]string)
 	langSel := widget.NewSelect(nil, func(str string) {
 		prevMsgLang := ezcomm.StringTran["StrReboot4Change"] + "\n"
 		//prevMsgFont := ezcomm.StringTran["StrFnt4LangBuiltin"] + "\n"
@@ -272,29 +277,66 @@ func makeControlsCfg() *fyne.Container {
 		ezcomm.CfgStruc.Language = lang
 		ezcomm.MatchFontFromCurrLanguageCfg()
 		markFont(useFontFromCfg(true, lang))
-		for _, v := range fontRch.Segments {
-			Log("richtext seg", v.Textual())
-		}
 		dialog.ShowInformation(ezcomm.StringTran["StrLang"], prevMsgLang+
 			ezcomm.StringTran["StrReboot4Change"], ezcWin)
 	})
-	langSel.PlaceHolder = ezcomm.StringTran["StrLang"]
+	langSel.PlaceHolder = ezcomm.StringTran["StrLang"]*/
+	//langButs := make([]*widget.Button, 0)
+	langButs := make([]fyne.CanvasObject, 0)
+	langId2But := make(map[string]*widget.Button)
 	eztools.ListLanguages(func(name, id string) {
-		full := id + "_" + name
-		langMap[full] = id
-		langSel.Options = append(langSel.Options, full)
-		if ezcomm.CfgStruc.Language == id {
-			langSel.SetSelected(full)
+		icon := LangsBuiltin[langResMap[id]].name
+		langSelFun := func() {
+			prevMsgLang := ezcomm.StringTran["StrReboot4Change"] + "\n"
+			if ezcomm.CfgStruc.Language == id {
+				return
+			}
+			ezcomm.CfgStruc.Language = id
+			writeCfg()
+
+			lang, err := ezcomm.I18nLoad(ezcomm.CfgStruc.Language)
+			if err != nil {
+				Log("cannot set language", ezcomm.CfgStruc.Language, err)
+				return
+			}
+			if currLngBut != nil {
+				currLngBut.Enable()
+			}
+			currLngBut = langId2But[id]
+			currLngBut.Disable()
+			ezcomm.CfgStruc.Language = lang
+			ezcomm.MatchFontFromCurrLanguageCfg()
+			markFont(useFontFromCfg(true, lang))
+			dialog.ShowInformation(ezcomm.StringTran["StrLang"], prevMsgLang+
+				ezcomm.StringTran["StrReboot4Change"], ezcWin)
 		}
+		var langBut1 *widget.Button
+		if icon == nil {
+			langBut1 = widget.NewButton(id, langSelFun)
+		} else {
+			langBut1 = widget.NewButtonWithIcon(id, icon, langSelFun)
+		}
+		langId2But[id] = langBut1
+		if ezcomm.CfgStruc.Language == id {
+			//langSel.SetSelected(full)
+			currLang = id
+			currLngBut = langBut1
+			langBut1.Disable()
+		}
+		langButs = append(langButs, langBut1)
+		//full := id + "_" + name
+		//langMap[full] = id
+		//langSel.Options = append(langSel.Options, full)
 	})
 	markFont(useFontFromCfg(false, ezcomm.CfgStruc.Language))
+	langSel := container.NewHBox(langButs...)
 
 	fontBut = widget.NewButton(ezcomm.StringTran["StrFnt4Lang"], func() {
-		lang := langMap[langSel.Selected]
-		if len(lang) < 1 {
+		//lang := langMap[langSel.Selected]
+		if len(currLang) < 1 {
 			return
 		}
-		saveFontFromIndx(lang)
+		saveFontFromIndx(currLang)
 		dialog.ShowInformation(ezcomm.StringTran["StrLang"], ezcomm.StringTran["StrReboot4Change"], ezcWin)
 	})
 
@@ -304,11 +346,13 @@ func makeControlsCfg() *fyne.Container {
 		rowFont, fontSel /*fontRch,*/, fontBut, abtRow)
 }
 
+// saveFontFromIndx
+// Parameter: local
 func saveFontFromIndx(lang string) {
 	var font string
 	indx := fontSel.SelectedIndex()
 	if indx < fontsNumBuiltin {
-		font = FontsBuiltin[indx].locale
+		font = LangsBuiltin[indx].locale
 	} else {
 		font = ezcomm.MatchSystemFontsFromIndex(indx)
 	}
@@ -341,13 +385,17 @@ func saveFontFromIndx(lang string) {
 func chkFontBltIn() (suggestion string, builtin bool) {
 	indx := fontSel.SelectedIndex()
 	if indx >= 0 && indx < fontsNumBuiltin {
-		if ezcomm.CfgStruc.Language == FontsBuiltin[indx].locale {
+		_, ok := langResMap[ezcomm.CfgStruc.Language]
+		if ezcomm.CfgStruc.Language == LangsBuiltin[langResMap[ezcomm.CfgStruc.Language]].locale {
 			return "", true
 		}
 	}
-	for _, fontBuiltin := range FontsBuiltin {
-		if ezcomm.CfgStruc.Language == fontBuiltin.locale {
-			return fontBuiltin.locale, true
+	for _, res := range LangsBuiltin {
+		if res.fnt == nil {
+			continue
+		}
+		if ezcomm.CfgStruc.Language == res.locale {
+			return res.locale, true
 		}
 	}
 	return
@@ -361,21 +409,27 @@ func useFontFromCfg(setTheme bool, lang string) (fontPath string,
 		return
 	}
 	//Log("setting font=", cfg, ", lang=", lang)
-	for i, fontBuiltin := range FontsBuiltin {
+	i := 0
+	for _, res := range LangsBuiltin {
 		//Log("checking built-in", fontBuiltin.locale)
+		if res.fnt == nil {
+			continue
+		}
 		if len(cfg) < 1 {
-			if lang == fontBuiltin.locale {
+			if lang == res.locale {
 				ezcomm.CfgStruc.SetFont(lang)
-				thm.SetFontByRes(fontBuiltin.res)
+				thm.SetFontByRes(res.fnt)
 				return "", i
 			}
 		}
-		if cfg == fontBuiltin.locale {
+		if cfg == res.locale {
 			if setTheme {
-				thm.SetFontByRes(fontBuiltin.res)
+				thm.SetFontByRes(res.fnt)
 			}
 			return "", i
 		}
+		// i != index of LangsBuiltin, but from all res.fnt != nil
+		i += 1
 	}
 	if len(cfg) < 1 {
 		return
