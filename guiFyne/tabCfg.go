@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
@@ -281,7 +282,7 @@ func makeControlsCfg() *fyne.Container {
 			ezcomm.StringTran["StrReboot4Change"], ezcWin)
 	})
 	langSel.PlaceHolder = ezcomm.StringTran["StrLang"]*/
-	//langButs := make([]*widget.Button, 0)
+	langImgs := make([]fyne.CanvasObject, 0)
 	langButs := make([]fyne.CanvasObject, 0)
 	langId2But := make(map[string]*widget.Button)
 	eztools.ListLanguages(func(name, id string) {
@@ -310,12 +311,9 @@ func makeControlsCfg() *fyne.Container {
 			dialog.ShowInformation(ezcomm.StringTran["StrLang"], prevMsgLang+
 				ezcomm.StringTran["StrReboot4Change"], ezcWin)
 		}
-		var langBut1 *widget.Button
-		if icon == nil {
-			langBut1 = widget.NewButton(id, langSelFun)
-		} else {
-			langBut1 = widget.NewButtonWithIcon(id, icon, langSelFun)
-		}
+		langBut1 := widget.NewButton(id, langSelFun)
+		imgContainer := container.NewGridWrap(fyne.NewSize(LangsBuiltin[langResMap[id]].width,
+			LangsBuiltin[langResMap[id]].height), canvas.NewImageFromResource(icon))
 		langId2But[id] = langBut1
 		if ezcomm.CfgStruc.Language == id {
 			//langSel.SetSelected(full)
@@ -323,13 +321,17 @@ func makeControlsCfg() *fyne.Container {
 			currLngBut = langBut1
 			langBut1.Disable()
 		}
+		langImgs = append(langImgs, imgContainer)
 		langButs = append(langButs, langBut1)
 		//full := id + "_" + name
 		//langMap[full] = id
 		//langSel.Options = append(langSel.Options, full)
 	})
 	markFont(useFontFromCfg(false, ezcomm.CfgStruc.Language))
-	langSel := container.NewHBox(langButs...)
+	for _, but := range langButs {
+		langImgs = append(langImgs, but)
+	}
+	langSel := container.NewGridWithColumns(len(langButs), langImgs...)
 
 	fontBut = widget.NewButton(ezcomm.StringTran["StrFnt4Lang"], func() {
 		//lang := langMap[langSel.Selected]
@@ -383,22 +385,14 @@ func saveFontFromIndx(lang string) {
 }
 
 func chkFontBltIn() (suggestion string, builtin bool) {
-	indx := fontSel.SelectedIndex()
-	if indx >= 0 && indx < fontsNumBuiltin {
-		_, ok := langResMap[ezcomm.CfgStruc.Language]
-		if ezcomm.CfgStruc.Language == LangsBuiltin[langResMap[ezcomm.CfgStruc.Language]].locale {
-			return "", true
-		}
+	i, ok := langResMap[ezcomm.CfgStruc.Language]
+	if !ok {
+		return
 	}
-	for _, res := range LangsBuiltin {
-		if res.fnt == nil {
-			continue
-		}
-		if ezcomm.CfgStruc.Language == res.locale {
-			return res.locale, true
-		}
+	if LangsBuiltin[i].fnt == nil || fontSel.Selected == LangsBuiltin[i].locale {
+		return "", true
 	}
-	return
+	return LangsBuiltin[i].locale, true
 }
 
 func useFontFromCfg(setTheme bool, lang string) (fontPath string,
