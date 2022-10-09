@@ -91,5 +91,6 @@ func I18nZhcn() {
 		StrAlert        = "警报"
 		StrNoPerm       = "没有权限"
 		StrRcvFil       = "收到的文件"
+		StrDownloads    = "下载"
 	`)
 }

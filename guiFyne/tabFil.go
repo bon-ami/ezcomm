@@ -23,6 +23,7 @@ var (
 	refRcv, refSnd *widget.Select
 	filEnable      bool
 	rc             fyne.URIReadCloser
+	dldUri         fyne.URI
 )
 
 func filLclChk() {
@@ -207,12 +208,12 @@ func makeControlsRF() *fyne.Container {
 	filNmI = appStorage.RootURI().Path()
 	dirDld := filepath.Join(filNmI, dldDir)
 	Log(dirDld)
-	uri := storage.NewFileURI(dirDld)
-	if exi, err := storage.Exists(uri); err != nil {
+	dldUri = storage.NewFileURI(dirDld)
+	if exi, err := storage.Exists(dldUri); err != nil {
 		eztools.Log("NO", dirDld, "detectable!", err)
 	} else {
 		if exi {
-			if cn, err := storage.CanList(uri); err != nil {
+			if cn, err := storage.CanList(dldUri); err != nil {
 				eztools.Log("NO", dirDld, "listable!", err)
 			} else {
 				if !cn {
@@ -223,7 +224,7 @@ func makeControlsRF() *fyne.Container {
 				}
 			}
 		} else {
-			if err = storage.CreateListable(uri); err != nil {
+			if err = storage.CreateListable(dldUri); err != nil {
 				eztools.Log("NO", dirDld, "created!", err)
 			} else {
 				filNmI = dirDld
@@ -257,4 +258,6 @@ func tabFilShown() {
 	} else {
 		chkNEnableSnd(true)
 	}
+	protRd.Refresh()
+	lstBut.Refresh()
 }

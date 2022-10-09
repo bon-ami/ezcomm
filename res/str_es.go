@@ -91,5 +91,6 @@ func I18nEs() { // by bing.com
 		StrAlert        = "Alerta"
 		StrNoPerm       = "sin permiso"
 		StrRcvFil       = "Archivos recibidos"
+		StrDownloads    = "Descargas"
 	`)
 }

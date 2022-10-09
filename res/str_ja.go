@@ -92,5 +92,6 @@ func I18nJa() {
 		StrAlert        = "アラート"
 		StrNoPerm       = "権限なし"
 		StrRcvFil       = "受信したファイル"
+		StrDownloads    = "ダウンロード"
 	`)
 }

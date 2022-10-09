@@ -108,8 +108,10 @@ func chkFlowStruc(flow ezcomm.FlowStruc) (string, bool) {
 	default:
 		return false
 	}*/
-	var loopSteps func(ezcomm.FlowConnStruc, []ezcomm.FlowStepStruc) (string, bool)
-	loopSteps = func(conn ezcomm.FlowConnStruc, stp []ezcomm.FlowStepStruc) (string, bool) {
+	var loopSteps func(ezcomm.FlowConnStruc,
+		[]ezcomm.FlowStepStruc) (string, bool)
+	loopSteps = func(conn ezcomm.FlowConnStruc,
+		stp []ezcomm.FlowStepStruc) (string, bool) {
 		for _, step := range stp {
 			if step.Act == ezcomm.FlowActRcv &&
 				len(step.Data) > 0 {
@@ -173,31 +175,39 @@ var (
 	flowResChn                     chan bool
 	currLang                       string
 	langResMap                     map[string]int
+	langButs                       []fyne.CanvasObject
 )
 
 func makeControlsCfg() *fyne.Container {
-	rowFloodLbl := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrAntiFld"]))
-	floodLblLmt := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrLmt"]))
+	rowFloodLbl := container.NewCenter(
+		widget.NewLabel(ezcomm.StringTran["StrAntiFld"]))
+	floodLblLmt := container.NewCenter(
+		widget.NewLabel(ezcomm.StringTran["StrLmt"]))
 	floodInpLmt := widget.NewEntry()
-	floodInpLmt.SetText(strconv.FormatInt(ezcomm.CfgStruc.AntiFlood.Limit, 10))
+	floodInpLmt.SetText(strconv.FormatInt(
+		ezcomm.CfgStruc.AntiFlood.Limit, 10))
 	floodInpLmt.Validator = validateInt64
 	floodInpLmt.OnChanged = func(str string) {
 		if validateInt64(str) != nil {
 			return
 		}
-		ezcomm.CfgStruc.AntiFlood.Limit, _ = strconv.ParseInt(str, 10, 64)
+		ezcomm.CfgStruc.AntiFlood.Limit, _ =
+			strconv.ParseInt(str, 10, 64)
 		ezcomm.AntiFlood.Limit = ezcomm.CfgStruc.AntiFlood.Limit
 		writeCfg()
 	}
-	floodLblPrd := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrPrd"]))
+	floodLblPrd := container.NewCenter(
+		widget.NewLabel(ezcomm.StringTran["StrPrd"]))
 	floodInpPrd := widget.NewEntry()
-	floodInpPrd.SetText(strconv.FormatInt(ezcomm.CfgStruc.AntiFlood.Period, 10))
+	floodInpPrd.SetText(strconv.FormatInt(
+		ezcomm.CfgStruc.AntiFlood.Period, 10))
 	floodInpPrd.Validator = validateInt64
 	floodInpPrd.OnChanged = func(str string) {
 		if validateInt64(str) != nil {
 			return
 		}
-		ezcomm.CfgStruc.AntiFlood.Period, _ = strconv.ParseInt(str, 10, 64)
+		ezcomm.CfgStruc.AntiFlood.Period, _ =
+			strconv.ParseInt(str, 10, 64)
 		ezcomm.AntiFlood.Period = ezcomm.CfgStruc.AntiFlood.Period
 		writeCfg()
 	}
@@ -219,10 +229,12 @@ func makeControlsCfg() *fyne.Container {
 			if err != nil {
 				Log("open flow file", err)
 				flowFnTxt.SetText(ezcomm.StringTran["StrFlw"])
-				flowFnStt.SetText(ezcomm.StringTran["StrFlowOpenErr"])
+				flowFnStt.SetText(
+					ezcomm.StringTran["StrFlowOpenErr"])
 			}
 			if uri == nil {
-				flowFnStt.SetText(ezcomm.StringTran["StrFlowOpenNot"])
+				flowFnStt.SetText(
+					ezcomm.StringTran["StrFlowOpenNot"])
 				return
 			}
 			flowFlBut.Disable()
@@ -240,7 +252,8 @@ func makeControlsCfg() *fyne.Container {
 		suggestion, builtin := chkFontBltIn()
 		if builtin && len(suggestion) > 0 {
 			dialog.ShowInformation(ezcomm.StringTran["StrLang"],
-				ezcomm.StringTran["StrFnt4LangBuiltin"]+" "+suggestion, ezcWin)
+				ezcomm.StringTran["StrFnt4LangBuiltin"]+
+					" "+suggestion, ezcWin)
 		}
 	})
 	fontSel.PlaceHolder = ezcomm.StringTran["StrFnt"]
@@ -257,7 +270,8 @@ func makeControlsCfg() *fyne.Container {
 		fontSel.Options = append(fontSel.Options, font)
 	}
 
-	rowLang := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrLang"]))
+	rowLang := container.NewCenter(widget.NewLabel(
+		ezcomm.StringTran["StrLang"]))
 	/*langMap := make(map[string]string)
 	langSel := widget.NewSelect(nil, func(str string) {
 		prevMsgLang := ezcomm.StringTran["StrReboot4Change"] + "\n"
@@ -283,12 +297,14 @@ func makeControlsCfg() *fyne.Container {
 	})
 	langSel.PlaceHolder = ezcomm.StringTran["StrLang"]*/
 	langImgs := make([]fyne.CanvasObject, 0)
-	langButs := make([]fyne.CanvasObject, 0)
+	langButs = make([]fyne.CanvasObject, 0)
 	langId2But := make(map[string]*widget.Button)
 	eztools.ListLanguages(func(name, id string) {
 		icon := LangsBuiltin[langResMap[id]].name
 		langSelFun := func() {
-			prevMsgLang := ezcomm.StringTran["StrReboot4Change"] + "\n"
+			prevMsgRbt := ezcomm.StringTran["StrReboot4Change"]
+			prevMsgOK := ezcomm.StringTran["StrOK"]
+			prevMsgLang := ezcomm.StringTran["StrLang"]
 			if ezcomm.CfgStruc.Language == id {
 				return
 			}
@@ -297,7 +313,8 @@ func makeControlsCfg() *fyne.Container {
 
 			lang, err := ezcomm.I18nLoad(ezcomm.CfgStruc.Language)
 			if err != nil {
-				Log("cannot set language", ezcomm.CfgStruc.Language, err)
+				Log("cannot set language",
+					ezcomm.CfgStruc.Language, err)
 				return
 			}
 			if currLngBut != nil {
@@ -308,12 +325,37 @@ func makeControlsCfg() *fyne.Container {
 			ezcomm.CfgStruc.Language = lang
 			ezcomm.MatchFontFromCurrLanguageCfg()
 			markFont(useFontFromCfg(true, lang))
-			dialog.ShowInformation(ezcomm.StringTran["StrLang"], prevMsgLang+
-				ezcomm.StringTran["StrReboot4Change"], ezcWin)
+			title := prevMsgLang + " " +
+				ezcomm.StringTran["StrLang"]
+			if LangsBuiltin[langResMap[id]].rbt == nil {
+				dialog.ShowInformation(title,
+					prevMsgRbt+"\n"+
+						ezcomm.StringTran["StrReboot4Change"],
+					ezcWin)
+				return
+			}
+			msg := widget.NewFormItem("",
+				widget.NewLabel(prevMsgRbt))
+			icn := widget.NewFormItem("",
+				container.NewGridWrap(
+					fyne.NewSize(
+						LangsBuiltin[langResMap[id]].
+							rbtWidth,
+						LangsBuiltin[langResMap[id]].
+							rbtHeight),
+					canvas.NewImageFromResource(
+						LangsBuiltin[langResMap[id]].
+							rbt)))
+			formItems := []*widget.FormItem{msg, icn}
+			dialog.ShowForm(title, prevMsgOK,
+				ezcomm.StringTran["StrOK"],
+				formItems, nil, ezcWin)
 		}
 		langBut1 := widget.NewButton(id, langSelFun)
-		imgContainer := container.NewGridWrap(fyne.NewSize(LangsBuiltin[langResMap[id]].width,
-			LangsBuiltin[langResMap[id]].height), canvas.NewImageFromResource(icon))
+		imgContainer := container.NewGridWrap(
+			fyne.NewSize(LangsBuiltin[langResMap[id]].nameWidth,
+				LangsBuiltin[langResMap[id]].nameHeight),
+			canvas.NewImageFromResource(icon))
 		langId2But[id] = langBut1
 		if ezcomm.CfgStruc.Language == id {
 			//langSel.SetSelected(full)
@@ -339,10 +381,12 @@ func makeControlsCfg() *fyne.Container {
 			return
 		}
 		saveFontFromIndx(currLang)
-		dialog.ShowInformation(ezcomm.StringTran["StrLang"], ezcomm.StringTran["StrReboot4Change"], ezcWin)
+		dialog.ShowInformation(ezcomm.StringTran["StrLang"],
+			ezcomm.StringTran["StrReboot4Change"], ezcWin)
 	})
 
-	abtRow := container.NewCenter(widget.NewLabel(ezcomm.Ver + " - " + ezcomm.Bld))
+	abtRow := container.NewCenter(widget.NewLabel(
+		ezcomm.Ver + " - " + ezcomm.Bld))
 	return container.NewVBox(rowFloodLbl, rowFloodEnt,
 		flowFnTxt, flowFlBut, flowFnStt, rowLang, langSel,
 		rowFont, fontSel /*fontRch,*/, fontBut, abtRow)
@@ -376,9 +420,8 @@ func saveFontFromIndx(lang string) {
 		}
 	}
 	if !found {
-		ezcomm.CfgStruc.Fonts = append(ezcomm.CfgStruc.Fonts, ezcomm.EzcommFonts{
-			Locale: lang,
-			Font:   font})
+		ezcomm.CfgStruc.Fonts = append(ezcomm.CfgStruc.Fonts,
+			ezcomm.EzcommFonts{Locale: lang, Font: font})
 
 	}
 	writeCfg()
@@ -389,7 +432,8 @@ func chkFontBltIn() (suggestion string, builtin bool) {
 	if !ok {
 		return
 	}
-	if LangsBuiltin[i].fnt == nil || fontSel.Selected == LangsBuiltin[i].locale {
+	if LangsBuiltin[i].fnt == nil ||
+		fontSel.Selected == LangsBuiltin[i].locale {
 		return "", true
 	}
 	return LangsBuiltin[i].locale, true
@@ -490,4 +534,7 @@ func verboseFrmStr(str string) int {
 func tabCfgShown() {
 	flowFlBut.Refresh()
 	fontBut.Refresh()
+	for _, but := range langButs {
+		but.Refresh()
+	}
 }

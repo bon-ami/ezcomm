@@ -91,5 +91,6 @@ func I18nEn() {
 		StrAlert        = "Alert"
 		StrNoPerm       = "No permission"
 		StrRcvFil       = "Received files"
+		StrDownloads    = "Downloads"
 	`)
 }
