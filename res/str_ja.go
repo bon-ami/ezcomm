@@ -93,5 +93,8 @@ func I18nJa() {
 		StrNoPerm       = "権限なし"
 		StrRcvFil       = "受信したファイル"
 		StrDownloads    = "ダウンロード"
+		StrExp          = "エクスポート"
+		StrRmAll        = "これらすべてのファイルを削除しますか?"
+		StrDel          = "削除"
 	`)
 }

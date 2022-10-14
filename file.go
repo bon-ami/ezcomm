@@ -238,6 +238,7 @@ func Sz41stChunk(fnI string) (int, string) {
 }
 
 // TryOnlyChunk try to read the file in one chunk
+// Parameter: rdr is closed before returning
 // Return values:
 //	a possible long file name
 //	read buffer

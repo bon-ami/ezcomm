@@ -92,5 +92,8 @@ func I18nZhtw() {
 		StrNoPerm       = "無許可"
 		StrRcvFil       = "收到的檔"
 		StrDownloads    = "下載"
+		StrExp          = "匯出"
+		StrRmAll        = "刪除所有這些檔?"
+		StrDel          = "刪除"
 	`)
 }

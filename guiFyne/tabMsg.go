@@ -599,7 +599,7 @@ func makeControlsLcl() *fyne.Container {
 		if len(str) < 1 {
 			protRd.SetSelected("udp")
 		}
-		filLclChk()
+		filLclChk(nil, "")
 		butSndByProt(str)
 	}
 
@@ -707,7 +707,6 @@ func chkNEnableSnd(filShown bool) {
 	if filShown {
 		filEnabled = filEnable
 	}
-
 	if filEnabled && sndEnable {
 		sndBut.Enable()
 	} else {

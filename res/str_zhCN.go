@@ -92,5 +92,8 @@ func I18nZhcn() {
 		StrNoPerm       = "没有权限"
 		StrRcvFil       = "收到的文件"
 		StrDownloads    = "下载"
+		StrExp          = "导出"
+		StrRmAll        = "删除这些文件吗?"
+		StrDel          = "删除"
 	`)
 }

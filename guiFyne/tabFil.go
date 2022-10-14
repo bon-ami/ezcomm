@@ -15,32 +15,52 @@ import (
 )
 
 var (
-	filLcl *widget.Button
-	filRmt *widget.Entry
-	filNmI string
+	filLclBut/*, dirRmtBut*/ *widget.Button
+	filRmt   *widget.Entry
+	incomDir string
 	// filPieces maps peer address to former file name to append to
 	//filPieces      map[string]string
-	refRcv, refSnd *widget.Select
-	filEnable      bool
-	rc             fyne.URIReadCloser
-	dldUri         fyne.URI
+	refRcv, refSnd    *widget.Select
+	filEnable         bool
+	outgoFile, dldUri fyne.URI
 )
 
-func filLclChk() {
-	if rc == nil {
-		return
+// filLclChk checks whether file is too large for UDP
+// Parameters: must not be both non-nil
+func filLclChk(rc fyne.URIReadCloser, fil string) (err error) {
+	if rc != nil {
+		outgoFile = rc.URI()
 	}
-	cap := rc.URI().Name()
+	if outgoFile == nil && len(fil) < 1 {
+		return eztools.ErrInvalidInput
+	}
+	if len(fil) > 0 {
+		uri, err := encodeFileDown(fil)
+		if err != nil {
+			return err
+		}
+		if uri == nil {
+			return eztools.ErrOutOfBound
+		}
+		outgoFile = storage.NewFileURI(uri.Path())
+	}
+	cap := outgoFile.Name()
 	filEnable = true
 	switch protRd.Selected {
 	case ezcomm.StrUdp:
-		r, err := storage.Reader(rc.URI())
-		if err != nil {
-			cap += "\n" + err.Error()
-			filEnable = false
-			break
+		if rc == nil {
+			if len(fil) < 1 {
+				filEnable = false
+				break
+			} else {
+				rc, err = storage.Reader(outgoFile)
+				if err != nil {
+					filEnable = false
+					break
+				}
+			}
 		}
-		cap, _, err = ezcomm.TryOnlyChunk(cap, r)
+		cap, _, err = ezcomm.TryOnlyChunk(cap, rc)
 		if err == nil {
 			break
 		}
@@ -55,7 +75,7 @@ func filLclChk() {
 		filEnable = false
 	case ezcomm.StrTcp:
 	}
-	filLcl.SetText(cap)
+	filLclBut.SetText(cap)
 	if filEnable {
 		chkNEnableSnd(true)
 	} else {
@@ -63,37 +83,43 @@ func filLclChk() {
 			sndBut.Disable()
 		}
 	}
+	return err
 }
 
 func filButLcl() {
 	dialog.ShowFileOpen(func(uri fyne.URIReadCloser, err error) {
 		if err == nil && uri != nil {
-			rc = uri
-			uri.Close()
-			filLclChk()
+			filLclChk(uri, "")
 		}
 	}, ezcWin)
 }
 
-/*func filButRmt() {
+/*func dirButRmt() {
 	dialog.ShowFolderOpen(func(uri fyne.ListableURI, err error) {
-		if err == nil && uri != nil {
-			filNmI = uri.Path()
-			filRmt.SetText(uri.Name())
+		if err != nil {
+			dirRmtBut.SetText(err.Error())
+			return
 		}
+		if uri == nil {
+			dirRmtBut.SetText(ezcomm.StringTran["StrDir"])
+			return
+		}
+		incomDir = translateFilePath(decodeFilePath(uri))
+		dirRmtBut.SetText(incomDir)
 	}, ezcWin)
 }*/
 
 func isSndFile(wrapperFunc func(string, io.ReadCloser, func([]byte) error) error,
 	fun func(buf []byte) error) bool {
 	if tabFil.Content.Visible() {
-		if rc != nil {
-			r, err := storage.Reader(rc.URI())
+		if outgoFile != nil {
+			r, err := storage.Reader(outgoFile)
 			if err != nil {
 				Log(ezcomm.StringTran["StrFl2Snd"], err)
 				return true
 			}
-			if err = wrapperFunc(rc.URI().Name(), r, fun); err != nil {
+			defer r.Close()
+			if err = wrapperFunc(outgoFile.Name(), r, fun); err != nil {
 				Log(ezcomm.StringTran["StrFl2Snd"], err)
 			}
 		}
@@ -130,17 +156,17 @@ func SntFileOk(fn string) {
 //   all files saved to app directory.
 // Return values: fn=file name or error string
 func RcvFile(comm ezcomm.RoutCommStruc, addr string) (peer, fn string) {
-	if len(filNmI) < 1 {
+	if len(incomDir) < 1 {
 		return addr, ""
 	}
-	wr := eztools.FileAppend
-	fn, first, data, end := ezcomm.BulkFile(filNmI, addr, comm.Data)
+	fn, first, data, end := ezcomm.BulkFile(incomDir, addr, comm.Data)
 	if data == nil {
 		return "", ""
 	}
-	/*if _, ret := tryWriteFile(fn); ret {
+	/*if _, ret := tryWriteFile(ezcomm.FlowWriterNew, fn); ret {
 		return "", eztools.ErrAbort.Error()
 	}*/
+	wr := eztools.FileAppend
 	if first {
 		wr = eztools.FileWrite
 	}
@@ -184,13 +210,15 @@ func makeControlsLF() *fyne.Container {
 	filLbl.Wrapping = fyne.TextWrapWord
 	tops := container.NewVBox(rowLbl, rowSock, rowProt, rowRec, filLbl)
 
-	filLcl = widget.NewButton(ezcomm.StringTran["StrFil"], filButLcl)
-	filLAf := widget.NewButton(ezcomm.StringTran["StrRcvFil"], func() {
+	filLclBut = widget.NewButton(ezcomm.StringTran["StrFil"], filButLcl)
+	filLAfL = widget.NewButton(ezcomm.StringTran["StrRcvFil"], func() {
 		tabs.Select(tabLAf)
 	})
-	bots := container.NewVBox(filLAf, sndBut)
-	return container.NewBorder(tops, bots, nil, nil, filLcl)
+	bots := container.NewVBox(filLAfL, sndBut)
+	return container.NewBorder(tops, bots, nil, nil, container.NewHScroll(filLclBut))
 }
+
+var filLAfL, filLAfR *widget.Button
 
 func makeControlsRF() *fyne.Container {
 	rowLbl := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrRmt"]))
@@ -203,39 +231,27 @@ func makeControlsRF() *fyne.Container {
 
 	/*filLbl := widget.NewLabel(ezcomm.StringTran["StrDirI"])
 	filLbl.Wrapping = fyne.TextWrapWord*/
-	tops := container.NewVBox(rowLbl, rowTo, rowUdpSock2, rowTcpSock2, rowRec /*, filLbl*/)
-	const dldDir = "Downloads"
-	filNmI = appStorage.RootURI().Path()
-	dirDld := filepath.Join(filNmI, dldDir)
-	Log(dirDld)
-	dldUri = storage.NewFileURI(dirDld)
-	if exi, err := storage.Exists(dldUri); err != nil {
-		eztools.Log("NO", dirDld, "detectable!", err)
-	} else {
-		if exi {
-			if cn, err := storage.CanList(dldUri); err != nil {
-				eztools.Log("NO", dirDld, "listable!", err)
-			} else {
-				if !cn {
-					Log(dirDld, "is a file!", filNmI,
-						"will be used as download directory!")
-				} else {
-					filNmI = dirDld
-				}
-			}
-		} else {
-			if err = storage.CreateListable(dldUri); err != nil {
-				eztools.Log("NO", dirDld, "created!", err)
-			} else {
-				filNmI = dirDld
-			}
-		}
+	//dirRmtBut = widget.NewButton(ezcomm.StringTran["StrDir"], dirButRmt)
+	tops := container.NewVBox(rowLbl, rowTo, rowUdpSock2, rowTcpSock2, rowRec /*, dirRmt*/)
+	var err error
+	incomDir, err = checkDldDir()
+	if err != nil {
+		Log(dldDirNm, "not created!", err)
+		dialog.ShowInformation(ezcomm.StringTran["StrLang"],
+			ezcomm.StringTran["StrFnt4LangBuiltin"], ezcWin)
 	}
-	//filRmt = widget.NewButton(ezcomm.StringTran["StrDir"], filButRmt)
+	if len(incomDir) > 0 {
+		dirPath := widget.NewMultiLineEntry()
+		dirPath.Wrapping = fyne.TextWrapWord
+		dirPath.SetText(incomDir)
+		tops.Add(dirPath)
+	}
 	filRmt = widget.NewMultiLineEntry()
 	filRmt.Wrapping = fyne.TextWrapWord
-	filRmt.SetText(filNmI)
-	return container.NewBorder(tops, nil, nil, nil, filRmt)
+	filLAfR = widget.NewButton(ezcomm.StringTran["StrRcvFil"], func() {
+		tabs.Select(tabLAf)
+	})
+	return container.NewBorder(tops, filLAfR, nil, nil, filRmt)
 }
 
 func makeTabFil() *container.TabItem {
@@ -260,4 +276,6 @@ func tabFilShown() {
 	}
 	protRd.Refresh()
 	lstBut.Refresh()
+	filLAfL.Refresh()
+	filLAfR.Refresh()
 }

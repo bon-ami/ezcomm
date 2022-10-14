@@ -2,6 +2,7 @@ package main
 
 import (
 	"io"
+	"path/filepath"
 	"strconv"
 
 	"fyne.io/fyne/v2"
@@ -24,7 +25,7 @@ func writeCfg() {
 	cfgWriter, err := appStorage.Save(cfgFileName)
 	if err != nil {
 		/* TODO: fyne returns customized errors so I cannot check it now
-		if !errors.Is(err, os.ErrNotExist) {
+		if !errors.Is(err, storage.ErrNotExists) {
 			Log("failed to write to config file", err)
 			return
 		}*/
@@ -38,37 +39,53 @@ func writeCfg() {
 	ezcomm.WriterCfg(cfgWriter)
 }
 
+func writerNew(p string) (io.WriteCloser, error) {
+	uri, err := encodeFilePath(p)
+	if err != nil {
+		return nil, err
+	}
+	if b, err := storage.CanWrite(uri); err != nil {
+		return nil, err
+	} else {
+		if !b {
+			return nil, eztools.ErrAccess
+		}
+	}
+	return storage.Writer(uri)
+}
+
 func makeTabCfg() *container.TabItem {
 	ezcomm.FlowReaderNew = func(p string) (io.ReadCloser, error) {
 		uri := storage.NewFileURI(p)
 		return storage.Reader(uri)
 	}
 	ezcomm.FlowWriterNew = func(p string) (io.WriteCloser, error) {
-		uri, err := encodeFilePath(p)
+		dldPath, err := checkDldDir()
 		if err != nil {
 			return nil, err
 		}
-		if b, err := storage.CanWrite(uri); err != nil {
-			return nil, err
-		} else {
-			if !b {
-				return nil, eztools.ErrAccess
-			}
+		if len(dldPath) < 1 || len(p) < 1 {
+			return nil, eztools.ErrAccess
 		}
-		return storage.Writer(uri)
+		return writerNew(filepath.Join(dldPath, filepath.Base(p)))
 	}
 	return container.NewTabItem(ezcomm.StringTran["StrCfg"],
 		makeControlsCfg())
 }
 
-// tryWriteFile prompts user to create the file,
-//    if no writer able to be created.
-// Return values: error string and whether to abort
-func tryWriteFile(fn string) (res string, abt bool) {
-	wr, err := ezcomm.FlowWriterNew(fn)
+// treWriteFile overwrites the file with the name under Downloads of app,
+//	and prompts user to create one,
+//	if no writer able to be created.
+//	The existing file will be truncated.
+// Return values:
+//	res=error string, or selected file by user
+//	abt=whether to abort
+func tryWriteFile(fun func(string) (io.WriteCloser, error),
+	fn string) (res string, abt bool) {
+	wr, err := fun(fn)
 	if err == nil {
 		wr.Close()
-		return
+		return fn, false
 	}
 	ch := make(chan bool, 1)
 	dialog.ShowConfirm(
@@ -84,6 +101,7 @@ func tryWriteFile(fn string) (res string, abt bool) {
 	}
 	dialog.ShowFileSave(func(wr fyne.URIWriteCloser, err error) {
 		if err == nil && wr != nil {
+			res = wr.URI().String()
 			wr.Close()
 		}
 		if err == nil {
@@ -117,7 +135,8 @@ func chkFlowStruc(flow ezcomm.FlowStruc) (string, bool) {
 				len(step.Data) > 0 {
 				fn, fil := step.ParseData(flow, conn)
 				if fil == 1 {
-					if res, ret := tryWriteFile(fn); ret {
+					if res, ret := tryWriteFile(
+						ezcomm.FlowWriterNew, fn); ret {
 						return res, ret
 					}
 				}

@@ -96,6 +96,9 @@ var (
 		"StrNoPerm",
 		"StrRcvFil",
 		"StrDownloads",
+		"StrExp",
+		"StrRmAll",
+		"StrDel",
 	}
 )
 

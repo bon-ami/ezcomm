@@ -92,5 +92,8 @@ func I18nEn() {
 		StrNoPerm       = "No permission"
 		StrRcvFil       = "Received files"
 		StrDownloads    = "Downloads"
+		StrExp          = "export"
+		StrRmAll        = "remove all these files?"
+		StrDel          = "delete"
 	`)
 }

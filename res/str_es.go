@@ -92,5 +92,8 @@ func I18nEs() { // by bing.com
 		StrNoPerm       = "sin permiso"
 		StrRcvFil       = "Archivos recibidos"
 		StrDownloads    = "Descargas"
+		StrExp          = "exportar"
+		StrRmAll        = "¿eliminar todos estos archivos?"
+		StrDel          = "borrar"
 	`)
 }
