@@ -77,8 +77,9 @@ func makeTabCfg() *container.TabItem {
 //	and prompts user to create one,
 //	if no writer able to be created.
 //	The existing file will be truncated.
+//	DO NOT call this in UI thread!
 // Return values:
-//	res=error string, or selected file by user
+//	res=error string, or selected file path by user
 //	abt=whether to abort
 func tryWriteFile(fun func(string) (io.WriteCloser, error),
 	fn string) (res string, abt bool) {
@@ -101,15 +102,15 @@ func tryWriteFile(fun func(string) (io.WriteCloser, error),
 	}
 	dialog.ShowFileSave(func(wr fyne.URIWriteCloser, err error) {
 		if err == nil && wr != nil {
-			res = wr.URI().String()
+			res = wr.URI().Path()
 			wr.Close()
-		}
-		if err == nil {
 			ch <- true
-		} else {
-			res = err.Error()
-			ch <- false
+			return
 		}
+		if err != nil {
+			res = err.Error()
+		}
+		ch <- false
 	}, ezcWin)
 	if !<-ch {
 		return res, true

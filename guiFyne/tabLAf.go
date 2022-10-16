@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"path/filepath"
 
 	"fyne.io/fyne/v2"
@@ -19,7 +20,9 @@ var (
 
 func clrDlds() {
 	uri, err := encodeFileDown("")
-	defer showNG(err)
+	defer func() {
+		showNG(err)
+	}()
 	if err != nil {
 		return
 	}
@@ -39,7 +42,6 @@ func clrDlds() {
 
 func getDld() (u fyne.URI, err error) {
 	dld, err := checkDldDir()
-	Log(dld)
 	if err != nil {
 		return
 	}
@@ -57,7 +59,9 @@ func showNG(err error) {
 
 func delDld() {
 	u, err := getDld()
-	defer showNG(err)
+	defer func() {
+		showNG(err)
+	}()
 	if err != nil {
 		return
 	}
@@ -65,18 +69,24 @@ func delDld() {
 	tabLAfShown()
 }
 
-func expDld(uriDst fyne.ListableURI) {
-	fold := filepath.Join(decodeFilePath(uriDst), lafLst.Selected)
-	Log(fold)
+// expDld exports a file from Downloads
+//	it must run in non-UI thread, otherwise tryWriteFile() will block
+func expDld(sel string, uriDst fyne.ListableURI) {
+	fold := filepath.Join(decodeFilePath(uriDst), sel)
 	fnew, abt := tryWriteFile(writerNew, fold)
 	if abt {
+		if len(fnew) > 0 {
+			showNG(errors.New(fnew))
+		}
 		return
 	}
 	if len(fnew) < 1 {
 		fnew = fold
 	}
 	fsrc, err := getDld()
-	defer showNG(err)
+	defer func() {
+		showNG(err)
+	}()
 	if err != nil {
 		return
 	}
@@ -84,9 +94,7 @@ func expDld(uriDst fyne.ListableURI) {
 	if err != nil {
 		return
 	}
-	Log(fsrc, fdst)
 	err = storage.Copy(fsrc, fdst)
-	Log(err)
 }
 
 func makeTabLAf() *container.TabItem {
@@ -104,7 +112,7 @@ func makeTabLAf() *container.TabItem {
 	lafButExp = widget.NewButton(ezcomm.StringTran["StrExp"], func() {
 		dialog.ShowFolderOpen(func(uri fyne.ListableURI, err error) {
 			if err == nil && uri != nil {
-				expDld(uri)
+				go expDld(lafLst.Selected, uri)
 			}
 		}, ezcWin)
 	})
@@ -179,7 +187,6 @@ func resetLafButs() {
 	lafButDel.Disable()
 	lafButClr.Disable()
 	if lafLst.Options != nil {
-		Log(lafLst.Selected)
 		if len(lafLst.Selected) > 0 {
 			lafButExp.Enable()
 			lafButDel.Enable()
