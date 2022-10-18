@@ -10,8 +10,6 @@ import (
 	"gitee.com/bon-ami/eztools/v4"
 )
 
-// Uis is for ezcomm (main module) -> users (UI)
-//type Uis interface {
 // FuncLog is log function
 type FuncLog func(...any)
 
@@ -22,8 +20,6 @@ type FuncLog func(...any)
 //	[2]: requested protocol
 //	[3]: requested address
 type FuncConn func(addr [4]string, chn [2]chan RoutCommStruc)
-
-//}
 
 var (
 	// AntiFlood is the limit of traffic from a peer
@@ -95,7 +91,7 @@ func ConnectedUdp(logFunc FuncLog, chn [2]chan RoutCommStruc, conn *net.UDPConn)
 		for {
 			//logFunc("receiving UDP", conn.LocalAddr())
 			n, addr, err := conn.ReadFromUDP(buf)
-			//logFunc("received UDP", n, addr, err, buf)
+			//logFunc("received UDP", n, addr, err, buf[:n])
 			if err != nil &&
 				(errors.Is(err, io.EOF) || errors.Is(err, net.ErrClosed)) {
 				return
@@ -116,27 +112,25 @@ func ConnectedUdp(logFunc FuncLog, chn [2]chan RoutCommStruc, conn *net.UDPConn)
 			if floodChk(peerHost) {
 				continue
 			}
-			ok, recs := floodCtrl(func() [2]int64 {
-				recs, ok := floodRecs[peerHost]
-				//logFunc("checking flood", peerHost, ok, recs)
+			isFile, isEnd := IsDataFile(buf[:n])
+			if !isFile || isEnd {
+				//logFunc("checking flood", peerHost,
+				//floodRecs[peerHost])
+				ok, recs := floodCtrl(floodRecs[peerHost],
+					addr.String())
 				if ok {
-					return recs
+					if eztools.Debugging && eztools.Verbose > 2 {
+						logFunc("flooding", peerAddr)
+					}
+					continue
 				}
-				return [2]int64{0, 0}
-			}, addr.String())
-			if ok {
-				//logFunc("flooding", peerAddr)
-				continue
+				floodRecs[peerHost] = recs
 			}
-			floodRecs[peerHost] = recs
 			if err == nil {
 				comm.Data = buf[:n]
 				comm.PeerUdp = addr
 			}
 			chn[1] <- comm
-			/*if ui != nil {
-				ui.Rcv(comm)
-			}*/
 		}
 	}()
 	//logFunc("listening on UDP", ChanComm)
@@ -147,9 +141,9 @@ func ConnectedUdp(logFunc FuncLog, chn [2]chan RoutCommStruc, conn *net.UDPConn)
 		//logFunc("command udp", chn, cmd)
 		switch cmd.Act {
 		case FlowChnSnd:
-			if eztools.Debugging && eztools.Verbose > 2 {
+			/*if eztools.Debugging && eztools.Verbose > 2 {
 				logFunc("sending", cmd)
-			}
+			}*/
 			// TODO: confirm to anti-flood
 			if cmd.PeerUdp == nil {
 				err = eztools.ErrIncomplete
@@ -164,23 +158,14 @@ func ConnectedUdp(logFunc FuncLog, chn [2]chan RoutCommStruc, conn *net.UDPConn)
 	}
 }
 
-/*func ListeningTcp(logFunc FuncLog, chn [2]chan struct{},
-lstnr net.Listener) {
-	defer logFunc("exiting TCP server routine", lstnr.Addr().String())
-	<-chn[0]
-	lstnr.Close()
-	return
-}*/
-
 // floodCtrl check for flood in a connection
 // Parameters: getRecs[0]=previous start of flood check; [1]=number of packets within a second
 // return values: flooding; updated data for getRecs
-func floodCtrl(getRecs func() [2]int64,
+func floodCtrl(floodRecs [2]int64,
 	peer string) (bool, [2]int64) {
 	if AntiFlood.Limit < 0 {
 		return false, [2]int64{0, 0}
 	}
-	floodRecs := getRecs()
 	curr := time.Now().Unix()
 	if (curr - floodRecs[0]) > 0 {
 		floodRecs[0] = curr
@@ -191,6 +176,7 @@ func floodCtrl(getRecs func() [2]int64,
 		floodRecs[1]++
 		return false, floodRecs
 	}
+	//eztools.Log(curr, AntiFlood.Limit, floodRecs)
 	if AntiFlood.Period > 0 {
 		AntiFlood.lock.Lock()
 		if AntiFlood.refused == nil {
@@ -257,9 +243,7 @@ func ConnectedTcp(logFunc FuncLog, connFunc FuncConn, conn net.Conn, addrReq [2]
 	for i := range chn {
 		chn[i] = make(chan RoutCommStruc, FlowComLen)
 	}
-	//if ui != nil {
 	connCB()
-	//}
 	buf := make([]byte, FlowRcvLen)
 	go func() {
 		if eztools.Debugging && eztools.Verbose > 1 {
@@ -284,17 +268,18 @@ func ConnectedTcp(logFunc FuncLog, connFunc FuncConn, conn net.Conn, addrReq [2]
 				Err:     err,
 			}
 			floodChkTcp := func() bool {
+				isFile, isEnd := IsDataFile(comm.Data)
+				if isFile && !isEnd {
+					return false
+				}
 				var ok bool
 				ok, floodRecs = floodCtrl(
-					func() [2]int64 {
-						return floodRecs
-					}, peerHost)
+					floodRecs, peerHost)
 				if ok {
-					//logFunc("flooding", peerHost)
-					//if ui != nil {
+					if eztools.Debugging && eztools.Verbose > 2 {
+						logFunc("flooding", peerHost)
+					}
 					comm.Err = eztools.ErrAccess
-					//ui.Ended(*comm)
-					//}
 					return true
 				}
 				return false
@@ -306,11 +291,6 @@ func ConnectedTcp(logFunc FuncLog, connFunc FuncConn, conn net.Conn, addrReq [2]
 			} else {
 				if errors.Is(err, io.EOF) ||
 					errors.Is(err, net.ErrClosed) {
-					//if ui != nil {
-					/*comm.Act = FlowChnEnd
-					chn[1] <- comm*/
-					//ui.Ended(comm)
-					//}
 					break
 				}
 				// reading on a closed TCP connection also reaches here
@@ -321,9 +301,6 @@ func ConnectedTcp(logFunc FuncLog, connFunc FuncConn, conn net.Conn, addrReq [2]
 				break
 			}
 			chn[1] <- comm
-			/*if ui != nil {
-				ui.Rcv(comm)
-			}*/
 		}
 	}()
 	for {
@@ -341,17 +318,6 @@ func ConnectedTcp(logFunc FuncLog, connFunc FuncConn, conn net.Conn, addrReq [2]
 		}
 	}
 }
-
-/*func log(ui Uis, sth ...any) {
-	if !eztools.Debugging {
-		return
-	}
-	if ui != nil {
-		ui.Log(sth...)
-	} else {
-		eztools.LogPrint(sth...)
-	}
-}*/
 
 // Client is mainly for TCP and Unix(not -gram). It ends immediately.
 //   lstnFunc() needs to handle procedures afterwards.
@@ -475,12 +441,7 @@ func ListenTcp(logFunc FuncLog, connFunc FuncConn,
 			}
 		}()
 		for {
-			/*select {
-				case req := <-chnSvr:
-				switch req.cmd {
-				case EZCOMM_CMD_END:
-				}
-			case*/conn, err = lstnr.Accept() //:
+			conn, err = lstnr.Accept()
 			if err != nil {
 				logFunc("accept failed", err)
 				//continue
@@ -489,7 +450,6 @@ func ListenTcp(logFunc FuncLog, connFunc FuncConn,
 			accepted(logFunc, connFunc, conn,
 				[2]string{network, address})
 		}
-		//}
 	}()
 	return lstnr, nil
 }

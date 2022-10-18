@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"net/url"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
@@ -22,7 +23,9 @@ var (
 	// chn is for TCP client and UDP
 	chn [2]chan ezcomm.RoutCommStruc
 	// svrTcp is for TCP server only
-	svrTcp ezcomm.SvrTcp
+	svrTcp         ezcomm.SvrTcp
+	tabs           *container.AppTabs
+	tabFil, tabLAf *container.TabItem
 )
 
 // uiFyne implements Uis
@@ -44,38 +47,95 @@ func parseParams() {
 	}
 }
 
-const extPrefAnd = "content://com.android.externalstorage.documents/document/primary"
+const (
+	extPrefAndDoc   = "content://com.android.externalstorage.documents/document/primary"
+	extPrefTreDoc   = "content://com.android.externalstorage.documents/tree/primary"
+	sdcardPrefAnd   = "/sdcard"
+	dldDirNm        = "Downloads"
+	invalidFileName = "(invalid)"
+)
 
-func encodeFilePath(p string) (fyne.URI, error) {
+var (
+	dldDirChk  bool
+	dldDirPath string
+)
+
+// checkDldDir checks and creates Downloads under app dir
+// Return values: eztools.ErrIncomplete=file exists as same name
+func checkDldDir() (string, error) {
+	if dldDirChk {
+		return dldDirPath, nil
+	}
+	dldDirChk = true
+	incomDir = appStorage.RootURI().Path()
+	dldDirPath = filepath.Join(incomDir, dldDirNm)
+	dldUri = storage.NewFileURI(dldDirPath)
+	exi, err := storage.Exists(dldUri)
+	if err != nil {
+		eztools.Log("NO", dldDirPath, "detectable!", err)
+		return "", err
+	}
+	if exi {
+		cn, err := storage.CanList(dldUri)
+		if err != nil {
+			eztools.Log("NO", dldDirPath, "listable!", err)
+			return "", err
+		}
+		if !cn {
+			/*Log(dirDld, "is a file!", incomDir,
+			"will be used as download directory!")*/
+			return "", eztools.ErrIncomplete
+		}
+	} else {
+		if err = storage.CreateListable(dldUri); err != nil {
+			eztools.Log("NO", dldDirPath, "created!", err)
+			return "", err
+		}
+	}
+	return dldDirPath, err
+}
+
+// translateFilePath changes a path string for platforms
+//	For Android, a path not beginning with "/" is prefixed with sdcardPrefAnd
+func translateFilePath(p string) string {
 	switch runtime.GOOS {
 	case "android":
-		// change a/b into {extPref}%3Aa%2Fb meaning {extPref}:a/b
-		p = extPrefAnd + url.QueryEscape(":"+p)
-		/*ua, err := url.Parse(extPref+p)
-		if err != nil {
-			return nil, err
+		/*change a/b into {extPref}%3Aa%2Fb meaning {extPref}:a/b
+		p = extPrefAndDoc + url.QueryEscape(":"+p)
+		return storage.ParseURI(p)*/
+		if len(p) < 1 {
+			return sdcardPrefAnd
 		}
-		if ua == nil {
-			return nil, eztools.ErrInvalidInput
+		if !strings.HasPrefix(p, "/") {
+			return sdcardPrefAnd + "/" + p
 		}
-		uaParts := strings.SplitN(ua.Path, ":", 2) // document/primary a/b
-		if uaParts != nil && len(uaParts) == 2 {
-			uaParts[1] = url.QueryEscape(":" + uaParts[1])
-		}
-		ua.Path = strings.Join(uaParts, "")
-		// then ua.Path=document/primary%3Aa%2Fb
-		// and us.String=content://com.android.externalstorage.documents/document/primary%253Aa%252Fb
-		p, err = url.QueryUnescape(ua.String()) // and then content://com.android.externalstorage.documents/document/primary%3Aa%2Fb
-		if err != nil {
-			return nil, err
-		}*/
-		return storage.ParseURI(p)
-	default:
-		uri := storage.NewFileURI(p)
-		if uri == nil || len(uri.String()) < 1 {
-			return nil, eztools.ErrInvalidInput
-		}
-		return uri, nil
+	}
+	return p
+}
+
+func encodeFilePath(p string) (fyne.URI, error) {
+	//default:
+	uri := storage.NewFileURI(translateFilePath(p))
+	if uri == nil || len(uri.String()) < 1 {
+		return nil, eztools.ErrInvalidInput
+	}
+	return uri, nil
+}
+
+func encodeFileDown(p string) (u fyne.URI, err error) {
+	dldPath, err := checkDldDir()
+	if err != nil {
+		return
+	}
+	if len(dldPath) < 1 {
+		return nil, eztools.ErrAccess
+	}
+	if len(p) > 0 {
+		return encodeFilePath(
+			filepath.Join(dldPath,
+				filepath.Base(p)))
+	} else {
+		return encodeFilePath(dldPath)
 	}
 }
 
@@ -87,17 +147,16 @@ func decodeFilePath(uri fyne.URI) string {
 			Log("failed to unescape", uri)
 			return ""
 		}
-		return strings.TrimPrefix(fn, extPrefAnd+":")
+		return translateFilePath(strings.TrimPrefix(
+			strings.TrimPrefix(fn, extPrefAndDoc+":"),
+			extPrefTreDoc+":"))
 	default:
-		return uri.String()
+		return uri.Path()
 	}
 }
 
 func main() {
 	parseParams()
-	/*for i := range chn {
-		chn[i] = make(chan ezcomm.RoutCommStruc, ezcomm.FlowComLen)
-	}*/
 	ezcApp := app.NewWithID(ezcomm.EzcName)
 	appStorage = ezcApp.Storage()
 	cfgFileName := ezcomm.EzcName + ".xml"
@@ -126,15 +185,17 @@ func main() {
 	ezcApp.Settings().SetTheme(&thm)
 	ezcWin = ezcApp.NewWindow(ezcomm.EzcName)
 
-	tabMsg := makeTabMsg()
-	tabFil := makeTabFil()
 	tabLog := makeTabLog()
+	tabMsg := makeTabMsg()
+	tabFil = makeTabFil()
 	tabCfg := makeTabCfg()
 	tabLan := makeTabLan()
-	tabs := container.NewAppTabs(
+	tabLAf = makeTabLAf()
+	tabs = container.NewAppTabs(
 		tabLan,
 		tabMsg,
 		tabFil,
+		tabLAf,
 		tabLog,
 		tabCfg,
 	)
@@ -152,6 +213,8 @@ func main() {
 			tabCfgShown()
 		case tabLan:
 			tabLanShown(true)
+		case tabLAf:
+			tabLAfShown()
 		}
 	}
 
@@ -159,6 +222,7 @@ func main() {
 	svrTcp.ConnFunc = TcpSvrConnected
 	svrTcp.LogFunc = Log
 
+	//ezcWin.SetFixedSize(true)
 	ezcWin.Show()
 	tabLanShown(true)
 	// 9 routines here

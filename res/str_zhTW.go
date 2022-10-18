@@ -10,7 +10,6 @@ func I18nZhtw() {
 		StrFil = "文件"
 		StrDir = "資料夾"
 		StrFilO = "在下面選擇要發送的檔。建議使用TCP來確保傳輸拆分的大檔。"
-		StrDirI = "在下面選擇一個資料夾以保存收到的檔。"
 		StrCfg = "配置"
 		StrLcl = "當地"
 		StrRmt = "遠端"
@@ -50,7 +49,7 @@ func I18nZhtw() {
 		StrCfgFn     = "設置檔名"
 		StrFlowFnInf = "輸入檔名能控制流程"
 
-		StrFlowOpenErr   = "打開流程文件出錯"
+		StrFlowOpenErr   = "打開流程檔出錯"
 		StrFlowOpenNot   = "未打開流程檔"
 		StrFlowRunning   = "正在運行流程"
 		StrFlowRunNot    = "流程未運行"
@@ -89,5 +88,12 @@ func I18nZhtw() {
 		StrInfLan       = "局域網"
 		StrPokePeer     = "尋找對端"
 		StrDiscoverFail = "發現失敗"
+		StrAlert        = "警報"
+		StrNoPerm       = "無許可"
+		StrRcvFil       = "收到的檔"
+		StrDownloads    = "下載"
+		StrExp          = "匯出"
+		StrRmAll        = "刪除所有這些檔?"
+		StrDel          = "刪除"
 	`)
 }

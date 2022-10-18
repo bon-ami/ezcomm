@@ -36,18 +36,21 @@ bytes:0 1   2-5      6-
 
 // IsDataFile checks whether received data a file (piece)
 // It does not guarantee successful parsing into meaningful parts.
-func IsDataFile(data []byte) bool {
+func IsDataFile(data []byte) (isData, isEnd bool) {
 	if data == nil || len(data) < 1 {
-		return false
+		return false, false
 	}
 	switch data[0] {
-	case 1, 2:
+	case 2:
+		isEnd = true
+		fallthrough
+	case 1:
 		if len(data) > FileHdr1stLen {
-			return true
+			return true, isEnd
 		}
 	}
 
-	return false
+	return false, false
 }
 
 func GetAvailFileName(fn, addr string) (string, bool) {
@@ -238,6 +241,7 @@ func Sz41stChunk(fnI string) (int, string) {
 }
 
 // TryOnlyChunk try to read the file in one chunk
+// Parameter: rdr is closed before returning
 // Return values:
 //	a possible long file name
 //	read buffer
@@ -264,6 +268,7 @@ func TryOnlyChunk(fnI string, rdr io.ReadCloser) (string, []byte, error) {
 }
 
 // SndFile sends a file without splitting.
+// Parameter: rdr is closed before returning
 // Return value:
 //	ErrOutOfBound if file+prefix larger than FlowRcvLen
 //	other error from os.Stat(), ioutil.ReadFile(), or prefix4File()
@@ -280,6 +285,8 @@ func SndFile(fn string, rdr io.ReadCloser, proc func([]byte) error) error {
 	return proc(append(ret, buf...))
 }
 
+// SplitFile
+// Parameter: rdr is closed before returning
 func SplitFile(fn string, rdr io.ReadCloser, proc func([]byte) error) error {
 	readSz := func(indx uint32, name string) (uint32, string) {
 		switch indx {

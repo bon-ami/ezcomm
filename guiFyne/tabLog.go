@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"time"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
@@ -18,16 +21,30 @@ var (
 )
 
 func initLog(fp string) error {
-	uri, err := storage.ParseURI(fp)
-	if err != nil {
+	/*if _, ret := tryWriteFile(fp); ret {
+		return eztools.ErrAbort
+	}*/
+	uri := storage.NewFileURI(fp)
+	/*if err != nil {
 		return err
-	}
+	}*/
 	wr, err := storage.Writer(uri)
 	if err != nil {
 		return err
 	}
 	logger = wr
 	return ezcomm.SetLog(fp, wr)
+}
+
+func Log(inf ...any) {
+	if fyneRowLog != nil {
+		str := fmt.Sprintf("%s%v\n",
+			time.Now().Format("01-02 15:04:05"), inf)
+		fyneRowLog.SetText(fyneRowLog.Text + //strconv.Itoa(rowLog.CursorRow) + ":" +
+			str)
+		fyneRowLog.CursorRow++
+	}
+	eztools.Log(inf)
 }
 
 func makeTabLog() *container.TabItem {
@@ -41,10 +58,11 @@ func makeTabLog() *container.TabItem {
 	logTxt.Disable()
 	logBut = widget.NewButton(ezcomm.StringTran["StrLog"], func() {
 		dialog.ShowFileSave(func(uri fyne.URIWriteCloser, err error) {
-			/*fyneCfgLogTxt.SetText("")
-			defer fyneCfgLogTxt.Refresh()*/
 			if err != nil {
 				Log("open log file", err)
+				dialog.ShowInformation(
+					ezcomm.StringTran["StrAlert"],
+					ezcomm.StringTran["StrNoPerm"], ezcWin)
 				return
 			}
 			if uri == nil {
