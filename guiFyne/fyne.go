@@ -48,10 +48,11 @@ func parseParams() {
 }
 
 const (
-	extPrefAndDoc = "content://com.android.externalstorage.documents/document/primary"
-	extPrefTreDoc = "content://com.android.externalstorage.documents/tree/primary"
-	sdcardPrefAnd = "/sdcard"
-	dldDirNm      = "Downloads"
+	extPrefAndDoc   = "content://com.android.externalstorage.documents/document/primary"
+	extPrefTreDoc   = "content://com.android.externalstorage.documents/tree/primary"
+	sdcardPrefAnd   = "/sdcard"
+	dldDirNm        = "Downloads"
+	invalidFileName = "(invalid)"
 )
 
 var (
@@ -94,20 +95,21 @@ func checkDldDir() (string, error) {
 	return dldDirPath, err
 }
 
+// translateFilePath changes a path string for platforms
+//	For Android, a path not beginning with "/" is prefixed with sdcardPrefAnd
 func translateFilePath(p string) string {
-	/*switch runtime.GOOS {
+	switch runtime.GOOS {
 	case "android":
-		// change a/b into {extPref}%3Aa%2Fb meaning {extPref}:a/b
-		//p = extPrefAnd + url.QueryEscape(":"+p)
-		//return storage.ParseURI(p)
+		/*change a/b into {extPref}%3Aa%2Fb meaning {extPref}:a/b
+		p = extPrefAndDoc + url.QueryEscape(":"+p)
+		return storage.ParseURI(p)*/
 		if len(p) < 1 {
 			return sdcardPrefAnd
 		}
-		if strings.HasPrefix(p, "/") {
-			return sdcardPrefAnd + p
+		if !strings.HasPrefix(p, "/") {
+			return sdcardPrefAnd + "/" + p
 		}
-		return sdcardPrefAnd + "/" + p
-	}*/
+	}
 	return p
 }
 
@@ -145,9 +147,9 @@ func decodeFilePath(uri fyne.URI) string {
 			Log("failed to unescape", uri)
 			return ""
 		}
-		return strings.TrimPrefix(
+		return translateFilePath(strings.TrimPrefix(
 			strings.TrimPrefix(fn, extPrefAndDoc+":"),
-			extPrefTreDoc+":")
+			extPrefTreDoc+":"))
 	default:
 		return uri.Path()
 	}
@@ -220,7 +222,7 @@ func main() {
 	svrTcp.ConnFunc = TcpSvrConnected
 	svrTcp.LogFunc = Log
 
-	ezcWin.SetFixedSize(true)
+	//ezcWin.SetFixedSize(true)
 	ezcWin.Show()
 	tabLanShown(true)
 	// 9 routines here

@@ -24,10 +24,10 @@ func initLog(fp string) error {
 	/*if _, ret := tryWriteFile(fp); ret {
 		return eztools.ErrAbort
 	}*/
-	uri, err := storage.ParseURI(fp)
-	if err != nil {
+	uri := storage.NewFileURI(fp)
+	/*if err != nil {
 		return err
-	}
+	}*/
 	wr, err := storage.Writer(uri)
 	if err != nil {
 		return err

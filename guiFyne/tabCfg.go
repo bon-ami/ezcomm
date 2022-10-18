@@ -4,6 +4,7 @@ import (
 	"io"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -102,10 +103,13 @@ func tryWriteFile(fun func(string) (io.WriteCloser, error),
 	}
 	dialog.ShowFileSave(func(wr fyne.URIWriteCloser, err error) {
 		if err == nil && wr != nil {
-			res = wr.URI().Path()
-			wr.Close()
-			ch <- true
-			return
+			if !strings.HasPrefix(wr.URI().Name(),
+				invalidFileName) {
+				res = decodeFilePath(wr.URI())
+				wr.Close()
+				ch <- true
+				return
+			}
 		}
 		if err != nil {
 			res = err.Error()

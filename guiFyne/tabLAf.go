@@ -8,6 +8,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
+	"fyne.io/fyne/v2/storage/repository"
 	"fyne.io/fyne/v2/widget"
 	"gitlab.com/bon-ami/ezcomm"
 )
@@ -94,7 +95,17 @@ func expDld(sel string, uriDst fyne.ListableURI) {
 	if err != nil {
 		return
 	}
-	err = storage.Copy(fsrc, fdst)
+	/*p := extPrefAndDoc + url.QueryEscape(":"+translateFilePath(fnew))
+	fdst, err = storage.ParseURI(p)
+	if err != nil {
+		Log("parse", p, err)
+		return
+	}
+	Log("root", appStorage.RootURI())*/
+	// storage.Copy() does not work for file:// on Android
+	/*err = storage.Copy(fsrc, fdst)
+	Log(fsrc, fdst, err)*/
+	err = repository.GenericCopy(fsrc, fdst)
 }
 
 func makeTabLAf() *container.TabItem {

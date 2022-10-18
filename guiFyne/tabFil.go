@@ -109,6 +109,8 @@ func filButLcl() {
 	}, ezcWin)
 }*/
 
+// isSndFile
+// Parameters: wrapperFunc must Close ReadCloser
 func isSndFile(wrapperFunc func(string, io.ReadCloser, func([]byte) error) error,
 	fun func(buf []byte) error) bool {
 	if tabFil.Content.Visible() {
@@ -118,7 +120,6 @@ func isSndFile(wrapperFunc func(string, io.ReadCloser, func([]byte) error) error
 				Log(ezcomm.StringTran["StrFl2Snd"], err)
 				return true
 			}
-			defer r.Close()
 			if err = wrapperFunc(outgoFile.Name(), r, fun); err != nil {
 				Log(ezcomm.StringTran["StrFl2Snd"], err)
 			}

@@ -479,7 +479,7 @@ func Rcv(comm ezcomm.RoutCommStruc) {
 	}
 
 	var data string
-	if ezcomm.IsDataFile(comm.Data) {
+	if ok, _ := ezcomm.IsDataFile(comm.Data); ok {
 		peer, data = RcvFile(comm, addr)
 	} else {
 		peer, data = RcvMsg(comm, peer)
@@ -532,7 +532,7 @@ func Snt(comm ezcomm.RoutCommStruc) {
 		data   string
 		isFile bool
 	)
-	if ezcomm.IsDataFile(comm.Data) {
+	if ok, _ := ezcomm.IsDataFile(comm.Data); ok {
 		data = SntFile(comm)
 		isFile = true
 	} else {

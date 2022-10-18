@@ -112,19 +112,20 @@ func ConnectedUdp(logFunc FuncLog, chn [2]chan RoutCommStruc, conn *net.UDPConn)
 			if floodChk(peerHost) {
 				continue
 			}
-			ok, recs := floodCtrl(func() [2]int64 {
-				recs, ok := floodRecs[peerHost]
-				//logFunc("checking flood", peerHost, ok, recs)
+			isFile, isEnd := IsDataFile(buf[:n])
+			if !isFile || isEnd {
+				//logFunc("checking flood", peerHost,
+				//floodRecs[peerHost])
+				ok, recs := floodCtrl(floodRecs[peerHost],
+					addr.String())
 				if ok {
-					return recs
+					if eztools.Debugging && eztools.Verbose > 2 {
+						logFunc("flooding", peerAddr)
+					}
+					continue
 				}
-				return [2]int64{0, 0}
-			}, addr.String())
-			if ok {
-				//logFunc("flooding", peerAddr)
-				continue
+				floodRecs[peerHost] = recs
 			}
-			floodRecs[peerHost] = recs
 			if err == nil {
 				comm.Data = buf[:n]
 				comm.PeerUdp = addr
@@ -160,12 +161,11 @@ func ConnectedUdp(logFunc FuncLog, chn [2]chan RoutCommStruc, conn *net.UDPConn)
 // floodCtrl check for flood in a connection
 // Parameters: getRecs[0]=previous start of flood check; [1]=number of packets within a second
 // return values: flooding; updated data for getRecs
-func floodCtrl(getRecs func() [2]int64,
+func floodCtrl(floodRecs [2]int64,
 	peer string) (bool, [2]int64) {
 	if AntiFlood.Limit < 0 {
 		return false, [2]int64{0, 0}
 	}
-	floodRecs := getRecs()
 	curr := time.Now().Unix()
 	if (curr - floodRecs[0]) > 0 {
 		floodRecs[0] = curr
@@ -176,6 +176,7 @@ func floodCtrl(getRecs func() [2]int64,
 		floodRecs[1]++
 		return false, floodRecs
 	}
+	//eztools.Log(curr, AntiFlood.Limit, floodRecs)
 	if AntiFlood.Period > 0 {
 		AntiFlood.lock.Lock()
 		if AntiFlood.refused == nil {
@@ -267,13 +268,17 @@ func ConnectedTcp(logFunc FuncLog, connFunc FuncConn, conn net.Conn, addrReq [2]
 				Err:     err,
 			}
 			floodChkTcp := func() bool {
+				isFile, isEnd := IsDataFile(comm.Data)
+				if isFile && !isEnd {
+					return false
+				}
 				var ok bool
 				ok, floodRecs = floodCtrl(
-					func() [2]int64 {
-						return floodRecs
-					}, peerHost)
+					floodRecs, peerHost)
 				if ok {
-					//logFunc("flooding", peerHost)
+					if eztools.Debugging && eztools.Verbose > 2 {
+						logFunc("flooding", peerHost)
+					}
 					comm.Err = eztools.ErrAccess
 					return true
 				}
