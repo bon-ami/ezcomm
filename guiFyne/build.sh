@@ -90,12 +90,13 @@ function lwin1() {
                 rm ${A}$2
         fi
         fyne package -os $1 $3 -appVersion $V
+        echo $?
 
         if [ -f "${A}.tar.xz" ]; then
-			echo "Extracting ${W} from ${A}.tar.xz"
+			echo "Extracting ${W}$2 from ${A}.tar.xz"
 			tar -xf ${A}.tar.xz usr/local/bin/${W}
 			if (( "$?" == 0 )); then
-				mv usr/local/bin/${W} ${W}
+				mv usr/local/bin/${W} ${W}$2
 				rmdir usr/local/bin
 				rmdir usr/local
 				rmdir usr
@@ -106,17 +107,24 @@ function lwin1() {
 			fi
         fi
 
-        if [ -z "$M" ]; then
-                M=_$V
-        fi
+        #if [ -z "$M" ]; then
+                #M=_$V
+        #fi
         if [ -f "$W$2" ]; then
                 mv ${W}$2 ${A}$M$2
+                ls -l ${A}$M$2
                 echo ${W} done with ${A}$M$2
         elif [ -f "$A$2" ]; then
+			if [ - z "$M" ]; then
+				ls -l ${A}$2
+				echo done with ${A}$2
+			else
                 mv ${A}$2 ${A}$M$2
-                echo ${A} done with ${A}$M$2
+                ls -l ${A}$M$2
+                echo ${A}$2 done with ${A}$M$2
+            fi
         else
-			echo "$W$2 or $A$2 NOT found!"
+			echo "$W$2 and $A$2 NOT found!"
         fi
 }
 
@@ -138,13 +146,9 @@ else
 			lwin1 windows .exe ""
 			lwin1 windows .exe "--release"
 		else
-			#lwin1 linux "" ""
+			lwin1 linux "" ""
 			lwin1 linux "" "--release"
 		fi
-
-        #cp FyneApp.bak FyneApp.toml
-        #echo building Linux `grep "Build" FyneApp.toml`
-        #fyne package -os linux -appVersion $V
 
         echo `grep "Build" FyneApp.toml`
 fi

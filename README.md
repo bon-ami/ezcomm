@@ -3,6 +3,8 @@
 TCP/UDP, client & server all-in-one, with GUI or flow script.
 README in other language(-s): [简体中文](README_zhCN.md)
 
+[Home page of EZ project](https://ezproject.sourceforge.io/)
+
 ## Getting started
 
 Go to [Releases](https://gitlab.com/bon-ami/ezcomm/-/releases) for prebuilt binaries.
@@ -24,6 +26,7 @@ Features
  - client/server. send to different clients with different text as a server.
  - flow script to automatically listen, accept, receive and send messages or files.
  - file transfer. files or pieces are encapsulated to avoid confusion with text messages.
+ - peer discovery in LAN
  - incoming/outgoing message history
  - anti-flood to neglect frequent incoming traffic from same IP
  - customizable and in-built fonts

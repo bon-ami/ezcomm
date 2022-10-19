@@ -119,16 +119,16 @@ func I18nInit() {
 func I18nLoad(lang string) (string, error) {
 	langOut, err := eztools.LoadLanguage(lang)
 	if err != nil {
-		//Log("failed to load language for", lang, err)
+		eztools.Log("failed to load language for", lang, err)
 		return lang, err
 	}
-	//Log("loading language", lang, langOut)
+	//eztools.Log("loading language", lang, langOut)
 	for _, i := range StringIndx {
 		//Log("loading", i)
 		str, err := eztools.GetLanguageStr(i)
 		//Log("loading", str, err)
 		if err != nil {
-			//Log("no translation for", i)
+			eztools.Log("NO translation for", i)
 			continue
 		}
 		StringTran[i] = str

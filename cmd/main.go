@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"os"
 	"time"
 
 	"gitee.com/bon-ami/eztools/v4"
@@ -20,7 +21,29 @@ func main() {
 	)
 	// read current OS language
 	ezcomm.I18nInit()
-	_, err := ezcomm.I18nLoad("")
+	ezcomm.I18nLoad("")
+
+	const paramCfgStr = "cfg"
+	// try to get cfg param, for language settings
+	var (
+		argCfgGot bool
+		argCfgStr string
+	)
+	for _, arg1 := range os.Args {
+		eztools.Log("chk", arg1)
+		if argCfgGot {
+			argCfgStr = arg1
+			break
+		}
+		if arg1 == paramCfgStr {
+			argCfgGot = true
+			continue
+		}
+	}
+	// read config file or default config for default language
+	ezcomm.ReadCfg(argCfgStr, "")
+	// all possible language settings got. parse all params again.
+
 	flag.BoolVar(&paramVer, "version", false, ezcomm.StringTran["StrVer"])
 	flag.BoolVar(&paramVer, "ver", false, ezcomm.StringTran["StrVer"])
 	flag.BoolVar(&paramH, "h", false, ezcomm.StringTran["StrHlp"])
@@ -29,9 +52,15 @@ func main() {
 	flag.BoolVar(&paramVV, "vv", false, ezcomm.StringTran["StrVV"])
 	flag.BoolVar(&paramVVV, "vvv", false, ezcomm.StringTran["StrVVV"])
 	flag.StringVar(&paramLog, "log", "", ezcomm.StringTran["StrLogFn"])
-	flag.StringVar(&paramCfg, "cfg", "", ezcomm.StringTran["StrCfg"])
+	flag.StringVar(&paramCfg, paramCfgStr, "", ezcomm.StringTran["StrCfg"])
 	flag.StringVar(&paramFlw, "flow", "", ezcomm.StringTran["StrFlowFnInf"])
 	flag.Parse()
+
+	if paramH {
+		flag.Usage()
+		return
+	}
+
 	if len(Ver) < 1 {
 		Ver = "dev"
 	}
@@ -53,14 +82,9 @@ func main() {
 		eztools.Verbose = 3
 	}
 
-	paramLog, err = ezcomm.ReadCfg(paramCfg, paramLog)
+	paramLog, err := ezcomm.ReadCfg(paramCfg, paramLog)
 	if err == nil {
 		ezcomm.SetLog(paramLog, nil)
-	}
-
-	if paramH {
-		flag.Usage()
-		return
 	}
 
 	// db is only for app upgrade
