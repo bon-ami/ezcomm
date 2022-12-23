@@ -15,6 +15,7 @@ type FuncLog func(...any)
 
 // FuncConn is run when Connected.
 // addr=address info.
+//
 //	[0]: parsed local
 //	[1]: remote
 //	[2]: requested protocol
@@ -62,7 +63,9 @@ func replyWtErr(comm RoutCommStruc, err error, chn chan RoutCommStruc) {
 }
 
 // ConnectedUdp works for UDP, when remote can change
+//
 //	It blocks.
+//
 // chn[1] -> ui: FlowChnRcv, FlowChnSnd, FlowChnEnd
 // chn[0] <- ui: FlowChnSnd, FlowChnEnd
 func ConnectedUdp(logFunc FuncLog, chn [2]chan RoutCommStruc, conn *net.UDPConn) {
@@ -213,6 +216,7 @@ func floodChk(peerAddr string) bool {
 
 // ConnectedTcp also works for UDP, if remote does not change
 // Parameters:
+//
 //	logFunc for logging
 //	connFunc is callback function upon entrance of this function.
 //		It blocks the routine.
@@ -220,6 +224,7 @@ func floodChk(peerAddr string) bool {
 //	conn is the connection
 //	addrReq is address user requested, and varies between local/remote,
 //		when user creates a server (listen) or a client
+//
 // -> ui: connFunc(), FlowChnRcv, FlowChnSnd, FlowChnEnd
 // <- ui: FlowChnSnd, FlowChnEnd // this may block routine from exiting, if too much incoming traffic not read
 func ConnectedTcp(logFunc FuncLog, connFunc FuncConn, conn net.Conn, addrReq [2]string) {
@@ -320,10 +325,13 @@ func ConnectedTcp(logFunc FuncLog, connFunc FuncConn, conn net.Conn, addrReq [2]
 }
 
 // Client is mainly for TCP and Unix(not -gram). It ends immediately.
-//   lstnFunc() needs to handle procedures afterwards.
-//   returned conn needs to Close() by user.
+//
+//	lstnFunc() needs to handle procedures afterwards.
+//	returned conn needs to Close() by user.
+//
 // UDP, IP and Unixgram will be tricky to track peer information,
-//   and preferrably use Listen*()
+//
+//	and preferrably use Listen*()
 func Client(logFunc FuncLog, connFunc FuncConn,
 	network, rmtAddr string,
 	lstnFunc func(logFunc FuncLog, connFunc FuncConn,
@@ -341,6 +349,7 @@ func Client(logFunc FuncLog, connFunc FuncConn,
 
 // ListenIp listens to IP. It ends immediately.
 // Parameters:
+//
 //	network is socket type, "ip", "ip4" or "ip6"
 //	address is for local, [IP or DN][:protocol number or name]
 func ListenIp(network, address string) (*net.IPConn, error) {
@@ -359,6 +368,7 @@ func ListenIp(network, address string) (*net.IPConn, error) {
 
 // ServerUnix listens to unixgram. It ends immediately.
 // Parameters:
+//
 //	network is socket type, "unixgram"
 //	address is for local, [IP or DN][:port number or name]
 func ListenUnixgram(network, address string) (*net.UnixConn, error) {
@@ -376,8 +386,11 @@ func ListenUnixgram(network, address string) (*net.UnixConn, error) {
 }
 
 // ListenUdp listens to UDP. It ends immediately.
-//   *net.UDPConn needs to handle procedures afterwards.
+//
+//	*net.UDPConn needs to handle procedures afterwards.
+//
 // Parameters:
+//
 //	network is socket type, "udp", "udp4" or "udp6"
 //	address is for local, [IP or DN][:port number or name]
 func ListenUdp(network, address string) (*net.UDPConn, error) {
@@ -398,19 +411,21 @@ func ListenUdp(network, address string) (*net.UDPConn, error) {
 }
 
 // ListenTcp listens to TCP. It ends immediately.
-//   Simply close the listener to stop it.
-//   accepted() needs to handle procedures for incoming connections.
-//     It blocks listening routine, so that errChan gets feedback
-//     always before accepted().
-//   connFunc is for accepted() only.
-// Parameters:
-//	network is socket type, "tcp", "tcp4", "tcp6",
-//		"unix" or "unixpacket"
-//	fun handles incoming connections for TCP/unix and all connections for UDP
+// Simply close the listener to stop it.
+//
+//	Parameters:
+//	network is socket type, "tcp", "tcp4" or "tcp6"
+//	accepted() needs to handle procedures for incoming connections. can be nil.
+//	  It blocks listening routine, so that errChan gets feedback
+//	  always before accepted().
+//	connFunc is for accepted() only.
 //	errChan sends Accept errors
 func ListenTcp(logFunc FuncLog, connFunc FuncConn,
 	network, address string, accepted func(FuncLog,
 		FuncConn, net.Conn, [2]string), errChan chan error) (net.Listener, error) {
+	if logFunc == nil {
+		logFunc = func(...any) {}
+	}
 	if accepted == nil {
 		eztools.LogFatal("no function to handle server")
 	}
@@ -424,6 +439,9 @@ func ListenTcp(logFunc FuncLog, connFunc FuncConn,
 	}
 	//log("serving", lstnr)
 	//defer lstnr.Close()
+	if accepted == nil {
+		return lstnr, nil
+	}
 	go func() {
 		if eztools.Debugging && eztools.Verbose > 1 {
 			logFunc("entering listener routine")
