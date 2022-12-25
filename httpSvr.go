@@ -6,8 +6,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func HttpServ(dir string, lst net.Listener) error {
-	g := gin.New()
-	g.Static("", dir)
-	return g.RunListener(lst)
+func HttpServ(lst net.Listener, dir string) error {
+	g := gin. /*Default() */ New()
+	g.StaticFS("", gin.Dir(dir, true))
+	//g.StaticFS("", http.Dir(dir))
+	ec := make(chan error, 1)
+	go func() {
+		ec <- g.RunListener(lst)
+	}()
+	<-ec
+	return nil
 }

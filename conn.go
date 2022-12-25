@@ -426,9 +426,6 @@ func ListenTcp(logFunc FuncLog, connFunc FuncConn,
 	if logFunc == nil {
 		logFunc = func(...any) {}
 	}
-	if accepted == nil {
-		eztools.LogFatal("no function to handle server")
-	}
 	if len(network) < 1 {
 		network = "tcp"
 	}

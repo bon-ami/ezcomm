@@ -140,15 +140,18 @@ var FlowWriterNew func(string) (io.WriteCloser, error)
 var FlowReaderNew func(string) (io.ReadCloser, error)
 
 // ParseVar parses a string of a simple string or
-//   <FlowVarSign>[<xml tag name of FlowConnStruc/FlowStepStruc><FlowVarSign>]<string><FlowVarSign>
-//   fun() is invoked for matched FlowConnStruc,
-//	with index of it in FlowStruc.Conns and <string>
+//
+//	  <FlowVarSign>[<xml tag name of FlowConnStruc/FlowStepStruc><FlowVarSign>]<string><FlowVarSign>
+//	  fun() is invoked for matched FlowConnStruc,
+//		with index of it in FlowStruc.Conns and <string>
+//
 // Return values:
-//  1st.
-//   The simple string
-//   If FlowConnStruc is matched, the value of its member whose xml tag is <string>
-//   Otherwise, <string>
-//  2nd. FlowParseVal*
+//
+//	1st.
+//	 The simple string
+//	 If FlowConnStruc is matched, the value of its member whose xml tag is <string>
+//	 Otherwise, <string>
+//	2nd. FlowParseVal*
 func (flow FlowStruc) ParseVar(str string,
 	fun func(int, string)) (string, int) {
 	//eztools.Log("parsevar enter", str)
@@ -198,13 +201,14 @@ func (flow FlowStruc) ParseVar(str string,
 
 // ParseData parses data in step
 // Return values:
-//  1st. is one of following
-//    data string in form of a simple string
-//    the value of a member of FlowConnStruc or FlowStepStruc for <string> in <FlowVarSign><xml tag name of FlowConnStruc or FlowStepStruc><FlowVarSep><string><FlowVarSign>
-//    file name for <string> in <FlowVarSign><FlowVarFil><FlowVarSep><string><FlowVarSign>
-//  2nd.
-//   1: a file name
-//   0: a string
+//
+//	1st. is one of following
+//	  data string in form of a simple string
+//	  the value of a member of FlowConnStruc or FlowStepStruc for <string> in <FlowVarSign><xml tag name of FlowConnStruc or FlowStepStruc><FlowVarSep><string><FlowVarSign>
+//	  file name for <string> in <FlowVarSign><FlowVarFil><FlowVarSep><string><FlowVarSign>
+//	2nd.
+//	 1: a file name
+//	 0: a string
 func (step FlowStepStruc) ParseData(flow FlowStruc, conn FlowConnStruc) (string, int) {
 	retWhole, parseRes := flow.ParseVar(step.Data, nil) // TODO: match a server
 	switch parseRes {
@@ -422,7 +426,7 @@ func (connStruc *FlowConnStruc) Connected(logFunc FuncLog,
 				ln, err = fr.Read(buf)
 				if err != nil {
 					if !errors.Is(err, io.EOF) {
-						eztools.LogWtTime(connUdp.LocalAddr().String, "error reading!", err)
+						eztools.LogWtTime(connUdp.LocalAddr(), "error reading!", err)
 						com.Err = err
 					}
 					break
