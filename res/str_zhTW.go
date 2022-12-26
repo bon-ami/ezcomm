@@ -27,7 +27,7 @@ func I18nZhtw() {
 		StrFlw = "流程"
 		StrStb = "待命"
 		StrAll = "全選"
-		StrLog  = "日誌檔"
+		StrLogExp  = "匯出紀錄檔"
 		StrLang = "語言"
 		StrVbs  = "日誌級別"
 		StrHgh  = "高"

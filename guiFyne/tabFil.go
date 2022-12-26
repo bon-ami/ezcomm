@@ -130,20 +130,17 @@ func isSndFile(wrapperFunc func(string, io.ReadCloser, func([]byte) error) error
 }
 
 // SntFile checks whether sent data is of a file
-// Return values:
-//	"", false: not file
-//	"", true: file, but in progress
-//	file name, true: sending finished
-func SntFile(comm ezcomm.RoutCommStruc) string {
+// Return values: file name, transfer ended
+func SntFile(comm ezcomm.RoutCommStruc) (string, bool) {
 	fn, _, _, end := ezcomm.BulkFile("", "", comm.Data)
-	if end {
-		return filepath.Base(fn)
-	} else {
-		return ""
-	}
+	return filepath.Base(fn), end
 }
 
-func SntFileOk(fn string) {
+func SntFileOk(fn string, fin bool) {
+	if !fin {
+		filRmt.SetText(fn + " ...>")
+		return
+	}
 	if len(fn) > MaxRecLen {
 		refSnd.Options = append(refSnd.Options, fn[0:MaxRecLen])
 	} else {
@@ -178,8 +175,10 @@ func RcvFile(comm ezcomm.RoutCommStruc, addr string) (peer, fn string) {
 			Log("saved first piece",
 				first, "to", fn)
 		}*/
-		if end {
-			fn = filepath.Base(fn)
+		fn = filepath.Base(fn)
+		if !end {
+			filRmt.SetText("<... " + fn)
+		} else {
 			filRmt.SetText("<- " + fn)
 			if len(fn) > MaxRecLen {
 				refRcv.Options = append(refRcv.Options, fn[0:MaxRecLen])
@@ -249,6 +248,7 @@ func makeControlsRF() *fyne.Container {
 	}
 	filRmt = widget.NewMultiLineEntry()
 	filRmt.Wrapping = fyne.TextWrapWord
+	filRmt.Disable()
 	filLAfR = widget.NewButton(ezcomm.StringTran["StrRcvFil"], func() {
 		tabs.Select(tabLAf)
 	})
@@ -279,4 +279,5 @@ func tabFilShown() {
 	lstBut.Refresh()
 	filLAfL.Refresh()
 	filLAfR.Refresh()
+	filLclBut.Refresh()
 }

@@ -13,6 +13,11 @@ var (
 	Ver, Bld string
 )
 
+const (
+	modName = "EZComm"
+	logExt  = ".log"
+)
+
 func main() {
 	var (
 		paramCfg, paramLog, paramFlw      string
@@ -41,7 +46,7 @@ func main() {
 		}
 	}
 	// read config file or default config for default language
-	ezcomm.ReadCfg(argCfgStr, "")
+	ezcomm.ReadCfg(argCfgStr)
 	// all possible language settings got. parse all params again.
 
 	flag.BoolVar(&paramVer, "version", false, ezcomm.StringTran["StrVer"])
@@ -82,10 +87,8 @@ func main() {
 		eztools.Verbose = 3
 	}
 
-	paramLog, err := ezcomm.ReadCfg(paramCfg, paramLog)
-	if err == nil {
-		ezcomm.SetLog(paramLog, nil)
-	}
+	ezcomm.ReadCfg(paramCfg)
+	ezcomm.SetLog(ezcomm.EzcName+ezcomm.LogExt, nil)
 
 	// db is only for app upgrade
 	db, _, err := eztools.MakeDbs()

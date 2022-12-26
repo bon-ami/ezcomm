@@ -48,9 +48,14 @@ func IsDataFile(data []byte) (isData, isEnd bool) {
 		if len(data) > FileHdr1stLen {
 			return true, isEnd
 		}
+		eztools.Log("LESS data then header!", len(data), FileHdr1stLen, data[0])
 	}
 
 	return false, false
+}
+
+func CurrTime() string {
+	return time.Now().Format("20060102-150405")
 }
 
 func GetAvailFileName(fn, addr string) (string, bool) {
@@ -61,8 +66,7 @@ func GetAvailFileName(fn, addr string) (string, bool) {
 	addr = strings.ReplaceAll(addr, "[", "")
 	addr = strings.ReplaceAll(addr, "]", "")
 	addr = strings.ReplaceAll(addr, ":", ".")
-	fn += "_" + addr + "_" +
-		time.Now().Format("20060102-150405")
+	fn += "_" + addr + "_" + CurrTime()
 	allTaken := true
 	for nf, affix := fn, 1; affix < 100; affix += 1 {
 		if _, err := os.Stat(nf); err != nil && os.IsNotExist(err) {
@@ -102,6 +106,7 @@ func BulkFile(dir, affix string, data []byte) (fn string,
 		filePieceMap = make(map[int]string)
 	}
 	fn, rec := filePieceMap[id]
+	//eztools.Log("file piece", end, id, rec, fn)
 	switch {
 	case !rec:
 		filePMLock.Unlock()
@@ -175,6 +180,7 @@ func makeFileID() (ret int) {
 
 // prefix4File generates prefix for a file to send
 // Return values:
+//
 //	prefix slice
 //	errors from binary.Write()
 func prefix4File(id int, indx uint32, end bool, fn string) ([]byte, error) {
@@ -230,6 +236,7 @@ func prefix4File(id int, indx uint32, end bool, fn string) ([]byte, error) {
 }
 
 // Sz41stChunk returns max data size to transfer in first chunk
+//
 //	if input file name is too long, a valid one is returned
 func Sz41stChunk(fnI string) (int, string) {
 	ret := FlowRcvLen - FileHdr1stLen - len(fnI)
@@ -243,6 +250,7 @@ func Sz41stChunk(fnI string) (int, string) {
 // TryOnlyChunk try to read the file in one chunk
 // Parameter: rdr is closed before returning
 // Return values:
+//
 //	a possible long file name
 //	read buffer
 //	ErrOutOfBound if no valid data fits
@@ -270,6 +278,7 @@ func TryOnlyChunk(fnI string, rdr io.ReadCloser) (string, []byte, error) {
 // SndFile sends a file without splitting.
 // Parameter: rdr is closed before returning
 // Return value:
+//
 //	ErrOutOfBound if file+prefix larger than FlowRcvLen
 //	other error from os.Stat(), ioutil.ReadFile(), or prefix4File()
 //	value from proc()
@@ -305,8 +314,8 @@ func SplitFile(fn string, rdr io.ReadCloser, proc func([]byte) error) error {
 		}
 
 		// content
-		ret = append(ret, data...)
 		//eztools.Log("file sending", len(data), len(ret), ret)
+		ret = append(ret, data...)
 		return proc(ret)
 	}
 	return eztools.FileReaderByPiece(rdr, fn, readSz, fun)

@@ -3,13 +3,13 @@ package ezcomm
 import (
 	"io"
 	"os"
-	"runtime"
 
 	"gitee.com/bon-ami/eztools/v4"
 )
 
 const (
 	EzcName      = "EZComm"
+	LogExt       = ".log"
 	DefAdr       = "localhost"       // use "" instead to listen on all interfaces
 	DefBrd       = "255.255.255.255" // broadcast addr
 	StrUdp       = "udp"
@@ -94,29 +94,25 @@ func WriterCfg(wrt io.WriteCloser) error {
 	return err
 }
 
-// ReaderCfg read config from a Reader and use a file as log
-// Parameters: paramLogI overrides log config from Reader
-// Return values: log file path and error
-func ReaderCfg(rdr io.ReadCloser, paramLogI string) (string, error) {
+// ReaderCfg read config from a Reader
+func ReaderCfg(rdr io.ReadCloser) error {
 	if rdr != nil {
 		setDefCfg()
 		eztools.XMLReader(rdr, &CfgStruc)
 		rdr.Close()
 	}
-	return procCfg(paramLogI)
+	return procCfg()
 }
 
-// ReadCfg read config from a file and use a file as log
-// Parameters: paramLogI overrides log config from Reader
-// Return values: log file path and error
-func ReadCfg(cfg, paramLogI string) (string, error) {
+// ReadCfg read config from a file
+func ReadCfg(cfg string) error {
 	setDefCfg()
 	cfgPath, _ = eztools.XMLReadDefault(cfg, EzcName, &CfgStruc)
 	if len(cfgPath) < 1 && len(cfg) > 0 {
 		// not exist yet?
 		cfgPath = cfg
 	}
-	return procCfg(paramLogI)
+	return procCfg()
 }
 
 func setDefCfg() {
@@ -124,13 +120,7 @@ func setDefCfg() {
 	CfgStruc.AntiFlood.Period = DefAntFldPrd
 }
 
-func procCfg(paramLogI string) (string, error) {
-	paramLogO := paramLogI
-	if len(CfgStruc.LogFile) > 0 {
-		if len(paramLogI) < 1 {
-			paramLogO = CfgStruc.LogFile
-		}
-	}
+func procCfg() error {
 	if CfgStruc.Verbose > 0 {
 		if eztools.Verbose < CfgStruc.Verbose {
 			eztools.Verbose = CfgStruc.Verbose
@@ -139,18 +129,7 @@ func procCfg(paramLogI string) (string, error) {
 	if eztools.Verbose > 0 {
 		eztools.Debugging = true
 	}
-	if eztools.Debugging {
-		if len(paramLogO) < 1 {
-			switch runtime.GOOS {
-			case "android":
-				// logcat
-				break
-			default:
-				paramLogO = EzcName + ".log"
-			}
-		}
-		//log("verbose", eztools.Verbose, ",log file =", paramLogO)
-	}
+	//log("verbose", eztools.Verbose)
 
 	// anti-flood
 	AntiFlood.Limit = CfgStruc.AntiFlood.Limit
@@ -174,7 +153,7 @@ func procCfg(paramLogI string) (string, error) {
 	/*if CfgStruc.Verbose > 2 {
 		log(CfgStruc)
 	}*/
-	return paramLogO, err
+	return err
 }
 
 func MatchFontFromCurrLanguageCfg() {
@@ -209,15 +188,8 @@ func SetLog(fil string, wr io.Writer) (err error) {
 	if err = eztools.InitLogger(wr); err != nil {
 		return err
 	}
-	if len(fil) > 0 {
-		flags := eztools.LogFlagDateNTime
-		/*if eztools.Verbose > 2 {
-			flags = eztools.LogFlagDateTimeNFile
-		}*/
-		eztools.SetLogFlags(flags)
-	} else {
-		eztools.SetLogFlags(0)
-	}
+	flags := eztools.LogFlagDateNTime
+	eztools.SetLogFlags(flags)
 	return nil
 }
 

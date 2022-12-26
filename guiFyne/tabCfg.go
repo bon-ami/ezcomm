@@ -80,14 +80,14 @@ func makeTabCfg() *container.TabItem {
 //	The existing file will be truncated.
 //	DO NOT call this in UI thread!
 // Return values:
+//	wc=Close() to be called by caller
 //	res=error string, or selected file path by user
 //	abt=whether to abort
 func tryWriteFile(fun func(string) (io.WriteCloser, error),
-	fn string) (res string, abt bool) {
+	fn string) (wc io.WriteCloser, res string, abt bool) {
 	wr, err := fun(fn)
 	if err == nil {
-		wr.Close()
-		return fn, false
+		return wr, fn, false
 	}
 	ch := make(chan bool, 1)
 	dialog.ShowConfirm(
@@ -99,17 +99,20 @@ func tryWriteFile(fun func(string) (io.WriteCloser, error),
 		},
 		ezcWin)
 	if !<-ch {
-		return "", true
+		return nil, "", true
 	}
 	dialog.ShowFileSave(func(wr fyne.URIWriteCloser, err error) {
 		if err == nil && wr != nil {
 			if !strings.HasPrefix(wr.URI().Name(),
 				invalidFileName) {
 				res = decodeFilePath(wr.URI())
-				wr.Close()
+				wc = wr
 				ch <- true
 				return
 			}
+		}
+		if wr != nil {
+			wr.Close()
 		}
 		if err != nil {
 			res = err.Error()
@@ -117,7 +120,7 @@ func tryWriteFile(fun func(string) (io.WriteCloser, error),
 		ch <- false
 	}, ezcWin)
 	if !<-ch {
-		return res, true
+		return wc, res, true
 	}
 	return
 }
@@ -140,9 +143,17 @@ func chkFlowStruc(flow ezcomm.FlowStruc) (string, bool) {
 				len(step.Data) > 0 {
 				fn, fil := step.ParseData(flow, conn)
 				if fil == 1 {
-					if res, ret := tryWriteFile(
+					if wr, res, ret := tryWriteFile(
 						ezcomm.FlowWriterNew, fn); ret {
+						if wr != nil {
+							wr.Close()
+						}
 						return res, ret
+					} else {
+						// since incoming files are saved under app's dir, we do not need wr
+						if wr != nil {
+							wr.Close()
+						}
 					}
 				}
 			}

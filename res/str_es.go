@@ -27,7 +27,7 @@ func I18nEs() { // by bing.com
 		StrFlw = "fluir"
 		StrStb = "esperando"
 		StrAll = "seleccionar todo"
-		StrLog  = "archivo de registro"
+		StrLogExp  = "Exportar archivos de registro"
 		StrLang = "Idiomas"
 		StrVbs  = "nivel detallado"
 		StrHgh  = "alto"

@@ -35,7 +35,7 @@ const (
 	FlowVarPee  = "peer"
 	FlowVarFil  = "file"
 
-	FlowRcvLen = 1024 // must > FileHdr1stLen+len(EzcName)
+	FlowRcvLen = 1024 * 1024 // must > FileHdr1stLen+len(EzcName)
 	FlowComLen = 99
 	FlowFilLen = 1024 * 1024
 )

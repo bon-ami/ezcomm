@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"io"
 	"net/url"
 	"path/filepath"
 	"runtime"
@@ -96,6 +97,7 @@ func checkDldDir() (string, error) {
 }
 
 // translateFilePath changes a path string for platforms
+//
 //	For Android, a path not beginning with "/" is prefixed with sdcardPrefAnd
 func translateFilePath(p string) string {
 	switch runtime.GOOS {
@@ -142,17 +144,19 @@ func encodeFileDown(p string) (u fyne.URI, err error) {
 func decodeFilePath(uri fyne.URI) string {
 	switch runtime.GOOS {
 	case "android":
+		if uri.Scheme() == "file" {
+			break
+		}
 		fn, err := url.PathUnescape(uri.String())
 		if err != nil {
-			Log("failed to unescape", uri)
+			Log("failed to unescape:", uri)
 			return ""
 		}
 		return translateFilePath(strings.TrimPrefix(
 			strings.TrimPrefix(fn, extPrefAndDoc+":"),
 			extPrefTreDoc+":"))
-	default:
-		return uri.Path()
 	}
+	return uri.Path()
 }
 
 func main() {
@@ -162,14 +166,16 @@ func main() {
 	cfgFileName := ezcomm.EzcName + ".xml"
 	rdr, err := appStorage.Open(cfgFileName)
 	if err != nil {
-		eztools.Log("failed to open config file", err)
+		eztools.Log("failed to open config file", cfgFileName, ":", err)
 	}
-	paramLog, err := ezcomm.ReaderCfg(rdr, "")
-	if err != nil {
-		err = initLog(paramLog)
+	err = ezcomm.ReaderCfg(rdr)
+	if err == nil {
+		err = initLog()
 		if err != nil {
-			eztools.Log("failed to set log file", err)
+			eztools.Log("failed to set log:", err)
 		}
+	} else {
+		eztools.Log("config/locale failure:", err)
 	}
 
 	useFontFromCfg(true, ezcomm.CfgStruc.Language)
@@ -240,4 +246,11 @@ func validateInt64(str string) error {
 		return err
 	}
 	return nil
+}
+
+func cpFile(rd io.ReadCloser, wr io.WriteCloser) (err error) {
+	defer rd.Close()
+	defer wr.Close()
+	_, err = io.Copy(wr, rd)
+	return
 }
