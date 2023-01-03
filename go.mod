@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	fyne.io/fyne/v2 v2.2.4
-	gitee.com/bon-ami/eztools/v4 v4.9.0
+	gitee.com/bon-ami/eztools/v4 v4.10.0
 	github.com/bon-ami/go-findfont v0.3.0
 	github.com/gin-gonic/gin v1.8.2
 )
