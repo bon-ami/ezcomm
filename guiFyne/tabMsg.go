@@ -529,11 +529,11 @@ func Ended(comm ezcomm.RoutCommStruc) {
 
 func Snt(comm ezcomm.RoutCommStruc) {
 	var (
-		data   string
-		isFile bool
+		data            string
+		isFile, endFile bool
 	)
 	if ok, _ := ezcomm.IsDataFile(comm.Data); ok {
-		data = SntFile(comm)
+		data, endFile = SntFile(comm)
 		isFile = true
 	} else {
 		data = string(comm.Data)
@@ -559,7 +559,7 @@ func Snt(comm ezcomm.RoutCommStruc) {
 		if !isFile {
 			SntMsg(comm)
 		} else {
-			SntFileOk(data)
+			SntFileOk(data, endFile)
 		}
 	}
 }

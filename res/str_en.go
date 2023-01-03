@@ -27,7 +27,7 @@ func I18nEn() {
 		StrFlw = "flow"
 		StrStb = "standing by"
 		StrAll = "select all"
-		StrLog  = "log file"
+		StrLogExp  = "export log files"
 		StrLang = "languages"
 		StrVbs  = "verbose level"
 		StrHgh  = "high"

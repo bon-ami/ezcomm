@@ -61,10 +61,10 @@ func lanListen() {
 				end2worker()
 				<-chn[1] // wait for ezcomm to end
 			case true:
-				if eztools.Debugging && eztools.Verbose > 1 {
-					eztools.Log("discovery", conn)
-				}
 				if conn != nil {
+					if eztools.Debugging && eztools.Verbose > 1 {
+						eztools.Log("discover", *conn)
+					}
 					pckNt.Act = ezcomm.FlowChnSnd
 					pckNt.Data = bonjour
 					pckNt.PeerUdp = addrBrd
@@ -85,10 +85,13 @@ func lanListen() {
 				}
 				conn, err = ezcomm.ListenUdp(ezcomm.StrUdp,
 					":"+defLanS)
-				if err != nil {
+				if err != nil || conn == nil {
 					lanLbl.SetText(ezcomm.StringTran["StrDiscoverFail"])
 					Log("discovery failure", err)
 					break
+				}
+				if eztools.Debugging && eztools.Verbose > 1 {
+					eztools.Log("discovery", *conn)
 				}
 				lanLbl.SetText(ezcomm.StringTran["StrLst"])
 				peerMap = make(map[string]struct{})

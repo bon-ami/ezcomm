@@ -8,7 +8,6 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
-	"fyne.io/fyne/v2/storage/repository"
 	"fyne.io/fyne/v2/widget"
 	"gitlab.com/bon-ami/ezcomm"
 )
@@ -22,7 +21,7 @@ var (
 func clrDlds() {
 	uri, err := encodeFileDown("")
 	defer func() {
-		showNG(err)
+		showNG("", err)
 	}()
 	if err != nil {
 		return
@@ -50,18 +49,22 @@ func getDld() (u fyne.URI, err error) {
 	return encodeFilePath(fdld)
 }
 
-func showNG(err error) {
+func showNG(msg string, err error) {
 	if err != nil {
-		Log(err)
+		if len(msg) > 0 {
+			Log(msg, err)
+		} else {
+			Log(err)
+		}
 		dialog.ShowInformation(ezcomm.StringTran["StrNG"],
-			err.Error(), ezcWin)
+			msg+err.Error(), ezcWin)
 	}
 }
 
 func delDld() {
 	u, err := getDld()
 	defer func() {
-		showNG(err)
+		showNG("", err)
 	}()
 	if err != nil {
 		return
@@ -71,41 +74,55 @@ func delDld() {
 }
 
 // expDld exports a file from Downloads
+//
 //	it must run in non-UI thread, otherwise tryWriteFile() will block
 func expDld(sel string, uriDst fyne.ListableURI) {
 	fold := filepath.Join(decodeFilePath(uriDst), sel)
-	fnew, abt := tryWriteFile(writerNew, fold)
+	wr, fnew, abt := tryWriteFile(writerNew, fold)
+	if wr != nil {
+		defer wr.Close()
+	}
+	var (
+		err    error
+		errMsg string
+	)
+	defer func() {
+		showNG(errMsg, err)
+	}()
 	if abt {
 		if len(fnew) > 0 {
-			showNG(errors.New(fnew))
+			err = errors.New(fnew)
 		}
 		return
 	}
-	if len(fnew) < 1 {
-		fnew = fold
+	if wr == nil {
+		if len(fnew) < 1 {
+			fnew = fold
+		}
+		fdst, err := encodeFilePath(fnew)
+		if err != nil {
+			errMsg = "fnew NOT encoded: "
+			return
+		}
+		wr, err = storage.Writer(fdst)
+		if err != nil {
+			errMsg = "fnew NOT a writer: "
+			return
+		}
 	}
 	fsrc, err := getDld()
-	defer func() {
-		showNG(err)
-	}()
 	if err != nil {
+		errMsg = "download NOT got: "
 		return
 	}
-	fdst, err := encodeFilePath(fnew)
+	rd, err := storage.Reader(fsrc)
 	if err != nil {
+		errMsg = fsrc.String() + "NOT read: "
 		return
 	}
-	/*p := extPrefAndDoc + url.QueryEscape(":"+translateFilePath(fnew))
-	fdst, err = storage.ParseURI(p)
-	if err != nil {
-		Log("parse", p, err)
-		return
-	}
-	Log("root", appStorage.RootURI())*/
+	err = cpFile(rd, wr)
 	// storage.Copy() does not work for file:// on Android
-	/*err = storage.Copy(fsrc, fdst)
-	Log(fsrc, fdst, err)*/
-	err = repository.GenericCopy(fsrc, fdst)
+	// repository.GenericCopy() does not work on Android if no permission granted in Settings
 }
 
 func makeTabLAf() *container.TabItem {
@@ -115,7 +132,7 @@ func makeTabLAf() *container.TabItem {
 	})
 	lafButSnd = widget.NewButton(ezcomm.StringTran["StrSnd"], func() {
 		if err := filLclChk(nil, lafLst.Selected); err != nil {
-			showNG(err)
+			showNG("", err)
 			return
 		}
 		tabs.Select(tabFil)

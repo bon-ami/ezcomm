@@ -27,7 +27,7 @@ func I18nJa() {
 		StrFlw = "フロー"
 		StrStb = "スタンバイ"
 		StrAll = "すべて選択"
-		StrLog  = "ログファイル"
+		StrLogExp  = "ログ・ファイルのエクスポート"
 		StrLang = "言語"
 		StrVbs  = "詳細レベル"
 		StrHgh  = "高い"
