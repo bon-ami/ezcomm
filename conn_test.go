@@ -20,11 +20,11 @@ const (
 )
 
 var (
-	tstInitDone                     bool
-	tstProt, tstLcl, tstRmt, tstMsg *string
-	tstClntNo, tstMsgCount          *int
-	tstClntRdMsg                    chan struct{}
-	tstSvrChan                      chan struct{}
+	tstInitDone                              bool
+	tstProt, tstLcl, tstRmt, tstMsg, tstRoot *string
+	tstClntNo, tstMsgCount                   *int
+	tstClntRdMsg                             chan struct{}
+	tstSvrChan                               chan struct{}
 )
 
 func init() {
@@ -32,6 +32,7 @@ func init() {
 	tstLcl = flag.String("lcl", DefAdr+":" /*"localhost:"*/, "local address")
 	tstRmt = flag.String("rmt", "", "remote address")
 	tstMsg = flag.String("msg", "", "messages to send, separated by \""+tstSeparator+"\". \""+tstBye+"\" to end udp server")
+	tstRoot = flag.String("root", "", "root dir for http server")
 	tstMsgCount = flag.Int("msgCount", 0, "number of messages to send per client for TestSvrCln. default=all greek")
 	tstClntNo = flag.Int("quan", TestSimulClients, "quantity of clients. default="+strconv.Itoa(TestSimulClients))
 }

@@ -13,10 +13,12 @@ import (
 )
 
 var (
-	chnLan chan bool
-	lanBut *widget.Button
-	lanLbl *widget.Label
-	lanLst *widget.RadioGroup
+	chnLan     chan bool
+	chnHTTP    chan error
+	lanPrtHTTP string
+	lanBut     *widget.Button
+	lanLbl     *widget.Label
+	lanLst     *widget.RadioGroup
 )
 
 func lanListen() {
@@ -96,6 +98,22 @@ func lanListen() {
 				lanLbl.SetText(ezcomm.StringTran["StrLst"])
 				peerMap = make(map[string]struct{})
 				go ezcomm.ConnectedUdp(Log, chn, conn)
+				if chnHTTP == nil {
+					lstnr, err := ezcomm.ListenTcp(nil, nil, "" /*ezcomm.DefAdr+*/, ":", nil, nil)
+					if err != nil {
+						eztools.LogFatal(err)
+					}
+					addr := lstnr.Addr().String()
+					ind := strings.LastIndex(addr, ":") - 1
+					lanPrtHTTP = addr[ind:]
+					fh := fyneHTTPFS(appStorage.RootURI().Path())
+					chnHTTP = ezcomm.HTTPServ(lstnr, "", "", fh)
+				}
+				if lanPrtHTTP != "" {
+					for i := range localAddrMap {
+						lanLst.Append("http://" + i + lanPrtHTTP)
+					}
+				}
 			}
 		case pckNt = <-chn[1]:
 			switch pckNt.Act {
