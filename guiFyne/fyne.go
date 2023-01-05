@@ -29,9 +29,6 @@ var (
 	tabFil, tabLAf *container.TabItem
 )
 
-// uiFyne implements Uis
-//type uiFyne struct{}
-
 func parseParams() {
 	var paramV, paramVV, paramVVV bool
 	flag.BoolVar(&paramV, "v", false, ezcomm.StringTran["StrV"])
@@ -169,13 +166,14 @@ func main() {
 		eztools.Log("failed to open config file", cfgFileName, ":", err)
 	}
 	err = ezcomm.ReaderCfg(rdr)
-	if err == nil {
+	if err != nil {
+		eztools.Log("config/locale failure:", err)
+	}
+	if eztools.Debugging {
 		err = initLog()
 		if err != nil {
 			eztools.Log("failed to set log:", err)
 		}
-	} else {
-		eztools.Log("config/locale failure:", err)
 	}
 
 	useFontFromCfg(true, ezcomm.CfgStruc.Language)

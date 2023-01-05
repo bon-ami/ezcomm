@@ -28,15 +28,26 @@ func initLog() error {
 	rd, err := appStorage.Open(nm)
 	var errMv error
 	if err == nil {
-		wr, err := appStorage.Create(ezcomm.EzcName +
-			ezcomm.CurrTime() + ezcomm.LogExt)
+		fn := ezcomm.EzcName + ezcomm.CurrTime() + ezcomm.LogExt
+		wr, err := appStorage.Create(fn)
 		errMv = err
 		if err == nil {
 			cpFile(rd, wr)
+			/*if eztools.Debugging && eztools.Verbose > 1 {
+				eztools.LogPrint(
+					"copied", nm, "to", fn, "err", err)
+			}*/
 		} else {
+			/*if eztools.Debugging && eztools.Verbose > 1 {
+				eztools.LogPrint("err creating", fn, err)
+			}*/
 			rd.Close()
 		}
 		// rd and wr are closed
+		/*} else {
+		if eztools.Debugging && eztools.Verbose > 1 {
+			eztools.LogPrint("no", nm)
+		}*/
 	}
 	defer func() {
 		if errMv != nil {
@@ -44,12 +55,18 @@ func initLog() error {
 		}
 	}()
 	var wr fyne.URIWriteCloser
-	if rd == nil {
+	if err != nil {
+		/*if eztools.Debugging && eztools.Verbose > 1 {
+			eztools.LogPrint("creating", nm)
+		}*/
 		wr, err = appStorage.Create(nm)
 		if err != nil {
 			return err
 		}
 	} else {
+		/*if eztools.Debugging && eztools.Verbose > 1 {
+			eztools.LogPrint("saving", nm)
+		}*/
 		wr, err = appStorage.Save(nm)
 		if err != nil {
 			return err

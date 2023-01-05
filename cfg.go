@@ -38,8 +38,6 @@ type ezcommCfg struct {
 	//Txt      string `xml:",chardata"`
 	// Verbose is level 0-3
 	Verbose int
-	// LogFile is path to log file, if enabled
-	LogFile string
 	// Language is locale
 	Language string
 	// Fonts are configurations of fonts
