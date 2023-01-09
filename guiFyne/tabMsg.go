@@ -134,7 +134,7 @@ func Lstn() {
 	switch protRd.Selected {
 	case ezcomm.StrUdp:
 		var udpConn *net.UDPConn
-		udpConn, err = ezcomm.ListenUdp(ezcomm.StrUdp, addr)
+		udpConn, err = ezcomm.ListenUDP(ezcomm.StrUdp, addr)
 		if err != nil {
 			break
 		}
@@ -147,10 +147,10 @@ func Lstn() {
 			chn[i] = make(chan ezcomm.RoutCommStruc,
 				ezcomm.FlowComLen)
 		}
-		go ezcomm.ConnectedUdp(Log, chn, udpConn)
+		go ezcomm.ConnectedUDP(Log, chn, udpConn)
 		clntRoutine()
 	case ezcomm.StrTcp:
-		err = svrTcp.Listen("", addr)
+		err = svrTCP.Listen("", addr)
 		if err != nil {
 			//Log(ezcomm.StringTran["StrListeningOn"], err)
 			break
@@ -174,7 +174,7 @@ func Connect() {
 	pr := getRmtSckStr()
 	connDisable()
 	_, err := ezcomm.Client(Log, TcpClnConnected,
-		protRd.Selected, pr, ezcomm.ConnectedTcp)
+		protRd.Selected, pr, ezcomm.ConnectedTCP)
 	if err != nil {
 		connEnable()
 		Log(ezcomm.StringTran["StrConnFail"]+pr, err)
@@ -316,7 +316,7 @@ func Disconnected(rmt string) {
 func Disconn1() {
 	rmtTcp := rowTcpSock2.Selected
 	if chn[0] == nil {
-		svrTcp.Disconnect(rmtTcp)
+		svrTCP.Disconnect(rmtTcp)
 	} else {
 		disBut.Disable()
 		chn[0] <- ezcomm.RoutCommStruc{
@@ -350,9 +350,9 @@ func chkSvrStopped(clients bool) {
 		Log("entering server stop check routine")
 		defer Log("exiting server stop check routine")
 	}
-	svrTcp.Wait(clients)
+	svrTCP.Wait(clients)
 	if lstBut.Disabled() {
-		if svrTcp.HasStopped() {
+		if svrTCP.HasStopped() {
 			svrStopped()
 		}
 	}
@@ -369,7 +369,7 @@ func Stp() {
 	}
 	if protRd.Selected == ezcomm.StrTcp {
 		lstBut.Disable()
-		svrTcp.Stop()
+		svrTCP.Stop()
 		go chkSvrStopped(false)
 		return
 	}
@@ -432,7 +432,7 @@ func Snd() {
 	case ezcomm.StrTcp:
 		if chn[0] == nil { //server
 			sndFunc = func(buf []byte) error {
-				svrTcp.Send(rowTcpSock2.Selected, buf)
+				svrTCP.Send(rowTcpSock2.Selected, buf)
 				return nil
 			}
 		} else { //client
@@ -515,7 +515,7 @@ func Ended(comm ezcomm.RoutCommStruc) {
 	if comm.PeerTcp != nil {
 		peer := comm.PeerTcp.String()
 		if chn[0] == nil {
-			svrTcp.Disconnect(peer) // maybe duplicate
+			svrTCP.Disconnect(peer) // maybe duplicate
 		} else {
 			chn[0] <- ezcomm.RoutCommStruc{
 				Act: ezcomm.FlowChnEnd,

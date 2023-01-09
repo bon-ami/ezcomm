@@ -89,7 +89,7 @@ func Log(inf ...any) {
 		logLock.Unlock()
 	}
 	logLock.Lock()
-	eztools.Log(inf)
+	eztools.Log(inf...)
 	logLock.Unlock()
 }
 
@@ -99,10 +99,10 @@ func expLogs(wr fyne.URIWriteCloser) (string, error) {
 		if strings.HasPrefix(f1, ezcomm.EzcName) &&
 			strings.HasSuffix(f1, ezcomm.LogExt) {
 			err := appStorage.Remove(f1)
-			Log("-----", f1, err)
+			Log("removing", f1, err)
 			rd, err := appStorage.Open(f1)
 			if err != nil {
-				Log(f1, err)
+				Log("opening", f1, err)
 				continue
 			}
 			files = append(files, rd)

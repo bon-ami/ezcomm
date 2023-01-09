@@ -18,13 +18,14 @@ import (
 )
 
 var (
+	ezcApp     fyne.App
 	ezcWin     fyne.Window
 	thm        theme4Fonts
 	appStorage fyne.Storage
 	// chn is for TCP client and UDP
 	chn [2]chan ezcomm.RoutCommStruc
-	// svrTcp is for TCP server only
-	svrTcp         ezcomm.SvrTcp
+	// svrTCP is for TCP server only
+	svrTCP         ezcomm.SvrTCP
 	tabs           *container.AppTabs
 	tabFil, tabLAf *container.TabItem
 )
@@ -133,9 +134,8 @@ func encodeFileDown(p string) (u fyne.URI, err error) {
 		return encodeFilePath(
 			filepath.Join(dldPath,
 				filepath.Base(p)))
-	} else {
-		return encodeFilePath(dldPath)
 	}
+	return encodeFilePath(dldPath)
 }
 
 func decodeFilePath(uri fyne.URI) string {
@@ -158,7 +158,7 @@ func decodeFilePath(uri fyne.URI) string {
 
 func main() {
 	parseParams()
-	ezcApp := app.NewWithID(ezcomm.EzcName)
+	ezcApp = app.NewWithID(ezcomm.EzcName)
 	appStorage = ezcApp.Storage()
 	cfgFileName := ezcomm.EzcName + ".xml"
 	rdr, err := appStorage.Open(cfgFileName)
@@ -222,9 +222,9 @@ func main() {
 		}
 	}
 
-	svrTcp.ActFunc = tcpConnAct
-	svrTcp.ConnFunc = TcpSvrConnected
-	svrTcp.LogFunc = Log
+	svrTCP.ActFunc = tcpConnAct
+	svrTCP.ConnFunc = TcpSvrConnected
+	svrTCP.LogFunc = Log
 
 	//ezcWin.SetFixedSize(true)
 	ezcWin.Show()

@@ -3,29 +3,28 @@ package main
 import (
 	"io"
 	"io/fs"
+	"math"
 	"net/http"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/storage"
-	"gitee.com/bon-ami/eztools/v4"
 )
 
-const fyneFileBufSize = 1024 * 1024 * 10
+const fileBufSize = 1024 * 1024 * 10
 
-type fyneFileInfo struct {
+type fileInfo struct {
 	uri fyne.URI
 }
 
-func (ff fyneFileInfo) Name() string {
-	eztools.LogPrint("fileinf name", ff.uri)
+func (ff fileInfo) Name() string {
 	return ff.uri.Name()
 }
 
 // Size reads the whole file and figures the size
-func (ff fyneFileInfo) Size() int64 {
-	eztools.LogPrint("fileinf sizing", ff.uri)
+func (ff fileInfo) Size() int64 {
 	// TODO: by fyne
 	if ok, err := storage.CanRead(ff.uri); !ok || err != nil {
 		return 0
@@ -35,7 +34,7 @@ func (ff fyneFileInfo) Size() int64 {
 		return 0
 	}
 	defer rdr.Close()
-	buf := make([]byte, fyneFileBufSize)
+	buf := make([]byte, fileBufSize)
 	var ret int64
 	for {
 		sz, err := rdr.Read(buf)
@@ -48,55 +47,51 @@ func (ff fyneFileInfo) Size() int64 {
 }
 
 // Mode returns either ModeDir or ModeDevice
-func (ff fyneFileInfo) Mode() fs.FileMode {
+func (ff fileInfo) Mode() fs.FileMode {
 	if ok, err := storage.CanList(ff.uri); ok && err == nil {
-		eztools.LogPrint("fileinf is dir", ff.uri)
 		return fs.ModeDir
 	}
-	eztools.LogPrint("fileinf is device", ff.uri)
 	return fs.ModeDevice
 }
 
 // ModTime returns nil
-func (ff fyneFileInfo) ModTime() time.Time { return time.Now() }
+func (ff fileInfo) ModTime() time.Time { return time.Now() }
 
 // IsDir checks whether listable
-func (ff fyneFileInfo) IsDir() bool {
+func (ff fileInfo) IsDir() bool {
 	if ok, err := storage.CanList(ff.uri); ok && err == nil {
-		eztools.LogPrint("fileinf isdir", ff.uri)
 		return true
 	}
-	eztools.LogPrint("fileinf not isdir", ff.uri)
 	return false
 }
 
 // Sys returns nil
-func (ff fyneFileInfo) Sys() any { return nil }
+func (ff fileInfo) Sys() any { return nil }
 
-type fyneHTTPFile struct {
-	uri   fyne.URI
-	files []fyne.URI
-	fileN int
-	rdr   io.ReadCloser
+type httpEntity struct {
+	Files []fyne.URI
+	FileN int
+	Rdr   io.ReadCloser
 }
 
-func (fh *fyneHTTPFile) Open() error {
-	eztools.LogPrint("file opening", fh.uri)
-	if fh.rdr != nil {
-		return nil
-	}
-	if ok, err := storage.CanRead(fh.uri); !ok || err != nil {
-		return fs.ErrPermission
-	}
-	var err error
-	fh.rdr, err = storage.Reader(fh.uri)
-	return err
+var httpPool struct {
+	Lock sync.Mutex
+	Cnt  int
+	Ent  map[int]httpEntity
 }
 
-func (fh fyneHTTPFile) Readdir(n int) ([]fs.FileInfo, error) {
-	eztools.LogPrint("listing", fh.uri, fh.files)
+type httpFile struct {
+	id  int
+	uri fyne.URI
+}
+
+func (fh httpFile) Readdir(n int) ([]fs.FileInfo, error) {
+	ent, ok := httpPool.Ent[fh.id]
+	if !ok {
+		return nil, fs.ErrClosed
+	}
 	var rdN int
-	if n <= 0 || fh.files == nil {
+	if n <= 0 || ent.Files == nil {
 		if ok, err := storage.CanList(fh.uri); !ok || err != nil {
 			if err == nil {
 				err = fs.ErrPermission
@@ -104,51 +99,62 @@ func (fh fyneHTTPFile) Readdir(n int) ([]fs.FileInfo, error) {
 			return nil, err
 		}
 		var err error
-		fh.files, err = storage.List(fh.uri)
+		ent.Files, err = storage.List(fh.uri)
 		if err != nil {
 			return nil, err
 		}
-		rdN = len(fh.files)
+		rdN = len(ent.Files)
 		if n > 0 {
-			if n < len(fh.files) {
+			if n < len(ent.Files) {
 				rdN = n
 			}
 		} else {
-			fh.fileN = 0
+			ent.FileN = 0
 		}
 	} else {
-		rdN = len(fh.files) - fh.fileN
+		rdN = len(ent.Files) - ent.FileN
 		if n < rdN {
 			rdN = n
 		}
 	}
 	ret := make([]fs.FileInfo, rdN)
 	for i := 0; i < rdN; i++ {
-		ret[i] = fyneFileInfo{fh.files[fh.fileN+i]}
-		eztools.LogPrint("listed", ret[i].Name())
+		ret[i] = fileInfo{ent.Files[ent.FileN+i]}
 	}
-	fh.fileN += rdN
+	ent.FileN += rdN
 	return ret, nil
 }
 
-func (fh fyneHTTPFile) Read(b []byte) (int, error) {
-	if err := fh.Open(); err != nil {
+func (fh httpFile) Read(b []byte) (int, error) {
+	ent := httpPool.Ent[fh.id]
+	if ok, err := storage.CanRead(fh.uri); !ok || err != nil {
+		return 0, fs.ErrPermission
+	}
+	var err error
+	ent.Rdr, err = storage.Reader(fh.uri)
+	if err != nil {
 		return 0, err
 	}
-	eztools.LogPrint("file reading", fh.uri)
-	defer fh.rdr.Close()
-	return fh.rdr.Read(b)
+	return ent.Rdr.Read(b)
 }
-func (fh fyneHTTPFile) Close() error {
-	eztools.LogPrint("file closing", fh.uri)
-	if fh.rdr == nil {
+func (fh httpFile) Close() error {
+	ent, ok := httpPool.Ent[fh.id]
+	httpPool.Lock.Lock()
+	delete(httpPool.Ent, fh.id)
+	switch {
+	case len(httpPool.Ent) == 0:
+		httpPool.Cnt = 0
+	case httpPool.Cnt == fh.id:
+		httpPool.Cnt--
+	}
+	httpPool.Lock.Unlock()
+	if !ok || ent.Rdr == nil {
 		return nil
 	}
-	return fh.rdr.Close()
+	return ent.Rdr.Close()
 }
 
-func (fh fyneHTTPFile) Seek(offset int64, whence int) (int64, error) {
-	eztools.LogPrint("file seeking", fh.uri, offset, whence)
+func (fh httpFile) Seek(offset int64, whence int) (int64, error) {
 	// TODO: by fyne
 	switch whence {
 	case io.SeekStart:
@@ -159,15 +165,13 @@ func (fh fyneHTTPFile) Seek(offset int64, whence int) (int64, error) {
 	return 0, fs.ErrInvalid
 }
 
-func (fh fyneHTTPFile) Stat() (fs.FileInfo, error) {
-	eztools.LogPrint("file stating", fh.uri)
-	return fyneFileInfo{fh.uri}, nil
+func (fh httpFile) Stat() (fs.FileInfo, error) {
+	return fileInfo{fh.uri}, nil
 }
 
-type fyneHTTPFS string
+type httpFS string
 
-func (fh fyneHTTPFS) Open(name string) (http.File, error) {
-	eztools.LogPrint("fs opening", fh, name)
+func (fh httpFS) Open(name string) (http.File, error) {
 	if name == "" {
 		name = "."
 	}
@@ -178,10 +182,18 @@ func (fh fyneHTTPFS) Open(name string) (http.File, error) {
 		}
 		return nil, err
 	}
-	ret := fyneHTTPFile{uri: uri}
-	/*if err := fh.fhf.Open(); err != nil {
-		fh.fhf.uri = nil
-		return nil, err
-	}*/
+	httpPool.Lock.Lock()
+	// TODO: no limit on cnt
+	if httpPool.Cnt == math.MaxInt {
+		httpPool.Cnt = 0
+	} else {
+		httpPool.Cnt++
+	}
+	if httpPool.Ent == nil {
+		httpPool.Ent = make(map[int]httpEntity, 1)
+	}
+	httpPool.Ent[httpPool.Cnt] = httpEntity{}
+	ret := httpFile{id: httpPool.Cnt, uri: uri}
+	httpPool.Lock.Unlock()
 	return ret, nil
 }
