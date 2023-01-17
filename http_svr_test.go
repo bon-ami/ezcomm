@@ -1,27 +1,38 @@
 package ezcomm
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
 
+const tstDefHTTPProt = "tcp"
+
+// TestHttpSvr uses TstProt, TstLcl, TstTimeout and TstClntNo
 func TestHttpSvr(t *testing.T) {
 	Init4Tests(t)
-	defer Deinit4Tests()
-	//*tstProt = "tcp"
-	//t.Log("listen", *tstProt, *tstLcl)
-	lstnr, err := ListenTCP(nil, nil, "", DefPeerAdr+":", nil, nil)
+	if !strings.HasPrefix(*TstProt, "tcp") {
+		*TstProt = tstDefHTTPProt
+	}
+	lstnr, err := ListenTCP(t.Log, nil, *TstProt, *TstLcl, nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
+	if *tstVerbose > 0 {
+		t.Log(lstnr.Addr().String())
+	}
 	svr := MakeHTTPSvr()
-	svr.FS("", *tstRoot, nil)
+	svr.FS("", *TstRoot, nil)
 	ch := svr.Serve(lstnr)
-	t.Log("wait for server for", tstTO, "seconds")
+	if *tstVerbose > 1 {
+		t.Log("wait for server for", TstTO)
+	}
 	select {
-	case <-time.After(tstTO):
-		t.Log("shutting down server")
-		err = svr.Shutdown(1)
+	case <-time.After(TstTO):
+		if *tstVerbose > 1 {
+			t.Log("shutting down server")
+		}
+		err = svr.Shutdown(time.Second * time.Duration(*TstClntNo))
 	case err = <-ch:
 	}
 	if err != nil {

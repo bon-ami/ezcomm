@@ -15,14 +15,14 @@ var (
 func tstSvrTAct(comm RoutCommStruc) {
 	chkDone := func() {
 		if lft := len(tstSvrTP); lft < 1 {
-			tstT.Log("no remaining clients")
+			TstT.Log("no remaining clients")
 			tstSvrTD <- struct{}{}
 		} else {
-			tstT.Log("remaining clients", tstSvrTP)
+			TstT.Log("remaining clients", tstSvrTP)
 		}
 	}
 	disc := func(addr string) {
-		tstT.Log("disconnecting", addr)
+		TstT.Log("disconnecting", addr)
 		tstSvrT.Disconnect(addr)
 		if len(addr) > 0 {
 			delete(tstSvrTP, addr)
@@ -32,9 +32,9 @@ func tstSvrTAct(comm RoutCommStruc) {
 			tstSvrTP = nil
 		}
 	}
-	tstT.Log("act received", comm)
+	TstT.Log("act received", comm)
 	if comm.Err != nil && comm.Act != FlowChnEnd {
-		tstT.Fatal(comm.Err)
+		TstT.Fatal(comm.Err)
 		tstSvrTD <- struct{}{}
 	}
 	var addr string
@@ -49,10 +49,10 @@ func tstSvrTAct(comm RoutCommStruc) {
 			_, ok = tstSvrTP[addr]
 		}
 		if ok {
-			tstT.Log("client gone", addr)
+			TstT.Log("client gone", addr)
 			disc(addr)
 		} else {
-			tstT.Log("already removed", addr)
+			TstT.Log("already removed", addr)
 			chkDone()
 		}
 	case FlowChnRcv: // echo it
@@ -69,29 +69,28 @@ func tstSvrTAct(comm RoutCommStruc) {
 
 func tstSvrTConn(addr [4]string) {
 	if len(addr[1]) < 1 {
-		tstT.Log("listening", addr[0])
+		TstT.Log("listening", addr[0])
 		return
 	}
-	tstT.Log("connected", addr)
+	TstT.Log("connected", addr)
 	tstSvrTP[addr[1]] = struct{}{}
 }
 
 func TestSvrTcp(t *testing.T) {
 	Init4Tests(t)
-	defer Deinit4Tests()
-	*tstProt = "tcp"
+	*TstProt = "tcp"
 	tstSvrTP = make(map[string]struct{})
 	tstSvrTD = make(chan struct{}, 1)
 	tstSvrT.ActFunc = tstSvrTAct
 	tstSvrT.LogFunc = t.Log
 	tstSvrT.ConnFunc = tstSvrTConn
 	//t.Log("listen", *tstProt, *tstLcl)
-	err := tstSvrT.Listen(*tstProt, *tstLcl)
+	err := tstSvrT.Listen(*TstProt, *TstLcl)
 	if err != nil {
 		t.Fatal(err)
 	}
 	select {
-	case <-time.After(tstTO):
+	case <-time.After(TstTO):
 		t.Skip("server TO")
 	case <-tstSvrTD:
 	}

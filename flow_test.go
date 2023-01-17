@@ -18,7 +18,6 @@ func TestFlow(t *testing.T) {
 			eztools.FileCreatePermission)
 	}
 	Init4Tests(t)
-	defer Deinit4Tests()
 	fl, err := ReadFlowFile("sample_desktop.xml")
 	if err != nil {
 		t.Fatal(err)

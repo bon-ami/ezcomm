@@ -25,10 +25,14 @@ func MakeHTTPSvr() *HTTPSvr {
 // FS sets a static file system
 func (svr *HTTPSvr) FS(relativePath, rootPath string, fs http.FileSystem) {
 	if fs == nil {
-		eztools.LogPrint("server on", rootPath, "for", relativePath)
+		if eztools.Debugging && eztools.Verbose > 1 {
+			eztools.LogPrint("server on path", rootPath, "for relative path", relativePath)
+		}
 		fs = gin.Dir(rootPath, true)
 	} else {
-		eztools.LogPrint("server on", relativePath)
+		if eztools.Debugging && eztools.Verbose > 1 {
+			eztools.LogPrint("server on relative path", relativePath)
+		}
 	}
 	svr.rt.StaticFS(relativePath, fs)
 }
@@ -49,6 +53,7 @@ func (svr *HTTPSvr) Serve(lst net.Listener) chan error {
 }
 
 // Shutdown gracefully shuts down the server
+// Return value: context.DeadlineExceeded if timeout
 func (svr *HTTPSvr) Shutdown(timeout time.Duration) error {
 	/*// Wait for interrupt signal to gracefully shutdown the server with
 	// a timeout of 5 seconds.

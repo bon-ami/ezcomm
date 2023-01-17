@@ -26,15 +26,14 @@ func TestSvrCln(t *testing.T) {
 		tstClntSvr = false
 	}()
 	Init4Tests(t)
-	defer Deinit4Tests()
-	if len(*tstRmt) > 0 || len(*tstMsg) > 0 {
+	if len(*TstRmt) > 0 || len(*TstMsg) > 0 {
 		t.Skip("rmt & msg are ignored. msgCount and quan count.")
 	}
 	AntiFlood.Limit = -1
 	//*prot = "tcp"
 	tstSvrChan = make(chan struct{})
 	tstClntRdMsg = make(chan struct{})
-	clnts := *tstClntNo
+	clnts := *TstClntNo
 	go func() {
 		TestServer(t)
 	}()
@@ -55,9 +54,9 @@ func TestSvrCln(t *testing.T) {
 		//t.Log("waiting for", i)
 		<-chs[i]
 	}
-	*tstMsg = tstBye
+	*TstMsg = tstBye
 	if eztools.Verbose > 1 {
-		t.Log("client", *tstMsg)
+		t.Log("client", *TstMsg)
 	}
 	tstClntRdMsg = nil
 	TestClient(t)
@@ -69,14 +68,14 @@ func TestSvrCln(t *testing.T) {
 func tstClnt(addr [4]string, chn [2]chan RoutCommStruc) {
 	for _, chn1 := range chn {
 		if chn1 == nil {
-			tstT.Error(tstErrPre, "flooding?")
+			TstT.Error(tstErrPre, "flooding?")
 			return
 		}
 	}
 	id := tstClntID
-	msg := *tstMsg
+	msg := *TstMsg
 	chn2Main := tstChnClnt
-	cnt := *tstMsgCount
+	cnt := *TstMsgCount
 	chn2Main <- struct{}{}
 	defer func() {
 		chn2Main <- struct{}{}
@@ -90,7 +89,7 @@ func tstClnt(addr [4]string, chn [2]chan RoutCommStruc) {
 	addrStrs[3] = "requested address"
 	for i := range addrStrs {
 		if eztools.Verbose > 0 {
-			tstT.Log(ids, addrStrs[i], "=", addr[i])
+			TstT.Log(ids, addrStrs[i], "=", addr[i])
 		}
 	}
 	var msgs []string
@@ -103,7 +102,7 @@ func tstClnt(addr [4]string, chn [2]chan RoutCommStruc) {
 		if cnt <= 0 {
 			cnt = CharTl - CharHd
 			if eztools.Verbose > 0 {
-				tstT.Log("tail char =", CharTl, "head char =", CharHd, "count =", cnt)
+				TstT.Log("tail char =", CharTl, "head char =", CharHd, "count =", cnt)
 			}
 		}
 		cnt += CharHd
@@ -116,7 +115,7 @@ func tstClnt(addr [4]string, chn [2]chan RoutCommStruc) {
 ClientLoop:
 	for _, msg1 := range msgs {
 		if eztools.Verbose > 1 {
-			tstT.Log(ids, "sending", msg1)
+			TstT.Log(ids, "sending", msg1)
 		}
 		chn[0] <- RoutCommStruc{
 			Act:  FlowChnSnd,
@@ -126,27 +125,27 @@ ClientLoop:
 			select {
 			case comm := <-chn[1]:
 				if comm.Err != nil {
-					tstT.Error(tstErrPre, ids, comm.Err)
+					TstT.Error(tstErrPre, ids, comm.Err)
 					break ClientLoop
 				}
 				switch comm.Act {
 				case FlowChnRcv:
 					if string(comm.Data) != msg1 {
-						tstT.Error(tstErrPre, ids, "sent", msg1, "!=",
+						TstT.Error(tstErrPre, ids, "sent", msg1, "!=",
 							"got", string(comm.Data))
 						break ClientLoop
 					}
 					continue ClientLoop
 				case FlowChnSnd:
 					if eztools.Verbose > 1 {
-						tstT.Log(ids, "sent", comm.Data)
+						TstT.Log(ids, "sent", comm.Data)
 					}
 				default:
-					tstT.Log(ids, "got action?", comm.Act)
+					TstT.Log(ids, "got action?", comm.Act)
 				}
-			case <-time.After(tstTO):
-				tstT.Log(ids, "client TO")
-				tstT.Error(tstErrPre, ids, "reply NOT got from server!", ids)
+			case <-time.After(TstTO):
+				TstT.Log(ids, "client TO")
+				TstT.Error(tstErrPre, ids, "reply NOT got from server!", ids)
 				break ClientLoop
 			}
 		}
@@ -157,17 +156,14 @@ ClientLoop:
 // TestClient uses ConnectedTCP
 func TestClient(t *testing.T) {
 	Init4Tests(t)
-	if !tstClntSvr {
-		defer Deinit4Tests()
-	}
 	AntiFlood.Limit = -1
-	if len(*tstRmt) < 1 {
+	if len(*TstRmt) < 1 {
 		t.Skip("rmt needed")
 	}
 	tstChnClnt = make(chan struct{}, 2)
 	id := tstClntID
 	conn, err := Client(t.Log, tstClnt,
-		*tstProt, *tstRmt, ConnectedTCP)
+		*TstProt, *TstRmt, ConnectedTCP)
 	if err != nil {
 		t.Error(tstErrPre, err)
 		return
@@ -199,7 +195,7 @@ func tstUDPSvr(fin chan bool, chn [2]chan RoutCommStruc) {
 	done := false
 	defer func() {
 		if eztools.Verbose > 1 {
-			tstT.Log("exiting 1 connection")
+			TstT.Log("exiting 1 connection")
 		}
 		if wait4Rcvr {
 			chn[0] <- RoutCommStruc{
@@ -216,14 +212,14 @@ func tstUDPSvr(fin chan bool, chn [2]chan RoutCommStruc) {
 			fin <- done
 		}
 		if eztools.Verbose > 1 {
-			tstT.Log("exit 1 connection")
+			TstT.Log("exit 1 connection")
 		}
 	}()
 	for {
 		comm := <-chn[1]
 		if comm.Err != nil {
 			if comm.Err == eztools.ErrAccess {
-				tstT.Error(tstErrPre, comm.Err)
+				TstT.Error(tstErrPre, comm.Err)
 			}
 			wait4Rcvr = false
 			return
@@ -236,7 +232,7 @@ func tstUDPSvr(fin chan bool, chn [2]chan RoutCommStruc) {
 		case FlowChnSnd:
 			if string(comm.Data) == tstBye {
 				if eztools.Verbose > 1 {
-					tstT.Log("exiting server after bye sent")
+					TstT.Log("exiting server after bye sent")
 				}
 				done = true
 				return
@@ -247,7 +243,7 @@ func tstUDPSvr(fin chan bool, chn [2]chan RoutCommStruc) {
 				if comm.PeerUDP != nil {
 					peerAddr = comm.PeerUDP.String()
 				}
-				tstT.Log("server echoing",
+				TstT.Log("server echoing",
 					string(comm.Data), "to", peerAddr)
 			}
 			comm.Act = FlowChnSnd
@@ -259,9 +255,6 @@ func tstUDPSvr(fin chan bool, chn [2]chan RoutCommStruc) {
 // TestServer uses ConnectedUDP or ConnectedTCP
 func TestServer(t *testing.T) {
 	Init4Tests(t)
-	if !tstClntSvr {
-		defer Deinit4Tests()
-	}
 	var (
 		conn  *net.UDPConn
 		lstnr net.Listener
@@ -271,14 +264,14 @@ func TestServer(t *testing.T) {
 
 	id := tstClntID
 	if eztools.Verbose > 0 {
-		t.Log("server", id, "will TO in", tstTO)
+		t.Log("server", id, "will TO in", TstTO)
 	}
 	for i := range tstChnSvr {
-		tstChnSvr[i] = make(chan bool, TestDefSimulClients)
+		tstChnSvr[i] = make(chan bool, tstDefSimulClients)
 	}
 	var chnEnd chan error
-	if strings.HasPrefix(*tstProt, "udp") {
-		conn, err = ListenUDP(*tstProt, *tstLcl)
+	if strings.HasPrefix(*TstProt, "udp") {
+		conn, err = ListenUDP(*TstProt, *TstLcl)
 		if err != nil {
 			t.Error(tstErrPre, err)
 			return
@@ -292,7 +285,7 @@ func TestServer(t *testing.T) {
 		go tstUDPSvr(tstChnSvr[1], chn)
 	} else {
 		chnEnd = make(chan error)
-		lstnr, err = ListenTCP(t.Log, tstTCPSvr, *tstProt, *tstLcl, ConnectedTCP, chnEnd)
+		lstnr, err = ListenTCP(t.Log, tstTCPSvr, *TstProt, *TstLcl, ConnectedTCP, chnEnd)
 	}
 	if err != nil {
 		t.Error(tstErrPre, err)
@@ -302,14 +295,14 @@ func TestServer(t *testing.T) {
 	switch {
 	case lstnr != nil:
 		if eztools.Verbose > 0 {
-			t.Log(lstn, *tstProt, lstnr.Addr())
+			t.Log(lstn, *TstProt, lstnr.Addr())
 		}
-		*tstRmt = lstnr.Addr().String() // to test clients
+		*TstRmt = lstnr.Addr().String() // to test clients
 	case conn != nil:
 		if eztools.Verbose > 0 {
-			t.Log(lstn, *tstProt, conn.LocalAddr())
+			t.Log(lstn, *TstProt, conn.LocalAddr())
 		}
-		*tstRmt = conn.LocalAddr().String() // to test clients
+		*TstRmt = conn.LocalAddr().String() // to test clients
 	default:
 		t.Error(tstErrPre, "no connection info")
 	}
@@ -322,10 +315,10 @@ func TestServer(t *testing.T) {
 ServerLoop:
 	for {
 		if eztools.Verbose > 0 {
-			t.Log("server waiting for end for", tstTO)
+			t.Log("server waiting for end for", TstTO)
 		}
 		select {
-		case <-time.After(tstTO):
+		case <-time.After(TstTO):
 			if !everConn {
 				t.Skip("server TO")
 			}

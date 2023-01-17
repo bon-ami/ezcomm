@@ -10,54 +10,79 @@ import (
 )
 
 const (
-	tstBye       = "ciao"
-	tstSeparator = ";"
-	// TestDefSimulClients default number of simultaneous clients
-	TestDefSimulClients = 10
-	// TestDefTimeout default timeout for a test
-	TestDefTimeout = 10
-	// TestDefVerbose default verbose level during tests
-	TestDefVerbose = 0
+	tstDefSimulClients = 10
+	tstDefTimeout      = 10
+	tstDefVerbose      = 0
+	tstDefRoot         = "testdata"
+	tstDefProt         = "udp4"
+	tstBye             = "ciao"
+	tstSeparator       = ";"
 )
 
 var (
-	tstInitDone                                    bool
-	tstClntID                                      int
-	tstProt, tstLcl, tstRmt, tstMsg, tstRoot       *string
-	tstClntNo, tstMsgCount, tstTimeout, tstVerbose *int
-	tstClntRdMsg                                   chan struct{}
-	tstSvrChan                                     chan struct{}
-	tstTO                                          time.Duration
-	tstT                                           *testing.T
+	// TstProt protocol for tests
+	TstProt *string
+	// TstLcl local socket for tests
+	TstLcl *string
+	// TstRmt remote socket for tests
+	TstRmt *string
+	// TstMsg messages for tests
+	TstMsg *string
+	// TstRoot root dir for tests
+	TstRoot *string
+	// TstClntNo number of clients for tests
+	TstClntNo *int
+	// TstMsgCount number of messages for tests
+	TstMsgCount *int
+	// TstTimeout number of seconds as timeout for tests
+	TstTimeout *int
+	// TstTO timeout duration for tests
+	TstTO time.Duration
+	// TstT direct pointer to tests. better not to be used
+	TstT *testing.T
+
+	tstVerbose   *int
+	tstClntRdMsg chan struct{}
+	tstSvrChan   chan struct{}
+	tstInitDone  bool
+	tstClntID    int
 )
 
 func init() {
-	tstProt = flag.String("prot", "udp4", "protocol, tcp, tcp4, tcp6, unix or unixpacket. default is udp.")
-	tstLcl = flag.String("lcl", DefPeerAdr+":" /*"localhost:"*/, "local address")
-	tstRmt = flag.String("rmt", "", "remote address")
-	tstMsg = flag.String("msg", "", "messages to send, separated by \""+tstSeparator+"\". \""+tstBye+"\" to end udp server")
-	tstRoot = flag.String("root", "", "root dir for http server")
-	tstTimeout = flag.Int("timer", -1, "in seconds. default="+strconv.Itoa(TestDefTimeout))
-	tstVerbose = flag.Int("verbose", TestDefVerbose, "verbose level. default="+strconv.Itoa(TestDefVerbose))
-	tstMsgCount = flag.Int("msgCount", 0, "number of messages to send per client for TestSvrCln. default=all greek")
-	tstClntNo = flag.Int("quan", TestDefSimulClients, "quantity of clients. default="+strconv.Itoa(TestDefSimulClients))
+	TstProt = flag.String("prot", tstDefProt,
+		"protocol, tcp, tcp4, tcp6, unix or unixpacket. "+
+			"default is "+tstDefProt)
+	TstLcl = flag.String("lcl", DefPeerAdr+":", "local address")
+	TstRmt = flag.String("rmt", "", "remote address")
+	TstMsg = flag.String("msg", "", "messages to send, separated by \""+
+		tstSeparator+"\". \""+tstBye+"\" to end udp server")
+	TstRoot = flag.String("root", tstDefRoot, "root dir for http server")
+	TstTimeout = flag.Int("timer", -1, "in seconds. default="+
+		strconv.Itoa(tstDefTimeout))
+	tstVerbose = flag.Int("verbose", tstDefVerbose, "verbose level. "+
+		"default="+strconv.Itoa(tstDefVerbose))
+	TstMsgCount = flag.Int("msgCount", 0, "number of messages to send "+
+		"per client for TestSvrCln. default=all greek")
+	TstClntNo = flag.Int("quan", tstDefSimulClients,
+		"quantity of clients or seconds for HTTP shutdown. default="+
+			strconv.Itoa(tstDefSimulClients))
 }
 
 // Deinit4Tests to use between multiple tests matching Init4Tests
 func Deinit4Tests() {
 	tstInitDone = false
-	tstT = nil
-	*tstProt = ""
-	*tstLcl = DefPeerAdr + ":" /*"localhost:"*/
-	*tstRmt = ""
-	*tstMsg = ""
-	*tstRoot = ""
-	*tstTimeout = -1
-	tstTO = 0
-	*tstVerbose = TestDefVerbose
+	TstT = nil
+	*TstProt = ""
+	*TstLcl = DefPeerAdr + ":" /*"localhost:"*/
+	*TstRmt = ""
+	*TstMsg = ""
+	*TstRoot = ""
+	*TstTimeout = -1
+	TstTO = 0
+	*TstMsgCount = 0
+	*TstClntNo = tstDefSimulClients
+	*tstVerbose = tstDefVerbose
 	eztools.Verbose = *tstVerbose
-	*tstMsgCount = 0
-	*tstClntNo = TestDefSimulClients
 }
 
 // Init4Tests inits flags
@@ -78,15 +103,16 @@ func Init4Tests(t *testing.T) {
 	if t == nil {
 		panic(t)
 	}
+	t.Cleanup(Deinit4Tests)
 	tstInitDone = true
-	tstT = t
+	TstT = t
 	//if !flag.Parsed() {
 	flag.Parse()
 	//}
-	if *tstTimeout < 0 {
-		*tstTimeout = TestDefTimeout
+	if *TstTimeout < 0 {
+		*TstTimeout = tstDefTimeout
 	}
-	tstTO = time.Second * time.Duration(*tstTimeout)
+	TstTO = time.Second * time.Duration(*TstTimeout)
 	eztools.SetLogFunc(func(l ...any) {
 		func(m ...any) {
 			t.Log(m)
