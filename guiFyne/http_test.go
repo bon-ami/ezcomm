@@ -12,15 +12,15 @@ import (
 	"gitlab.com/bon-ami/ezcomm"
 )
 
-var tstT *testing.T
-
-func tstReadHTTP(chn chan error) {
+func tstReadHTTP(t *testing.T, chn chan error) {
 	if localAddrSlc == nil || len(localAddrSlc) < 1 {
 		chn <- eztools.ErrNoValidResults
 		return
 	}
 	addr := "http://" + localAddrSlc[0] + lanPrtHTTP
-	tstT.Log("reading from", addr)
+	if eztools.Verbose > 0 {
+		t.Log("reading from", addr)
+	}
 	resp, err := http.Get(addr)
 	if err != nil || resp == nil {
 		if err == nil {
@@ -42,7 +42,9 @@ func tstReadHTTP(chn chan error) {
 		var n int
 		sthRdFun := func() {
 			sthRd = true
-			tstT.Log(string(buf[:n]))
+			if eztools.Verbose > 2 {
+				t.Log(string(buf[:n]))
+			}
 		}
 		for {
 			n, err = bdy.Read(buf)
@@ -63,11 +65,10 @@ func tstReadHTTP(chn chan error) {
 	chn <- err
 }
 
-func tstSwitchHTTP(chnHTTP chan bool, chnRes chan error) {
+func tstSwitchHTTP(t *testing.T, chnHTTP chan bool, chnRes chan error) {
 	chnRead := make(chan error, 1)
 	chnSvr := make(chan error, 1)
 	var err error
-	const LoopCnt = 5
 	loopCnt := -1
 TSTHTTPLOOP:
 	for {
@@ -77,14 +78,14 @@ TSTHTTPLOOP:
 				// wait for server to run
 				break
 			}
-			tstReadHTTP(chnRead)
+			tstReadHTTP(t, chnRead)
 			loopCnt--
 			if loopCnt == 0 {
 				err = eztools.ErrAbort
 				break TSTHTTPLOOP
 			}
 		case err = <-chnRead:
-			//tstT.Log(err)
+			//t.Log(err)
 			break TSTHTTPLOOP
 		case err = <-chnSvr:
 			break TSTHTTPLOOP
@@ -92,8 +93,8 @@ TSTHTTPLOOP:
 			switch frmHTTP {
 			case true:
 				chnSvr = runHTTP()
-				tstReadHTTP(chnRead)
-				loopCnt = LoopCnt
+				tstReadHTTP(t, chnRead)
+				loopCnt = *ezcomm.TstTimeout
 			case false:
 				stpHTTP()
 			}
@@ -102,12 +103,13 @@ TSTHTTPLOOP:
 	chnRes <- err
 }
 
+// TestHttp uses TstTimeout
 func TestHttp(t *testing.T) {
-	tstT = t
+	ezcomm.Init4Tests(t)
 	ezcApp = test.NewApp()
 	chnHTTP := make(chan bool, 1)
 	chnRes := make(chan error, 1)
-	go tstSwitchHTTP(chnHTTP, chnRes)
+	go tstSwitchHTTP(t, chnHTTP, chnRes)
 	run(chnHTTP)
 	if err := <-chnRes; err != nil {
 		t.Error(err)

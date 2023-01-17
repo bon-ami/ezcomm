@@ -167,16 +167,22 @@ func run(chnHTTP chan bool) {
 	cfgFileName := ezcomm.EzcName + ".xml"
 	rdr, err := appStorage.Open(cfgFileName)
 	if err != nil {
-		eztools.Log("failed to open config file", cfgFileName, ":", err)
+		if eztools.Verbose > 1 {
+			eztools.Log("failed to open config file", cfgFileName, ":", err)
+		}
 	}
 	err = ezcomm.ReaderCfg(rdr)
 	if err != nil {
-		eztools.Log("config/locale failure:", err)
+		if eztools.Verbose > 1 {
+			eztools.Log("config/locale failure:", err)
+		}
 	}
 	if eztools.Debugging {
 		err = initLog()
 		if err != nil {
-			eztools.Log("failed to set log:", err)
+			if eztools.Verbose > 1 {
+				eztools.Log("failed to set log:", err)
+			}
 		}
 	}
 

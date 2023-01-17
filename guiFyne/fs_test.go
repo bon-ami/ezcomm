@@ -7,34 +7,22 @@ import (
 	"testing"
 
 	"gitee.com/bon-ami/eztools/v5"
+	"gitlab.com/bon-ami/ezcomm"
 )
 
 var tstCntFile int
 
-const TstCntFile = -1
-
+// TestFS uses TstRoot and TstMsgCount
 func TestFS(t *testing.T) {
-	/*tstFile := "testing"
-	t.Log(storage.ParseURI("."))
-	uri := storage.NewFileURI(filepath.Join(".", tstFile))
-	t.Log("creating", uri.String())
-	wr, err := storage.Writer(uri)
-	if err != nil {
-		t.Fatal(err)
+	ezcomm.Init4Tests(t)
+	fs := httpFS(*ezcomm.TstRoot)
+	tstCntFile = *ezcomm.TstMsgCount
+	if tstCntFile == 0 {
+		tstCntFile--
 	}
-	wr.Write([]byte{0, 1, 2})
-	wr.Close()
-	t.Log("created", uri.String())*/
-	fs := httpFS(".")
-	tstCntFile = TstCntFile
 	if err := tstFSRead(t, fs, ""); err != nil {
 		t.Fatal(err)
 	}
-	/*tstFSRead(t, fs, tstFile)
-	err = storage.Delete(uri)
-	if err != nil {
-		t.Fatal(err)
-	}*/
 }
 
 func tstFSRead(t *testing.T, fs httpFS, chld string) error {
@@ -56,7 +44,9 @@ func tstFFRead(t *testing.T, hfs httpFS, ff http.File, fn string) error {
 	}
 	cnt := fi.Size()
 	isDir := fi.IsDir()
-	t.Log(fi.Name(), "is dir =", isDir, "size =", cnt)
+	if eztools.Verbose > 1 {
+		t.Log(fi.Name(), "is dir =", isDir, "size =", cnt)
+	}
 	rdFile := func(fd []fs.FileInfo) error {
 		for _, f1 := range fd {
 			if tstCntFile == 0 {
@@ -71,7 +61,9 @@ func tstFFRead(t *testing.T, hfs httpFS, ff http.File, fn string) error {
 	}
 	switch isDir {
 	case true:
-		t.Log("readdir -1")
+		if eztools.Verbose > 1 {
+			t.Log("readdir -1")
+		}
 		fd, err := ff.Readdir(-1)
 		if err != nil {
 			return err
@@ -80,7 +72,9 @@ func tstFFRead(t *testing.T, hfs httpFS, ff http.File, fn string) error {
 			return err
 		}
 		cnt := len(fd)
-		t.Log("readdir", cnt)
+		if eztools.Verbose > 1 {
+			t.Log("readdir", cnt)
+		}
 		fd, err = ff.Readdir(cnt)
 		if err != nil {
 			return err
@@ -95,7 +89,9 @@ func tstFFRead(t *testing.T, hfs httpFS, ff http.File, fn string) error {
 		if cnt < 1 {
 			break
 		}
-		t.Log("readdir 0")
+		if eztools.Verbose > 1 {
+			t.Log("readdir 0")
+		}
 		fd, err = ff.Readdir(0)
 		if err != nil {
 			return err
@@ -107,11 +103,15 @@ func tstFFRead(t *testing.T, hfs httpFS, ff http.File, fn string) error {
 		if err = rdFile(fd); err != nil {
 			return err
 		}
-		t.Log("readdir 1/", cnt)
+		if eztools.Verbose > 1 {
+			t.Log("readdir 1/", cnt)
+		}
 		for ; cnt >= 0; cnt-- {
 			fd, err = ff.Readdir(1)
 			if len(Tst) > 0 {
-				t.Log(Tst)
+				if eztools.Verbose > 1 {
+					t.Log(Tst)
+				}
 			}
 			Tst = nil
 			if err != nil {

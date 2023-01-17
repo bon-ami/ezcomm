@@ -27,7 +27,10 @@ func (ff fileInfo) Name() string {
 func (ff fileInfo) Size() int64 {
 	// TODO: by fyne
 	if ok, err := storage.CanList(ff.uri); err == nil && ok {
-		l, _ := storage.List(ff.uri)
+		l, err := storage.List(ff.uri)
+		if err != nil {
+			return -1
+		}
 		return int64(len(l))
 	}
 	if ok, err := storage.CanRead(ff.uri); !ok || err != nil {
@@ -144,6 +147,7 @@ func (fh httpFile) Read(b []byte) (int, error) {
 	}
 	return ent.Rdr.Read(b)
 }
+
 func (fh httpFile) Close() error {
 	ent, ok := httpPool.Ent[fh.id]
 	httpPool.Lock.Lock()
