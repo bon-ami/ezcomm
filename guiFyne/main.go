@@ -13,7 +13,7 @@ import (
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/storage"
-	"gitee.com/bon-ami/eztools/v4"
+	"gitee.com/bon-ami/eztools/v5"
 	"gitlab.com/bon-ami/ezcomm"
 )
 
@@ -68,14 +68,14 @@ func checkDldDir() (string, error) {
 	dldDirChk = true
 	incomDir = appStorage.RootURI().Path()
 	dldDirPath = filepath.Join(incomDir, dldDirNm)
-	dldUri = storage.NewFileURI(dldDirPath)
-	exi, err := storage.Exists(dldUri)
+	dldURI = storage.NewFileURI(dldDirPath)
+	exi, err := storage.Exists(dldURI)
 	if err != nil {
 		eztools.Log("NO", dldDirPath, "detectable!", err)
 		return "", err
 	}
 	if exi {
-		cn, err := storage.CanList(dldUri)
+		cn, err := storage.CanList(dldURI)
 		if err != nil {
 			eztools.Log("NO", dldDirPath, "listable!", err)
 			return "", err
@@ -86,7 +86,7 @@ func checkDldDir() (string, error) {
 			return "", eztools.ErrIncomplete
 		}
 	} else {
-		if err = storage.CreateListable(dldUri); err != nil {
+		if err = storage.CreateListable(dldURI); err != nil {
 			eztools.Log("NO", dldDirPath, "created!", err)
 			return "", err
 		}
@@ -157,8 +157,12 @@ func decodeFilePath(uri fyne.URI) string {
 }
 
 func main() {
-	parseParams()
 	ezcApp = app.NewWithID(ezcomm.EzcName)
+	run(nil)
+}
+
+func run(chnHTTP chan bool) {
+	parseParams()
 	appStorage = ezcApp.Storage()
 	cfgFileName := ezcomm.EzcName + ".xml"
 	rdr, err := appStorage.Open(cfgFileName)
@@ -193,7 +197,7 @@ func main() {
 	tabMsg := makeTabMsg()
 	tabFil = makeTabFil()
 	tabCfg := makeTabCfg()
-	tabLan := makeTabLan()
+	tabLan := makeTabLan(chnHTTP)
 	tabLAf = makeTabLAf()
 	tabs = container.NewAppTabs(
 		tabLan,
@@ -223,7 +227,7 @@ func main() {
 	}
 
 	svrTCP.ActFunc = tcpConnAct
-	svrTCP.ConnFunc = TcpSvrConnected
+	svrTCP.ConnFunc = TCPSvrConnected
 	svrTCP.LogFunc = Log
 
 	//ezcWin.SetFixedSize(true)

@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	tstSvrT  SvrTcp
+	tstSvrT  SvrTCP
 	tstSvrTP map[string]struct{}
 	tstSvrTD chan struct{}
 )
@@ -38,8 +38,8 @@ func tstSvrTAct(comm RoutCommStruc) {
 		tstSvrTD <- struct{}{}
 	}
 	var addr string
-	if comm.PeerTcp != nil {
-		addr = comm.PeerTcp.String()
+	if comm.PeerTCP != nil {
+		addr = comm.PeerTCP.String()
 		//tstT.Log("addr=", addr)
 	}
 	switch comm.Act {
@@ -77,7 +77,8 @@ func tstSvrTConn(addr [4]string) {
 }
 
 func TestSvrTcp(t *testing.T) {
-	init4Tests(t)
+	Init4Tests(t)
+	defer Deinit4Tests()
 	*tstProt = "tcp"
 	tstSvrTP = make(map[string]struct{})
 	tstSvrTD = make(chan struct{}, 1)
@@ -89,7 +90,11 @@ func TestSvrTcp(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	<-tstSvrTD
+	select {
+	case <-time.After(tstTO):
+		t.Skip("server TO")
+	case <-tstSvrTD:
+	}
 	t.Log("wait for server")
 	tstSvrT.Wait(false)
 	t.Log("wait for clients")

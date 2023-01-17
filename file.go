@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"gitee.com/bon-ami/eztools/v4"
+	"gitee.com/bon-ami/eztools/v5"
 )
 
 /* bytes of packed files. the order must be guaranteed (by TCP).

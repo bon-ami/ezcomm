@@ -5,7 +5,7 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/theme"
-	"gitee.com/bon-ami/eztools/v4"
+	"gitee.com/bon-ami/eztools/v5"
 )
 
 type theme4Fonts struct {

@@ -12,7 +12,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
-	"gitee.com/bon-ami/eztools/v4"
+	"gitee.com/bon-ami/eztools/v5"
 	"gitlab.com/bon-ami/ezcomm"
 )
 

@@ -12,7 +12,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
-	"gitee.com/bon-ami/eztools/v4"
+	"gitee.com/bon-ami/eztools/v5"
 	"gitlab.com/bon-ami/ezcomm"
 )
 
@@ -75,11 +75,14 @@ func makeTabCfg() *container.TabItem {
 }
 
 // treWriteFile overwrites the file with the name under Downloads of app,
+//
 //	and prompts user to create one,
 //	if no writer able to be created.
 //	The existing file will be truncated.
 //	DO NOT call this in UI thread!
+//
 // Return values:
+//
 //	wc=Close() to be called by caller
 //	res=error string, or selected file path by user
 //	abt=whether to abort
@@ -456,7 +459,7 @@ func saveFontFromIndx(lang string) {
 	}
 	if !found {
 		ezcomm.CfgStruc.Fonts = append(ezcomm.CfgStruc.Fonts,
-			ezcomm.EzcommFonts{Locale: lang, Font: font})
+			ezcomm.Fonts{Locale: lang, Font: font})
 
 	}
 	writeCfg()

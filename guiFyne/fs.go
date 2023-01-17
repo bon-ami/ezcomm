@@ -26,6 +26,10 @@ func (ff fileInfo) Name() string {
 // Size reads the whole file and figures the size
 func (ff fileInfo) Size() int64 {
 	// TODO: by fyne
+	if ok, err := storage.CanList(ff.uri); err == nil && ok {
+		l, _ := storage.List(ff.uri)
+		return int64(len(l))
+	}
 	if ok, err := storage.CanRead(ff.uri); !ok || err != nil {
 		return 0
 	}
@@ -85,6 +89,8 @@ type httpFile struct {
 	uri fyne.URI
 }
 
+var Tst []int
+
 func (fh httpFile) Readdir(n int) ([]fs.FileInfo, error) {
 	ent, ok := httpPool.Ent[fh.id]
 	if !ok {
@@ -116,6 +122,7 @@ func (fh httpFile) Readdir(n int) ([]fs.FileInfo, error) {
 		if n < rdN {
 			rdN = n
 		}
+		Tst = []int{rdN, len(ent.Files), ent.FileN}
 	}
 	ret := make([]fs.FileInfo, rdN)
 	for i := 0; i < rdN; i++ {

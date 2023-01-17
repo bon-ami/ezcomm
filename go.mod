@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	fyne.io/fyne/v2 v2.2.4
-	gitee.com/bon-ami/eztools/v4 v4.10.0
+	gitee.com/bon-ami/eztools/v5 v5.0.2
 	github.com/bon-ami/go-findfont v0.3.0
 	github.com/gin-gonic/gin v1.8.2
 )
@@ -14,7 +14,6 @@ require (
 	github.com/Azure/go-ntlmssp v0.0.0-20200615164410-66371956d46c // indirect
 	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/Xuanwo/go-locale v1.1.0 // indirect
-	github.com/bon-ami/go-http-digest-auth-client v0.6.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fredbi/uri v0.0.0-20181227131451-3dcfdacbaaf3 // indirect
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
@@ -43,11 +42,12 @@ require (
 	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
+	github.com/mongodb-forks/digest v1.0.4 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.2.0 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/rogpeppe/go-internal v1.9.0 // indirect
 	github.com/sanbornm/go-selfupdate v0.0.0-20190330003341-f041b81ae5e6 // indirect
-	github.com/sergi/go-diff v1.1.0 // indirect
 	github.com/shibukawa/configdir v0.0.0-20170330084843-e180dbdc8da0 // indirect
 	github.com/srwiley/oksvg v0.0.0-20200311192757-870daf9aa564 // indirect
 	github.com/srwiley/rasterx v0.0.0-20200120212402-85cb7272f5e9 // indirect
@@ -57,24 +57,15 @@ require (
 	github.com/yuin/goldmark v1.5.2 // indirect
 	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/exp v0.0.0-20221031165847-c99f073a8326 // indirect
-	golang.org/x/exp/typeparams v0.0.0-20221031165847-c99f073a8326 // indirect
 	golang.org/x/image v0.0.0-20220601225756-64ec528b34cd // indirect
 	golang.org/x/mobile v0.0.0-20211207041440-4e6c2922fdee // indirect
-	golang.org/x/mod v0.7.0 // indirect
 	golang.org/x/net v0.4.0 // indirect
-	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.3.0 // indirect
 	golang.org/x/term v0.3.0 // indirect
 	golang.org/x/text v0.5.0 // indirect
-	golang.org/x/tools v0.3.1-0.20221213193459-ca17b2c27ca8 // indirect
-	golang.org/x/tools/gopls v0.11.0 // indirect
-	golang.org/x/vuln v0.0.0-20221109205719-3af8368ee4fe // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/inconshreveable/go-update.v0 v0.0.0-20150814200126-d8b0b1d421aa // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	honnef.co/go/js/dom v0.0.0-20210725211120-f030747120f2 // indirect
-	honnef.co/go/tools v0.3.3 // indirect
-	mvdan.cc/gofumpt v0.4.0 // indirect
-	mvdan.cc/xurls/v2 v2.4.0 // indirect
 )

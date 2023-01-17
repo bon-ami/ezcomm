@@ -10,7 +10,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
-	"gitee.com/bon-ami/eztools/v4"
+	"gitee.com/bon-ami/eztools/v5"
 	"gitlab.com/bon-ami/ezcomm"
 )
 
@@ -22,7 +22,7 @@ var (
 	//filPieces      map[string]string
 	refRcv, refSnd    *widget.Select
 	filEnable         bool
-	outgoFile, dldUri fyne.URI
+	outgoFile, dldURI fyne.URI
 )
 
 // filLclChk checks whether file is too large for UDP
@@ -47,7 +47,7 @@ func filLclChk(rc fyne.URIReadCloser, fil string) (err error) {
 	cap := outgoFile.Name()
 	filEnable = true
 	switch protRd.Selected {
-	case ezcomm.StrUdp:
+	case ezcomm.StrUDP:
 		if rc == nil {
 			if len(fil) < 1 {
 				filEnable = false
@@ -73,7 +73,7 @@ func filLclChk(rc fyne.URIReadCloser, fil string) (err error) {
 			cap += "\n" + err.Error()
 		}
 		filEnable = false
-	case ezcomm.StrTcp:
+	case ezcomm.StrTCP:
 	}
 	filLclBut.SetText(cap)
 	if filEnable {
@@ -136,6 +136,7 @@ func SntFile(comm ezcomm.RoutCommStruc) (string, bool) {
 	return filepath.Base(fn), end
 }
 
+// SntFileOk successfully sent of a file
 func SntFileOk(fn string, fin bool) {
 	if !fin {
 		filRmt.SetText(fn + " ...>")
@@ -150,8 +151,10 @@ func SntFileOk(fn string, fin bool) {
 }
 
 // RcvFile saves incoming file piece
-//   To avoid asking user for every file, when permission needed,
-//   all files saved to app directory.
+//
+//	To avoid asking user for every file, when permission needed,
+//	all files saved to app directory.
+//
 // Return values: fn=file name or error string
 func RcvFile(comm ezcomm.RoutCommStruc, addr string) (peer, fn string) {
 	if len(incomDir) < 1 {
@@ -232,7 +235,7 @@ func makeControlsRF() *fyne.Container {
 	/*filLbl := widget.NewLabel(ezcomm.StringTran["StrDirI"])
 	filLbl.Wrapping = fyne.TextWrapWord*/
 	//dirRmtBut = widget.NewButton(ezcomm.StringTran["StrDir"], dirButRmt)
-	tops := container.NewVBox(rowLbl, rowTo, rowUdpSock2, rowTcpSock2, rowRec /*, dirRmt*/)
+	tops := container.NewVBox(rowLbl, rowTo, rowUDPSock2, rowTCPSock2, rowRec /*, dirRmt*/)
 	var err error
 	incomDir, err = checkDldDir()
 	if err != nil {

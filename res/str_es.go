@@ -1,9 +1,10 @@
 package res
 
 import (
-	"gitee.com/bon-ami/eztools/v4"
+	"gitee.com/bon-ami/eztools/v5"
 )
 
+// I18nEs initialize resource for es
 func I18nEs() { // by bing.com
 	eztools.AddLanguage("es", `
 		StrInt = "interacción"
@@ -82,9 +83,9 @@ func I18nEs() { // by bing.com
 		StrAntiFld       = "Antiataque"
 		StrLmt = "Límite por segundo"
 		StrPrd = "Plazo de denegación"
-		StrTooLarge2Rcv = "demasiado grande para recibir por UDP"
+		StrTooLarge2Rcv  = "demasiado grande para recibir por UDP"
 		StrFileAwareness = "Reconocimiento de archivos necesario para la salida"
-		StrFileSave = "Elija el siguiente archivo en el siguiente paso para permitir la salida"
+		StrFileSave     = "Elija el siguiente archivo en el siguiente paso para permitir la salida"
 		StrInfLan       = "LAN"
 		StrPokePeer     = "Buscar un compañero"
 		StrDiscoverFail = "Error de descubrimiento"
@@ -95,5 +96,6 @@ func I18nEs() { // by bing.com
 		StrExp          = "exportar"
 		StrRmAll        = "¿eliminar todos estos archivos?"
 		StrDel          = "borrar"
+		StrCopied       = "Copiado"
 	`)
 }

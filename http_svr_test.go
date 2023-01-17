@@ -6,22 +6,26 @@ import (
 )
 
 func TestHttpSvr(t *testing.T) {
-	init4Tests(t)
+	Init4Tests(t)
+	defer Deinit4Tests()
 	//*tstProt = "tcp"
 	//t.Log("listen", *tstProt, *tstLcl)
-	lstnr, err := ListenTcp(nil, nil, "", DefAdr+":", nil, nil)
+	lstnr, err := ListenTCP(nil, nil, "", DefPeerAdr+":", nil, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	ch := HTTPServ(lstnr, "", *tstRoot, nil)
-	t.Log("wait for server")
+	svr := MakeHTTPSvr()
+	svr.FS("", *tstRoot, nil)
+	ch := svr.Serve(lstnr)
+	t.Log("wait for server for", tstTO, "seconds")
 	select {
-	case <-time.After(time.Minute):
-		break
-	case err := <-ch:
-		if err != nil {
-			t.Fatal(err)
-		}
+	case <-time.After(tstTO):
+		t.Log("shutting down server")
+		err = svr.Shutdown(1)
+	case err = <-ch:
+	}
+	if err != nil {
+		t.Fatal(err)
 	}
 	/*if n := runtime.NumGoroutine(); n > 2 {
 		<-time.After(time.Second * 5)

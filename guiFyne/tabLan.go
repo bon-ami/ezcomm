@@ -11,7 +11,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
-	"gitee.com/bon-ami/eztools/v4"
+	"gitee.com/bon-ami/eztools/v5"
 	"gitlab.com/bon-ami/ezcomm"
 )
 
@@ -21,10 +21,9 @@ var (
 	localAddrSlc []string
 	lanPrtHTTP   string
 	lanWeb       *widget.List
-	//lanWeb     *widget.TextGrid
-	lanBut *widget.Button
-	lanLbl *widget.Label
-	lanLst *widget.RadioGroup
+	lanBut       *widget.Button
+	lanLbl       *widget.Label
+	lanLst       *widget.RadioGroup
 )
 
 func httpListNum() int {
@@ -32,15 +31,75 @@ func httpListNum() int {
 }
 
 func httpListUpdate(id widget.ListItemID, item fyne.CanvasObject) {
+	if len(localAddrSlc) <= id {
+		item.(*widget.Label).SetText("")
+		return
+	}
 	item.(*widget.Label).SetText(localAddrSlc[id] + lanPrtHTTP)
 }
 
-func lanListen() {
+func runHTTP() chan error {
+	lstnr, err := ezcomm.ListenTCP(
+		Log, nil, "", ":", nil, nil)
+	if err != nil {
+		eztools.LogFatal(err)
+	}
+	addr := lstnr.Addr().String()
+	ind := strings.LastIndex(addr, ":")
+	lanPrtHTTP = addr[ind:]
+	lanWeb.Refresh()
+	httpSvr = ezcomm.MakeHTTPSvr()
+	httpSvr.FS("", "", httpFS(appStorage.RootURI().Path()))
+	return httpSvr.Serve(lstnr)
+}
+
+func stpHTTP() error {
+	ret := httpSvr.Shutdown(1)
+	httpSvr = nil
+	return ret
+}
+
+func runUDP(defLanPrtStr string) *net.UDPConn {
+	conn, err := ezcomm.ListenUDP(ezcomm.StrUDP,
+		":"+defLanPrtStr)
+	if err != nil || conn == nil {
+		lanLbl.SetText(ezcomm.StringTran["StrDiscoverFail"])
+		Log("discovery failure", err)
+		return nil
+	}
+	lanLbl.SetText(ezcomm.StringTran["StrLst"])
+	go ezcomm.ConnectedUDP(Log, chn, conn)
+	return conn
+}
+
+func sndUDP(conn *net.UDPConn, addrBrd *net.UDPAddr, bonjour []byte) {
+	if eztools.Debugging &&
+		eztools.Verbose > 1 {
+		eztools.Log("discover", *conn)
+	}
+	pckNt := ezcomm.RoutCommStruc{
+		Act:     ezcomm.FlowChnSnd,
+		Data:    bonjour,
+		PeerUDP: addrBrd}
+	chn[0] <- pckNt
+}
+
+func switchHTTP(chn chan bool) {
+	for {
+		switch <-chn {
+		case true:
+			runHTTP()
+		case false:
+			stpHTTP()
+		}
+	}
+}
+
+func lanListen(chnHTTP chan bool) {
 	var (
 		conn  *net.UDPConn
 		reqUI bool
 		pckNt ezcomm.RoutCommStruc
-		chn   [2]chan ezcomm.RoutCommStruc
 	)
 	for i := range chn {
 		chn[i] = make(chan ezcomm.RoutCommStruc,
@@ -54,17 +113,21 @@ func lanListen() {
 		chn[0] <- pckNt
 		conn = nil
 	}
-	defLanI := ezcomm.DefLan()
-	defLanS := strconv.Itoa(defLanI)
+	defLanPrtInt := ezcomm.DefLanPrt()
+	defLanPrtStr := strconv.Itoa(defLanPrtInt)
 	var bonjour []byte
 	for _, c := range ezcomm.EzcName {
 		bonjour = append(bonjour, byte(c))
 	}
-	addrBrd, err := net.ResolveUDPAddr(ezcomm.StrUdp,
-		ezcomm.DefBrd+":"+defLanS)
+	addrBrd, err := net.ResolveUDPAddr(ezcomm.StrUDP,
+		ezcomm.DefBrdAdr+":"+defLanPrtStr)
 	if err != nil || addrBrd == nil {
 		Log("bad broadcast addr", err)
 		return
+	}
+	if chnHTTP == nil {
+		chnHTTP = make(chan bool, 1)
+		go switchHTTP(chnHTTP)
 	}
 	var localAddrMap, peerMap map[string]struct{}
 	for {
@@ -77,19 +140,12 @@ func lanListen() {
 					<-chn[1] // wait for ezcomm to end
 				}
 				if httpSvr != nil {
-					httpSvr.Shutdown(1)
-					httpSvr = nil
+					Log("false to", chnHTTP)
+					chnHTTP <- false
 				}
 			case true:
 				if conn != nil {
-					if eztools.Debugging &&
-						eztools.Verbose > 1 {
-						eztools.Log("discover", *conn)
-					}
-					pckNt.Act = ezcomm.FlowChnSnd
-					pckNt.Data = bonjour
-					pckNt.PeerUdp = addrBrd
-					chn[0] <- pckNt
+					sndUDP(conn, addrBrd, bonjour)
 					break
 				}
 				localAddrs, err := net.InterfaceAddrs()
@@ -99,41 +155,30 @@ func lanListen() {
 					lanLbl.SetText(ezcomm.StringTran["StrDiscoverFail"])
 					break
 				}
+				peerMap = make(map[string]struct{})
 				localAddrMap = make(map[string]struct{})
 				localAddrSlc = make([]string, 0)
 				for _, localAddr1 := range localAddrs {
 					str := localAddr1.String()
 					ind := strings.LastIndex(str, "/")
 					localAddrMap[str[:ind]] = struct{}{}
-					localAddrSlc = append(localAddrSlc, str[:ind])
+					var pref, suff string
+					if str[(ind+1):] == "64" {
+						pref = "["
+						suff = "]"
+					}
+					localAddrSlc = append(localAddrSlc,
+						pref+str[:ind]+suff)
 				}
-				conn, err = ezcomm.ListenUDP(ezcomm.StrUdp,
-					":"+defLanS)
-				if err != nil || conn == nil {
-					lanLbl.SetText(ezcomm.StringTran["StrDiscoverFail"])
-					Log("discovery failure", err)
+				conn = runUDP(defLanPrtStr)
+				if conn == nil {
 					break
 				}
 				if eztools.Debugging && eztools.Verbose > 1 {
 					eztools.Log("discovery", *conn)
 				}
-				lanLbl.SetText(ezcomm.StringTran["StrLst"])
-				peerMap = make(map[string]struct{})
-				go ezcomm.ConnectedUDP(Log, chn, conn)
 				if httpSvr == nil {
-					lstnr, err := ezcomm.ListenTCP(
-						Log, nil, "", ":", nil, nil)
-					if err != nil {
-						eztools.LogFatal(err)
-					}
-					addr := lstnr.Addr().String()
-					ind := strings.LastIndex(addr, ":")
-					lanPrtHTTP = addr[ind:]
-					lanWeb.Refresh()
-					httpSvr = ezcomm.MakeHTTPSvr()
-					httpSvr.FS("", "",
-						httpFS(appStorage.RootURI().Path()))
-					httpSvr.Serve(lstnr)
+					chnHTTP <- true
 				}
 			}
 		case pckNt = <-chn[1]:
@@ -145,17 +190,17 @@ func lanListen() {
 					Log("discovery failure", pckNt.Err)
 				}
 			case ezcomm.FlowChnRcv:
-				if pckNt.PeerUdp == nil {
+				if pckNt.PeerUDP == nil {
 					Log("discovery failure. NO peer addr!")
 					break
 				}
-				if pckNt.PeerUdp.Port != defLanI {
+				if pckNt.PeerUDP.Port != defLanPrtInt {
 					break
 				}
 				if !bytes.Equal(pckNt.Data, bonjour) {
 					break
 				}
-				peer := pckNt.PeerUdp.IP.String()
+				peer := pckNt.PeerUDP.IP.String()
 				_, ok := localAddrMap[peer]
 				if ok {
 					break
@@ -164,6 +209,7 @@ func lanListen() {
 					// duplicate
 					break
 				}
+				peerMap[peer] = struct{}{}
 				add2Rmt(0, peer)
 				lanLst.Append(peer)
 				if eztools.Debugging && eztools.Verbose > 1 {
@@ -192,9 +238,8 @@ func toast(id, inf string) {
 	}(inf)
 }
 
-func makeTabLan() *container.TabItem {
+func makeTabLan(chnHTTP chan bool) *container.TabItem {
 	chnLan = make(chan bool, 1)
-	//lanWeb = widget.NewTextGrid()
 	lanWeb = widget.NewList(
 		httpListNum,
 		func() fyne.CanvasObject {
@@ -202,13 +247,16 @@ func makeTabLan() *container.TabItem {
 		},
 		httpListUpdate)
 	lanWeb.OnSelected = func(id widget.ListItemID) {
+		if len(localAddrSlc) <= id {
+			return
+		}
 		drv := ezcApp.Driver()
 		clipboard := drv.AllWindows()[0].Clipboard()
 		clipboard.SetContent(localAddrSlc[id] + lanPrtHTTP)
 		toast("StrCopied", localAddrSlc[id]+lanPrtHTTP)
 	}
 	lanLbl = widget.NewLabel("")
-	go lanListen()
+	go lanListen(chnHTTP)
 	lanBut = widget.NewButton(ezcomm.StringTran["StrPokePeer"], func() {
 		chnLan <- true
 	})

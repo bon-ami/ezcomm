@@ -1,9 +1,10 @@
 package res
 
 import (
-	"gitee.com/bon-ami/eztools/v4"
+	"gitee.com/bon-ami/eztools/v5"
 )
 
+// I18nZhtw initialize resource for zhTW
 func I18nZhtw() {
 	eztools.AddLanguage("zh-TW", `
 		StrInt = "交互"
@@ -82,9 +83,9 @@ func I18nZhtw() {
 		StrAntiFld       = "反攻擊"
 		StrLmt = "每秒限制"
 		StrPrd = "駁回期限"
-		StrTooLarge2Rcv = "太大，無法由UDP接收"
+		StrTooLarge2Rcv  = "太大，無法由UDP接收"
 		StrFileAwareness = "輸出需感知檔"
-		StrFileSave = "在下一步中選擇以下檔以允許輸出"
+		StrFileSave     = "在下一步中選擇以下檔以允許輸出"
 		StrInfLan       = "局域網"
 		StrPokePeer     = "尋找對端"
 		StrDiscoverFail = "發現失敗"
@@ -95,5 +96,6 @@ func I18nZhtw() {
 		StrExp          = "匯出"
 		StrRmAll        = "刪除所有這些檔?"
 		StrDel          = "刪除"
+		StrCopied       = "已複製"
 	`)
 }

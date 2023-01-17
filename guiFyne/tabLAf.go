@@ -172,16 +172,16 @@ func makeTabLAf() *container.TabItem {
 func tabLAfShown() {
 	var dldUriSlc []fyne.URI
 	_, err := checkDldDir()
-	if err != nil || dldUri == nil {
-		Log("NO downloads dir!", dldUri, err)
+	if err != nil || dldURI == nil {
+		Log("NO downloads dir!", dldURI, err)
 		return
 	}
-	if ok, err := storage.CanList(dldUri); err != nil {
+	if ok, err := storage.CanList(dldURI); err != nil {
 		Log("downloads NOT listable!", err)
 		return
 	} else {
 		if ok {
-			dldUriSlc, err = storage.List(dldUri)
+			dldUriSlc, err = storage.List(dldURI)
 			if err != nil {
 				Log("downloads NOT listed!", err)
 				return

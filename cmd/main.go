@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"gitee.com/bon-ami/eztools/v4"
+	"gitee.com/bon-ami/eztools/v5"
 	"gitlab.com/bon-ami/ezcomm"
 )
 

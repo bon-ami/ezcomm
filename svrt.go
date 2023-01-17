@@ -3,12 +3,12 @@ package ezcomm
 import (
 	"net"
 
-	"gitee.com/bon-ami/eztools/v4"
+	"gitee.com/bon-ami/eztools/v5"
 )
 
-// SvrTcp handles all clients and uses requested address to match them with user
+// SvrTCP handles all clients and uses requested address to match them with user
 /* routines
-              SvrTcp  |  ezcomm
+              SvrTCP  |  ezcomm
               ======= | =======
 listening (Connected) | connected:* ListenTcp ConnectedTcp:2
 ===================== | ===================================
@@ -40,7 +40,7 @@ ChnConn[0]
     ^ (listening stopped and no connections in existence)
 ChnConn[1]
 */
-type SvrTcp struct {
+type SvrTCP struct {
 	// chnErr is from EZ Comm when server stops
 	chnErr chan error
 	// chnSvr is the channel SvrTcp--FlowChnEnd->server
@@ -68,7 +68,7 @@ type SvrTcp struct {
 }
 
 // listening is routine for channels from EZ Comm
-func (s SvrTcp) listening() {
+func (s SvrTCP) listening() {
 	chnErr := s.chnErr
 	chnLstn := s.chnLstn
 	chnStp := s.chnStp
@@ -176,7 +176,7 @@ func (s SvrTcp) listening() {
 }
 
 // connected runs when a client comes in
-func (s SvrTcp) connected(addr [4]string, chn [2]chan RoutCommStruc) {
+func (s SvrTCP) connected(addr [4]string, chn [2]chan RoutCommStruc) {
 	if s.chnLstn == nil {
 		s.LogFunc("NO listening channel!")
 		// should we panic?
@@ -218,8 +218,9 @@ func (s SvrTcp) connected(addr [4]string, chn [2]chan RoutCommStruc) {
 }
 
 // Send is routine safe
+//
 //	act should be FlowChnSnd
-func (s SvrTcp) Send(addr string, data []byte) {
+func (s SvrTCP) Send(addr string, data []byte) {
 	if s.chnLstn != nil {
 		s.chnLstn <- RoutCommStruc{
 			Act:     FlowChnSnd,
@@ -229,7 +230,7 @@ func (s SvrTcp) Send(addr string, data []byte) {
 	}
 }
 
-func (s SvrTcp) HasStopped() bool {
+func (s SvrTCP) HasStopped() bool {
 	for _, ch := range s.chnStp {
 		if ch != nil {
 			return false
@@ -241,7 +242,7 @@ func (s SvrTcp) HasStopped() bool {
 // Listen returns whether successfully listening
 // ConnFunc is called before returning, with only listening address as the first member of the slice.
 // ConnFunc may be called after a client incomes and is reported because of routine schedules.
-func (s *SvrTcp) Listen(network, addr string) (err error) {
+func (s *SvrTCP) Listen(network, addr string) (err error) {
 	//if [>s.chnSvr != nil ||<] s.chnStp[0] != nil || s.chnStp[1] != nil {
 	if !s.HasStopped() {
 		return eztools.ErrIncomplete
@@ -252,8 +253,8 @@ func (s *SvrTcp) Listen(network, addr string) (err error) {
 	s.chnStp[0] = make(chan struct{}, 1)
 	// [1] is to be created when connected
 	//}
-	s.lstnr, err = ListenTcp(s.LogFunc, s.connected,
-		network, addr, ConnectedTcp, s.chnErr)
+	s.lstnr, err = ListenTCP(s.LogFunc, s.connected,
+		network, addr, ConnectedTCP, s.chnErr)
 	if err != nil {
 		s.chnErr = nil
 		s.chnLstn = nil
@@ -267,8 +268,9 @@ func (s *SvrTcp) Listen(network, addr string) (err error) {
 }
 
 // Wait returns when server/all clients stopped
+//
 //	user needs to run Disconnect() whatsever
-func (s *SvrTcp) Wait(clients bool) {
+func (s *SvrTCP) Wait(clients bool) {
 	indx := 0
 	switch clients {
 	case true:
@@ -285,8 +287,9 @@ func (s *SvrTcp) Wait(clients bool) {
 }
 
 // Disconnect disconnects a/all connection(-s)
+//
 //	routine safe
-func (s *SvrTcp) Disconnect(addr string) {
+func (s *SvrTCP) Disconnect(addr string) {
 	if s.chnLstn != nil {
 		s.chnLstn <- RoutCommStruc{
 			Act:     FlowChnEnd,
@@ -296,8 +299,9 @@ func (s *SvrTcp) Disconnect(addr string) {
 }
 
 // Stop stops listening
+//
 //	routine safe, except with Listen()
-func (s *SvrTcp) Stop() {
+func (s *SvrTCP) Stop() {
 	if s.lstnr != nil {
 		s.lstnr.Close()
 		s.LogFunc("server stopped")
