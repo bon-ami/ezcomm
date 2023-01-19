@@ -92,13 +92,12 @@ type httpFile struct {
 	uri fyne.URI
 }
 
-var Tst []int
-
 func (fh httpFile) Readdir(n int) ([]fs.FileInfo, error) {
 	ent, ok := httpPool.Ent[fh.id]
 	if !ok {
 		return nil, fs.ErrClosed
 	}
+	//eztools.Log(ent)
 	var rdN int
 	if n <= 0 || ent.Files == nil {
 		if ok, err := storage.CanList(fh.uri); !ok || err != nil {
@@ -122,30 +121,39 @@ func (fh httpFile) Readdir(n int) ([]fs.FileInfo, error) {
 		}
 	} else {
 		rdN = len(ent.Files) - ent.FileN
+		//eztools.Log(rdN)
 		if n < rdN {
 			rdN = n
 		}
-		Tst = []int{rdN, len(ent.Files), ent.FileN}
+		//eztools.Log(rdN)
+		if rdN < 1 {
+			return nil, io.EOF
+		}
 	}
 	ret := make([]fs.FileInfo, rdN)
 	for i := 0; i < rdN; i++ {
 		ret[i] = fileInfo{ent.Files[ent.FileN+i]}
 	}
 	ent.FileN += rdN
+	httpPool.Ent[fh.id] = ent
 	return ret, nil
 }
 
 func (fh httpFile) Read(b []byte) (int, error) {
 	ent := httpPool.Ent[fh.id]
-	if ok, err := storage.CanRead(fh.uri); !ok || err != nil {
-		return 0, fs.ErrPermission
+	if ent.Rdr == nil {
+		if ok, err := storage.CanRead(fh.uri); !ok || err != nil {
+			return 0, fs.ErrPermission
+		}
+		var err error
+		ent.Rdr, err = storage.Reader(fh.uri)
+		if err != nil {
+			return 0, err
+		}
 	}
-	var err error
-	ent.Rdr, err = storage.Reader(fh.uri)
-	if err != nil {
-		return 0, err
-	}
-	return ent.Rdr.Read(b)
+	c, e := ent.Rdr.Read(b)
+	httpPool.Ent[fh.id] = ent
+	return c, e
 }
 
 func (fh httpFile) Close() error {
