@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"path/filepath"
 	"strconv"
@@ -25,11 +26,10 @@ func writeCfg() {
 	cfgFileName := ezcomm.EzcName + ".xml"
 	cfgWriter, err := appStorage.Save(cfgFileName)
 	if err != nil {
-		/* TODO: fyne returns customized errors so I cannot check it now
 		if !errors.Is(err, storage.ErrNotExists) {
 			Log("failed to write to config file", err)
 			return
-		}*/
+		}
 		cfgWriter, err = appStorage.Create(cfgFileName)
 		if err != nil {
 			Log("failed to create config file", err)
