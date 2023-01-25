@@ -176,16 +176,16 @@ func tabLAfShown() {
 		Log("NO downloads dir!", dldURI, err)
 		return
 	}
-	if ok, err := storage.CanList(dldURI); err != nil {
+	if ok, err := storage.CanList(dldURI); err == nil {
 		if ok {
 			dldURISlc, err = storage.List(dldURI)
 			if err != nil {
-				Log("downloads NOT listed!", err)
+				Log("downloads NOT listed!", dldURI, err)
 				return
 			}
 		}
 	} else {
-		Log("downloads NOT listable!", err)
+		Log("downloads NOT listable!", dldURI, err)
 		return
 	}
 	dldStrSlc = nil
