@@ -78,12 +78,15 @@ func initLog() error {
 
 var logLock sync.Mutex
 
+// Log appends info to log control with mm-dd hh:mm:ss,
+// and calls eztools.Log()
 func Log(inf ...any) {
 	if fyneRowLog != nil {
 		str := fmt.Sprintf("%s%v\n",
 			time.Now().Format("01-02 15:04:05"), inf)
 		logLock.Lock()
-		fyneRowLog.SetText(fyneRowLog.Text + //strconv.Itoa(rowLog.CursorRow) + ":" +
+		fyneRowLog.SetText(fyneRowLog.Text +
+			//strconv.Itoa(rowLog.CursorRow) + ":" +
 			str)
 		fyneRowLog.CursorRow++
 		logLock.Unlock()

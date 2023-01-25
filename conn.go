@@ -63,6 +63,74 @@ func replyWtErr(comm RoutCommStruc, err error, chn chan RoutCommStruc) {
 	//logFunc("UDP sent", comm)
 }
 
+func connectedUDPNet(logFunc FuncLog, chn [2]chan RoutCommStruc,
+	conn *net.UDPConn, lcl string) {
+	var errRet error
+	defer func() {
+		chn[1] <- RoutCommStruc{
+			Act: FlowChnEnd,
+			Err: errRet,
+		}
+		if eztools.Debugging && eztools.Verbose > 1 {
+			logFunc("exiting routine", lcl)
+		}
+	}()
+	floodRecs := make(map[string][2]int64)
+	for {
+		buf := make([]byte, FlowRcvLen)
+		if eztools.Debugging && eztools.Verbose > 2 {
+			logFunc("receiving UDP", conn.LocalAddr())
+		}
+		n, addr, err := conn.ReadFromUDP(buf)
+		if err != nil &&
+			(errors.Is(err, io.EOF) ||
+				errors.Is(err, net.ErrClosed)) {
+			break
+		}
+		if err != nil {
+			errRet = err
+			break
+		}
+		if addr == nil {
+			// such as an err buf is smaller than data
+			continue
+		}
+		if eztools.Debugging && eztools.Verbose > 2 {
+			logFunc("received UDP from", n, addr, err, buf[:n])
+		}
+		comm := RoutCommStruc{
+			Act: FlowChnRcv,
+			Err: err,
+		}
+		peerAddr := addr.String()
+		peerHost, _, err := net.SplitHostPort(peerAddr)
+		if err != nil {
+			logFunc(peerAddr, err)
+		}
+		if floodChk(peerHost) {
+			continue
+		}
+		isFile, isEnd := IsDataFile(buf[:n])
+		if !isFile || isEnd {
+			//logFunc("checking flood", peerHost,
+			//floodRecs[peerHost])
+			ok, recs := floodCtrl(floodRecs[peerHost],
+				addr.String())
+			if ok {
+				if eztools.Debugging &&
+					eztools.Verbose > 2 {
+					logFunc("flooding", peerAddr)
+				}
+				continue
+			}
+			floodRecs[peerHost] = recs
+		}
+		comm.Data = buf[:n]
+		comm.PeerUDP = addr
+		chn[1] <- comm
+	}
+}
+
 // ConnectedUDP works for UDP, when remote can change
 //
 //	It blocks.
@@ -78,72 +146,7 @@ func ConnectedUDP(logFunc FuncLog, chn [2]chan RoutCommStruc, conn *net.UDPConn)
 			logFunc("exiting udp", lcl)
 		}()
 	}
-	go func() {
-		var errRet error
-		defer func() {
-			chn[1] <- RoutCommStruc{
-				Act: FlowChnEnd,
-				Err: errRet,
-			}
-			if eztools.Debugging && eztools.Verbose > 1 {
-				logFunc("exiting routine", lcl)
-			}
-		}()
-		floodRecs := make(map[string][2]int64)
-		for {
-			buf := make([]byte, FlowRcvLen)
-			if eztools.Debugging && eztools.Verbose > 2 {
-				logFunc("receiving UDP", conn.LocalAddr())
-			}
-			n, addr, err := conn.ReadFromUDP(buf)
-			if err != nil &&
-				(errors.Is(err, io.EOF) ||
-					errors.Is(err, net.ErrClosed)) {
-				break
-			}
-			if err != nil {
-				errRet = err
-				break
-			}
-			if addr == nil {
-				// such as an err buf is smaller than data
-				continue
-			}
-			if eztools.Debugging && eztools.Verbose > 2 {
-				logFunc("received UDP from", n, addr, err, buf[:n])
-			}
-			comm := RoutCommStruc{
-				Act: FlowChnRcv,
-				Err: err,
-			}
-			peerAddr := addr.String()
-			peerHost, _, err := net.SplitHostPort(peerAddr)
-			if err != nil {
-				logFunc(peerAddr, err)
-			}
-			if floodChk(peerHost) {
-				continue
-			}
-			isFile, isEnd := IsDataFile(buf[:n])
-			if !isFile || isEnd {
-				//logFunc("checking flood", peerHost,
-				//floodRecs[peerHost])
-				ok, recs := floodCtrl(floodRecs[peerHost],
-					addr.String())
-				if ok {
-					if eztools.Debugging &&
-						eztools.Verbose > 2 {
-						logFunc("flooding", peerAddr)
-					}
-					continue
-				}
-				floodRecs[peerHost] = recs
-			}
-			comm.Data = buf[:n]
-			comm.PeerUDP = addr
-			chn[1] <- comm
-		}
-	}()
+	go connectedUDPNet(logFunc, chn, conn, lcl)
 	if eztools.Debugging && eztools.Verbose > 2 {
 		logFunc("listening on UDP", chn)
 	}
@@ -229,6 +232,76 @@ func floodChk(peerAddr string) bool {
 	return false
 }
 
+func connectedTCPNet(logFunc FuncLog, conn net.Conn, chn [2]chan RoutCommStruc,
+	localAddr string, peer net.Addr, peerHost, peerAddr string) {
+	if eztools.Debugging && eztools.Verbose > 1 {
+		logFunc("entering routine",
+			conn.LocalAddr().Network(), localAddr)
+	}
+	var (
+		floodRecs [2]int64
+		errRet    error
+	)
+	defer func() {
+		if eztools.Debugging && eztools.Verbose > 1 {
+			logFunc("exiting TCP", localAddr,
+				"routine peer", peerAddr)
+		}
+		chn[1] <- RoutCommStruc{
+			Act: FlowChnEnd,
+			Err: errRet,
+		}
+	}()
+	for {
+		buf := make([]byte, FlowRcvLen)
+		if eztools.Debugging && eztools.Verbose > 2 {
+			logFunc("receiving TCP", localAddr)
+		}
+		n, err := conn.Read(buf)
+		if err != nil {
+			if errors.Is(err, io.EOF) ||
+				errors.Is(err, net.ErrClosed) {
+				break
+			}
+			// reading on a closed TCP connection also here
+			errRet = err
+			break
+		}
+		if eztools.Debugging && eztools.Verbose > 2 {
+			logFunc("received TCP", localAddr, n, "from", peerAddr, err, buf[:n])
+		}
+		comm := RoutCommStruc{
+			Act:     FlowChnRcv,
+			PeerTCP: peer,
+		}
+		floodChkTCP := func() bool {
+			isFile, isEnd := IsDataFile(comm.Data)
+			if isFile && !isEnd {
+				return false
+			}
+			var ok bool
+			ok, floodRecs = floodCtrl(
+				floodRecs, peerHost)
+			if ok {
+				if eztools.Debugging &&
+					eztools.Verbose > 2 {
+					logFunc("flooding", peerHost)
+				}
+				return true
+			}
+			return false
+		}
+
+		comm.Data = make([]byte, n)
+		copy(comm.Data, buf[:n])
+		if floodChkTCP() {
+			errRet = eztools.ErrAccess
+			break
+		}
+		chn[1] <- comm
+	}
+}
+
 // ConnectedTCP also works for UDP, if remote does not change
 // Parameters:
 //
@@ -271,74 +344,7 @@ func ConnectedTCP(logFunc FuncLog, connFunc FuncConn,
 		chn[i] = make(chan RoutCommStruc, FlowComLen)
 	}
 	go connCB()
-	go func() {
-		if eztools.Debugging && eztools.Verbose > 1 {
-			logFunc("entering routine",
-				conn.LocalAddr().Network(), localAddr)
-		}
-		var (
-			floodRecs [2]int64
-			errRet    error
-		)
-		defer func() {
-			if eztools.Debugging && eztools.Verbose > 1 {
-				logFunc("exiting TCP", localAddr,
-					"routine peer", peerAddr)
-			}
-			chn[1] <- RoutCommStruc{
-				Act: FlowChnEnd,
-				Err: errRet,
-			}
-		}()
-		for {
-			buf := make([]byte, FlowRcvLen)
-			if eztools.Debugging && eztools.Verbose > 2 {
-				logFunc("receiving TCP", localAddr)
-			}
-			n, err := conn.Read(buf)
-			if err != nil {
-				if errors.Is(err, io.EOF) ||
-					errors.Is(err, net.ErrClosed) {
-					break
-				}
-				// reading on a closed TCP connection also here
-				errRet = err
-				break
-			}
-			if eztools.Debugging && eztools.Verbose > 2 {
-				logFunc("received TCP", localAddr, n, "from", peerAddr, err, buf[:n])
-			}
-			comm := RoutCommStruc{
-				Act:     FlowChnRcv,
-				PeerTCP: peer,
-			}
-			floodChkTCP := func() bool {
-				isFile, isEnd := IsDataFile(comm.Data)
-				if isFile && !isEnd {
-					return false
-				}
-				var ok bool
-				ok, floodRecs = floodCtrl(
-					floodRecs, peerHost)
-				if ok {
-					if eztools.Debugging &&
-						eztools.Verbose > 2 {
-						logFunc("flooding", peerHost)
-					}
-					return true
-				}
-				return false
-			}
-
-			comm.Data = make([]byte, n)
-			copy(comm.Data, buf[:n])
-			if floodChkTCP() {
-				errRet = eztools.ErrAccess
-				break
-			}
-			chn[1] <- comm
-		}
-	}()
+	go connectedTCPNet(logFunc, conn, chn, localAddr, peer, peerHost, peerAddr)
 	if eztools.Debugging && eztools.Verbose > 2 {
 		logFunc("listening on TCP", chn)
 	}

@@ -85,9 +85,8 @@ func (s SvrTCP) listening() {
 		//s.LogFunc("chkDone", peerMpO)
 		if len(peerMpO) < 1 {
 			return true, svrDone
-		} else {
-			return false, false
 		}
+		return false, false
 	}
 	for {
 		//s.LogFunc("looping")
@@ -230,6 +229,7 @@ func (s SvrTCP) Send(addr string, data []byte) {
 	}
 }
 
+// HasStopped whether SvrTCP has Stop-ped
 func (s SvrTCP) HasStopped() bool {
 	for _, ch := range s.chnStp {
 		if ch != nil {

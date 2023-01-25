@@ -417,36 +417,10 @@ func (conn *FlowConnStruc) Connected(logFunc FuncLog,
 		case FlowChnSnd:
 			com.Err = sndFunc(com.Data)
 		case FlowChnSndFil:
-			if FlowReaderNew == nil {
-				break
-			}
-			buf := make([]byte, FlowFilLen)
-			fr, err := FlowReaderNew(string(com.Data))
-			if err != nil {
-				logFunc("failed to open file to read!", string(com.Data), err)
+			if err := conn.sndFil(logFunc, connUDP, com, sndFunc); err != nil {
 				com.Err = err
 				break
 			}
-			defer fr.Close()
-			// TODO: how to tell of pieces on peer?
-			for {
-				var ln int
-				ln, err = fr.Read(buf)
-				if err != nil {
-					if !errors.Is(err, io.EOF) {
-						logFunc(connUDP.LocalAddr(), "error reading!", err)
-						com.Err = err
-					}
-					break
-				}
-				err = sndFunc([]byte(buf[:ln]))
-				if err != nil {
-					logFunc("failed send!", err)
-					com.Err = err
-					break
-				}
-			}
-			fr.Close()
 		case FlowChnRcv:
 			// com.Peer must be empty
 			// com.Data is appended
@@ -467,45 +441,84 @@ func (conn *FlowConnStruc) Connected(logFunc FuncLog,
 				//}
 			}
 		case FlowChnRcvFil:
-			if FlowWriterNew == nil {
-				break
-			}
-			fw, err := FlowWriterNew(string(com.Data))
-			if err != nil {
-				logFunc("failed to open file to save!", string(com.Data), err)
+			if err := conn.rcvFil(logFunc, com, rcvFunc); err != nil {
 				com.Err = err
 				break
 			}
-			bytes := make([]byte, FlowFilLen)
-			//for {
-			err = rcvFunc(bytes, func(buf []byte, ln int) error {
-				/*if fw == nil {
-					return eztools.ErrOutOfBound
-				}*/
-				if _, err := fw.Write(buf[:ln]); err != nil {
-					logFunc("failed to write to", string(com.Data), err)
-					com.Err = err
-					return err
-				}
-				/*fw.Close()
-				fw = nil*/
-				return nil
-			})
-			if eztools.Verbose > 2 {
-				logFunc(conn.Name,
-					"saved", err, com.Data)
-			}
-			//if err != nil {
-			//break
-			//}
-			//}
-			fw.Close()
 		}
 		if eztools.Verbose > 2 {
 			logFunc(conn.Name, "replying", com)
 		}
 		com.Resp <- com
 	}
+}
+
+func (conn *FlowConnStruc) sndFil(logFunc FuncLog, connUDP *net.UDPConn,
+	com RoutCommStruc, sndFunc func([]byte) error) error {
+	if FlowReaderNew == nil {
+		return nil
+	}
+	buf := make([]byte, FlowFilLen)
+	fr, err := FlowReaderNew(string(com.Data))
+	if err != nil {
+		logFunc("failed to open file to read!", string(com.Data), err)
+		return err
+	}
+	defer fr.Close()
+	// TODO: how to tell of pieces on peer?
+	for {
+		var ln int
+		ln, err = fr.Read(buf)
+		if err != nil {
+			if !errors.Is(err, io.EOF) {
+				logFunc(connUDP.LocalAddr(), "error reading!", err)
+			}
+			break
+		}
+		err = sndFunc([]byte(buf[:ln]))
+		if err != nil {
+			logFunc("failed send!", err)
+			com.Err = err
+			break
+		}
+	}
+	return nil
+}
+
+func (conn *FlowConnStruc) rcvFil(logFunc FuncLog, com RoutCommStruc,
+	rcvFunc func([]byte, func([]byte, int) error) error) error {
+	if FlowWriterNew == nil {
+		return nil
+	}
+	fw, err := FlowWriterNew(string(com.Data))
+	if err != nil {
+		logFunc("failed to open file to save!", string(com.Data), err)
+		return err
+	}
+	bytes := make([]byte, FlowFilLen)
+	//for {
+	err = rcvFunc(bytes, func(buf []byte, ln int) error {
+		/*if fw == nil {
+			return eztools.ErrOutOfBound
+		}*/
+		if _, err := fw.Write(buf[:ln]); err != nil {
+			logFunc("failed to write to", string(com.Data), err)
+			return err
+		}
+		/*fw.Close()
+		fw = nil*/
+		return nil
+	})
+	if eztools.Verbose > 2 {
+		logFunc(conn.Name,
+			"saved", err, com.Data)
+	}
+	//if err != nil {
+	//return nil
+	//}
+	//}
+	fw.Close()
+	return nil
 }
 
 // ParsePeer parses peer in struct

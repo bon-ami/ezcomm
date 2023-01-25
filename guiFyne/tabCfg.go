@@ -45,12 +45,12 @@ func writerNew(p string) (io.WriteCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	if b, err := storage.CanWrite(uri); err != nil {
-		return nil, err
-	} else {
+	if b, err := storage.CanWrite(uri); err == nil {
 		if !b {
 			return nil, eztools.ErrAccess
 		}
+	} else {
+		return nil, err
 	}
 	return storage.Writer(uri)
 }
@@ -146,17 +146,14 @@ func chkFlowStruc(flow ezcomm.FlowStruc) (string, bool) {
 				len(step.Data) > 0 {
 				fn, fil := step.ParseData(flow, conn)
 				if fil == 1 {
-					if wr, res, ret := tryWriteFile(
-						ezcomm.FlowWriterNew, fn); ret {
-						if wr != nil {
-							wr.Close()
-						}
+					wr, res, ret := tryWriteFile(
+						ezcomm.FlowWriterNew, fn)
+					// since incoming files are saved under app's dir, we do not need wr
+					if wr != nil {
+						wr.Close()
+					}
+					if ret {
 						return res, ret
-					} else {
-						// since incoming files are saved under app's dir, we do not need wr
-						if wr != nil {
-							wr.Close()
-						}
 					}
 				}
 			}
@@ -336,7 +333,7 @@ func makeControlsCfg() *fyne.Container {
 	langSel.PlaceHolder = ezcomm.StringTran["StrLang"]*/
 	langImgs := make([]fyne.CanvasObject, 0)
 	langButs = make([]fyne.CanvasObject, 0)
-	langId2But := make(map[string]*widget.Button)
+	langID2But := make(map[string]*widget.Button)
 	eztools.ListLanguages(func(name, id string) {
 		icon := LangsBuiltin[langResMap[id]].name
 		langSelFun := func() {
@@ -358,7 +355,7 @@ func makeControlsCfg() *fyne.Container {
 			if currLngBut != nil {
 				currLngBut.Enable()
 			}
-			currLngBut = langId2But[id]
+			currLngBut = langID2But[id]
 			currLngBut.Disable()
 			ezcomm.CfgStruc.Language = lang
 			ezcomm.MatchFontFromCurrLanguageCfg()
@@ -394,7 +391,7 @@ func makeControlsCfg() *fyne.Container {
 			fyne.NewSize(LangsBuiltin[langResMap[id]].nameWidth,
 				LangsBuiltin[langResMap[id]].nameHeight),
 			canvas.NewImageFromResource(icon))
-		langId2But[id] = langBut1
+		langID2But[id] = langBut1
 		if ezcomm.CfgStruc.Language == id {
 			//langSel.SetSelected(full)
 			currLang = id
@@ -505,7 +502,7 @@ func useFontFromCfg(setTheme bool, lang string) (fontPath string,
 			return "", i
 		}
 		// i != index of LangsBuiltin, but from all res.fnt != nil
-		i += 1
+		i++
 	}
 	if len(cfg) < 1 {
 		return

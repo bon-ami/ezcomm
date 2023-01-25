@@ -52,6 +52,41 @@ func tstFSRead(t *testing.T, hfs httpFS, chld string) (err error) {
 	return err
 }
 
+func tstFFReadDir(readParam, sz int, ff http.File, fd []fs.FileInfo,
+	rdFile func(fd []fs.FileInfo) error) (
+	fdLen int, err error) {
+	fdLen = len(fd)
+	switch readParam {
+	case -1:
+		err = rdFile(fd)
+	case 1:
+		if fdLen != 1 {
+			return fdLen, eztools.ErrOutOfBound
+		}
+		for ; sz > 1; sz-- {
+			fd, err = ff.Readdir(1)
+			if err != nil {
+				return sz, err
+			}
+			sz1 := len(fd)
+			if sz1 != 1 {
+				return sz1, eztools.ErrOutOfBound
+			}
+		}
+		fd, err = ff.Readdir(1)
+		sz1 := len(fd)
+		if err == nil || sz1 != 0 {
+			return sz1, eztools.ErrInExistence
+		}
+		err = nil
+	default: // 0 or > 1
+		if fdLen != sz {
+			err = eztools.ErrAccess
+		}
+	}
+	return
+}
+
 func tstFFRead(t *testing.T, hfs httpFS, ff http.File,
 	fn string, sz, readParam int) (int, error) {
 	fi, err := ff.Stat()
@@ -87,36 +122,7 @@ func tstFFRead(t *testing.T, hfs httpFS, ff http.File,
 		if err != nil {
 			break
 		}
-		fdLen := len(fd)
-		switch readParam {
-		case -1:
-			err = rdFile(fd)
-		case 1:
-			if fdLen != 1 {
-				return fdLen, eztools.ErrOutOfBound
-			}
-			for ; sz > 1; sz-- {
-				fd, err = ff.Readdir(1)
-				if err != nil {
-					return sz, err
-				}
-				sz1 := len(fd)
-				if sz1 != 1 {
-					return sz1, eztools.ErrOutOfBound
-				}
-			}
-			fd, err = ff.Readdir(1)
-			sz1 := len(fd)
-			if err == nil || sz1 != 0 {
-				return sz1, eztools.ErrInExistence
-			}
-			err = nil
-		default: // 0 or > 1
-			if fdLen != sz {
-				err = eztools.ErrAccess
-			}
-		}
-		return fdLen, err
+		return tstFFReadDir(readParam, sz, ff, fd, rdFile)
 
 	case false:
 		if tstCntFile == 0 {
