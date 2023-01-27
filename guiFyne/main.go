@@ -23,9 +23,7 @@ var (
 	thm        theme4Fonts
 	appStorage fyne.Storage
 	// chn is for TCP client and UDP
-	chn [2]chan ezcomm.RoutCommStruc
-	// svrTCP is for TCP server only
-	svrTCP         ezcomm.SvrTCP
+	chn            [2]chan ezcomm.RoutCommStruc
 	tabs           *container.AppTabs
 	tabFil, tabLAf *container.TabItem
 )
@@ -156,6 +154,20 @@ func decodeFilePath(uri fyne.URI) string {
 	return uri.Path()
 }
 
+func validateInt64(str string) error {
+	if _, err := strconv.ParseInt(str, 10, 64); err != nil {
+		return err
+	}
+	return nil
+}
+
+func cpFile(rd io.ReadCloser, wr io.WriteCloser) (err error) {
+	defer rd.Close()
+	defer wr.Close()
+	_, err = io.Copy(wr, rd)
+	return
+}
+
 func main() {
 	ezcApp = app.NewWithID(ezcomm.EzcName)
 	run(nil)
@@ -199,21 +211,23 @@ func run(chnHTTP chan bool) {
 	ezcApp.Settings().SetTheme(&thm)
 	ezcWin = ezcApp.NewWindow(ezcomm.EzcName)
 
+	makeControlsSocks()
 	tabLog := makeTabLog()
 	tabMsg := makeTabMsg()
 	tabFil = makeTabFil()
 	tabCfg := makeTabCfg()
 	tabLan := makeTabLan(chnHTTP)
+	tabWeb := makeTabWeb()
 	tabLAf = makeTabLAf()
 	tabs = container.NewAppTabs(
 		tabLan,
+		//tabWeb,
 		tabMsg,
 		tabFil,
 		tabLAf,
 		tabLog,
 		tabCfg,
 	)
-	ezcWin.SetContent(tabs)
 	tabs.OnSelected = func(tb *container.TabItem) {
 		tabLanShown(false)
 		switch tb {
@@ -227,14 +241,13 @@ func run(chnHTTP chan bool) {
 			tabCfgShown()
 		case tabLan:
 			tabLanShown(true)
+		case tabWeb:
+			tabWebShown()
 		case tabLAf:
 			tabLAfShown()
 		}
 	}
-
-	svrTCP.ActFunc = tcpConnAct
-	svrTCP.ConnFunc = TCPSvrConnected
-	svrTCP.LogFunc = Log
+	ezcWin.SetContent(tabs)
 
 	//ezcWin.SetFixedSize(true)
 	ezcWin.Show()
@@ -247,18 +260,4 @@ func run(chnHTTP chan bool) {
 	if logger != nil {
 		logger.Close()
 	}
-}
-
-func validateInt64(str string) error {
-	if _, err := strconv.ParseInt(str, 10, 64); err != nil {
-		return err
-	}
-	return nil
-}
-
-func cpFile(rd io.ReadCloser, wr io.WriteCloser) (err error) {
-	defer rd.Close()
-	defer wr.Close()
-	_, err = io.Copy(wr, rd)
-	return
 }

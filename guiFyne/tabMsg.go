@@ -19,6 +19,8 @@ const (
 )
 
 var (
+	// svrTCP is for TCP server only
+	svrTCP ezcomm.SvrTCP
 	// snd2Slc is for UDP peer display
 	snd2Slc [2][]string
 	// sndMap is for UDP peer match
@@ -582,27 +584,30 @@ func SntMsg(comm ezcomm.RoutCommStruc) {
 	}
 }
 
-func makeControlsLcl() *fyne.Container {
+func makeControlsLclSocks() *fyne.Container {
 	rowLbl := container.NewCenter(widget.NewLabel(
 		ezcomm.StringTran["StrLcl"]))
 
 	addrLbl := widget.NewLabel(ezcomm.StringTran["StrAdr"])
 	portLbl := widget.NewLabel(ezcomm.StringTran["StrPrt"])
+	rowSock := container.NewGridWithRows(2,
+		addrLbl, sockLcl[0], portLbl, sockLcl[1])
+
+	rowProt := container.NewHBox(protRd, lstBut, disBut)
+	return container.NewVBox(rowLbl, rowSock, rowProt)
+}
+
+func makeControlsSocks() {
+	// local/left part
 	for i := 0; i < 2; i++ {
 		sockLcl[i] = widget.NewSelectEntry(nil)
 	}
 	sockLcl[0].PlaceHolder = ""
-	rowSock := container.NewGridWithRows(2,
-		addrLbl, sockLcl[0], portLbl, sockLcl[1])
 
 	protRd = widget.NewRadioGroup(
 		[]string{ezcomm.StrUDP, ezcomm.StrTCP}, nil)
 	protRd.Horizontal = true
 	protRd.SetSelected("udp")
-	lstBut = widget.NewButton(ezcomm.StringTran["StrLst"], Lstn)
-	disBut = widget.NewButton(ezcomm.StringTran["StrDis"], Disconn1)
-	disBut.Hide()
-	rowProt := container.NewHBox(protRd, lstBut, disBut)
 	protRd.OnChanged = func(str string) {
 		if len(str) < 1 {
 			protRd.SetSelected("udp")
@@ -610,9 +615,6 @@ func makeControlsLcl() *fyne.Container {
 		filLclChk(nil, "")
 		butSndByProt(str)
 	}
-
-	recLbl := container.NewCenter(widget.NewLabel(
-		ezcomm.StringTran["StrRec"]))
 	recSnd = widget.NewSelect(nil, func(str string) {
 		cntLcl.SetText(str)
 		escaped := url.PathEscape(str)
@@ -626,25 +628,8 @@ func makeControlsLcl() *fyne.Container {
 			}
 		}
 	})
-	cntLbl := container.NewCenter(widget.NewLabel(
-		ezcomm.StringTran["StrCnt"]))
-	rowRec := container.NewGridWithRows(3, recLbl, recSnd, cntLbl)
 
-	cntLcl = widget.NewMultiLineEntry()
-
-	sndBut = widget.NewButton(ezcomm.StringTran["StrSnd"], Snd)
-	sndBut.Disable()
-
-	tops := container.NewVBox(rowLbl, rowSock, rowProt, rowRec)
-	return container.NewBorder(tops, sndBut, nil, nil, cntLcl)
-}
-
-func makeControlsRmt() *fyne.Container {
-	rowLbl := container.NewCenter(widget.NewLabel(
-		ezcomm.StringTran["StrRmt"]))
-	rowTo := container.NewCenter(widget.NewLabel(
-		ezcomm.StringTran["StrTo"]))
-
+	// remote/right part
 	for i := 0; i < 2; i++ {
 		sockRmt[i] = widget.NewSelectEntry(nil)
 	}
@@ -661,6 +646,41 @@ func makeControlsRmt() *fyne.Container {
 		}
 		sndBut.Refresh()
 	}
+}
+
+func makeControlRecLbl() *fyne.Container {
+	return container.NewCenter(widget.NewLabel(
+		ezcomm.StringTran["StrRec"]))
+}
+
+func makeControlsLcl() *fyne.Container {
+	lstBut = widget.NewButton(ezcomm.StringTran["StrLst"], Lstn)
+	disBut = widget.NewButton(ezcomm.StringTran["StrDis"], Disconn1)
+	disBut.Hide()
+
+	cntLbl := container.NewCenter(widget.NewLabel(
+		ezcomm.StringTran["StrCnt"]))
+	rowRec := container.NewGridWithRows(3, makeControlRecLbl(), recSnd, cntLbl)
+
+	cntLcl = widget.NewMultiLineEntry()
+
+	sndBut = widget.NewButton(ezcomm.StringTran["StrSnd"], Snd)
+	sndBut.Disable()
+
+	tops := container.NewVBox(makeControlsLclSocks(), rowRec)
+	return container.NewBorder(tops, sndBut, nil, nil, cntLcl)
+}
+
+func makeControlsRmtSocks() *fyne.Container {
+	rowLbl := container.NewCenter(widget.NewLabel(
+		ezcomm.StringTran["StrRmt"]))
+	rowTo := container.NewCenter(widget.NewLabel(
+		ezcomm.StringTran["StrTo"]))
+
+	return container.NewVBox(rowLbl, rowTo, rowUDPSock2, rowTCPSock2)
+}
+
+func makeControlsRmt() *fyne.Container {
 	rowUDPSock2 = container.NewGridWithColumns(2, sockRmt[0], sockRmt[1])
 	rowTCPSock2 = widget.NewSelect(nil, func(str string) {
 	})
@@ -676,8 +696,6 @@ func makeControlsRmt() *fyne.Container {
 	rowSockF = widget.NewSelect(nil, sockF)
 	rowSockF.Options = []string{ezcomm.StringTran["StrAll"]}
 
-	recLbl := container.NewCenter(widget.NewLabel(
-		ezcomm.StringTran["StrRec"]))
 	recRcv = widget.NewSelect(nil, func(str string) {
 		cntRmt.SetText(str)
 		escaped := url.PathEscape(str)
@@ -694,16 +712,20 @@ func makeControlsRmt() *fyne.Container {
 	recMap = make(map[string][]string)
 	cntLbl := container.NewCenter(widget.NewLabel(
 		ezcomm.StringTran["StrCnt"]))
-	rowRec := container.NewGridWithRows(3, recLbl, recRcv, cntLbl)
+	rowRec := container.NewGridWithRows(3, makeControlRecLbl(), recRcv, cntLbl)
 
 	cntRmt = widget.NewMultiLineEntry()
 
-	tops := container.NewVBox(rowLbl, rowTo, rowUDPSock2, rowTCPSock2,
+	tops := container.NewVBox(makeControlsRmtSocks(),
 		rowFrm, rowSockF, rowRec)
 	return container.NewBorder(tops, nil, nil, nil, cntRmt)
 }
 
 func makeTabMsg() *container.TabItem {
+	svrTCP.ActFunc = tcpConnAct
+	svrTCP.ConnFunc = TCPSvrConnected
+	svrTCP.LogFunc = Log
+
 	tabMsg = container.NewTabItem(ezcomm.StringTran["StrInt"],
 		container.NewGridWithColumns(2,
 			makeControlsLcl(), makeControlsRmt()))
