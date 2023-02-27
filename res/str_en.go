@@ -1,7 +1,7 @@
 package res
 
 import (
-	"gitee.com/bon-ami/eztools/v5"
+	"gitee.com/bon-ami/eztools/v6"
 )
 
 // I18nEn initialize resource for en
@@ -97,5 +97,9 @@ func I18nEn() {
 		StrRmAll        = "remove all these files?"
 		StrDel          = "delete"
 		StrCopied       = "Copied"
+		StrHeader      = "Header"
+		StrValue        = "Value"
+		StrSE2Del       = "([Shift]+)[Enter] to remove"
+		StrTxt2ShareBtCS= "text to share between client and server"
 	`)
 }

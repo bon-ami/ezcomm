@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"gitee.com/bon-ami/eztools/v5"
+	"gitee.com/bon-ami/eztools/v6"
 )
 
 func TestFlow(t *testing.T) {

@@ -13,7 +13,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
-	"gitee.com/bon-ami/eztools/v5"
+	"gitee.com/bon-ami/eztools/v6"
 	"gitlab.com/bon-ami/ezcomm"
 )
 
@@ -307,30 +307,6 @@ func makeControlsCfg() *fyne.Container {
 
 	rowLang := container.NewCenter(widget.NewLabel(
 		ezcomm.StringTran["StrLang"]))
-	/*langMap := make(map[string]string)
-	langSel := widget.NewSelect(nil, func(str string) {
-		prevMsgLang := ezcomm.StringTran["StrReboot4Change"] + "\n"
-		//prevMsgFont := ezcomm.StringTran["StrFnt4LangBuiltin"] + "\n"
-		//Log("selecting", str)
-		//loadStr(langMap[str])
-		if ezcomm.CfgStruc.Language == langMap[str] {
-			return
-		}
-		ezcomm.CfgStruc.Language = langMap[str]
-		writeCfg()
-
-		lang, err := ezcomm.I18nLoad(ezcomm.CfgStruc.Language)
-		if err != nil {
-			Log("cannot set language", ezcomm.CfgStruc.Language, err)
-			return
-		}
-		ezcomm.CfgStruc.Language = lang
-		ezcomm.MatchFontFromCurrLanguageCfg()
-		markFont(useFontFromCfg(true, lang))
-		dialog.ShowInformation(ezcomm.StringTran["StrLang"], prevMsgLang+
-			ezcomm.StringTran["StrReboot4Change"], ezcWin)
-	})
-	langSel.PlaceHolder = ezcomm.StringTran["StrLang"]*/
 	langImgs := make([]fyne.CanvasObject, 0)
 	langButs = make([]fyne.CanvasObject, 0)
 	langID2But := make(map[string]*widget.Button)
@@ -363,28 +339,28 @@ func makeControlsCfg() *fyne.Container {
 			title := prevMsgLang + " " +
 				ezcomm.StringTran["StrLang"]
 			if LangsBuiltin[langResMap[id]].rbt == nil {
+				// ASCII. no icon
 				dialog.ShowInformation(title,
-					prevMsgRbt+"\n"+
-						ezcomm.StringTran["StrReboot4Change"],
+					prevMsgRbt+"\n"+ezcomm.StringTran["StrReboot4Change"],
 					ezcWin)
 				return
 			}
-			msg := widget.NewFormItem("",
-				widget.NewLabel(prevMsgRbt))
-			icn := widget.NewFormItem("",
-				container.NewGridWrap(
-					fyne.NewSize(
-						LangsBuiltin[langResMap[id]].
-							rbtWidth,
-						LangsBuiltin[langResMap[id]].
-							rbtHeight),
-					canvas.NewImageFromResource(
-						LangsBuiltin[langResMap[id]].
-							rbt)))
-			formItems := []*widget.FormItem{msg, icn}
-			dialog.ShowForm(title, prevMsgOK,
-				ezcomm.StringTran["StrOK"],
-				formItems, nil, ezcWin)
+			// non-ASCII. show icon
+			msg := widget.NewLabel(prevMsgRbt)
+			icn := container.NewGridWrap(
+				fyne.NewSize(
+					LangsBuiltin[langResMap[id]].
+						rbtWidth,
+					LangsBuiltin[langResMap[id]].
+						rbtHeight),
+				canvas.NewImageFromResource(
+					LangsBuiltin[langResMap[id]].
+						rbt))
+			formItems := container.NewVBox(msg,
+				container.NewCenter(icn))
+			dialog.ShowCustom(title,
+				prevMsgOK+" "+ezcomm.StringTran["StrOK"],
+				formItems, ezcWin)
 		}
 		langBut1 := widget.NewButton(id, langSelFun)
 		imgContainer := container.NewGridWrap(

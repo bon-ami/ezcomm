@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"gitee.com/bon-ami/eztools/v5"
+	"gitee.com/bon-ami/eztools/v6"
 )
 
 var (
@@ -54,7 +54,7 @@ func TestSvrCln(t *testing.T) {
 		//t.Log("waiting for", i)
 		<-chs[i]
 	}
-	*TstMsg = tstBye
+	*TstMsg = TstBye
 	if eztools.Verbose > 1 {
 		t.Log("client", *TstMsg)
 	}
@@ -98,7 +98,7 @@ func tstClnt(addr [4]string, chn [2]chan RoutCommStruc) {
 			CharHd = '\u0393'
 			CharTl = '\u03C9'
 		)
-		msgs = append(msgs, "bonjour")
+		msgs = append(msgs, TstHalo)
 		if cnt <= 0 {
 			cnt = CharTl - CharHd
 			if eztools.Verbose > 0 {
@@ -230,7 +230,7 @@ func tstUDPSvr(fin chan bool, chn [2]chan RoutCommStruc) {
 			wait4Rcvr = false
 			return
 		case FlowChnSnd:
-			if string(comm.Data) == tstBye {
+			if string(comm.Data) == TstBye {
 				if eztools.Verbose > 1 {
 					TstT.Log("exiting server after bye sent")
 				}

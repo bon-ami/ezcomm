@@ -9,7 +9,7 @@ import (
 	"reflect"
 	"strings"
 
-	"gitee.com/bon-ami/eztools/v5"
+	"gitee.com/bon-ami/eztools/v6"
 )
 
 const (

@@ -10,7 +10,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
-	"gitee.com/bon-ami/eztools/v5"
+	"gitee.com/bon-ami/eztools/v6"
 	"gitlab.com/bon-ami/ezcomm"
 )
 
@@ -204,7 +204,7 @@ func makeControlsLF() *fyne.Container {
 
 	filLbl := widget.NewLabel(ezcomm.StringTran["StrFilO"])
 	filLbl.Wrapping = fyne.TextWrapWord
-	tops := container.NewVBox(makeControlsLclSocks(), rowRec, filLbl)
+	tops := container.NewVBox(makeControlsLclSocks(true), rowRec, filLbl)
 
 	filLclBut = widget.NewButton(ezcomm.StringTran["StrFil"], filButLcl)
 	filLAfL = widget.NewButton(ezcomm.StringTran["StrRcvFil"], func() {
@@ -272,6 +272,7 @@ func tabFilShown() {
 	}
 	protRd.Refresh()
 	lstBut.Refresh()
+	sndBut.Refresh()
 	filLAfL.Refresh()
 	filLAfR.Refresh()
 	filLclBut.Refresh()

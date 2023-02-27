@@ -5,13 +5,11 @@ import (
 	"net"
 	"strconv"
 	"strings"
-	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
-	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/widget"
-	"gitee.com/bon-ami/eztools/v5"
+	"gitee.com/bon-ami/eztools/v6"
 	"gitlab.com/bon-ami/ezcomm"
 )
 
@@ -47,9 +45,13 @@ func runHTTP() chan error {
 	addr := lstnr.Addr().String()
 	ind := strings.LastIndex(addr, ":")
 	lanPrtHTTP = addr[ind:]
+	setLclSck(addr)
+	setLclAddrs(localAddrSlc)
 	lanWeb.Refresh()
 	httpSvr = ezcomm.MakeHTTPSvr()
-	httpSvr.FS("", "", httpFS(appStorage.RootURI().Path()))
+	httpSvr.GET(httpSmsDir, printIncomingWeb)
+	httpSvr.POST(httpSmsDir, postIncomingWeb)
+	httpSvr.FS(httpAppDir, "", httpFS(appStorage.RootURI().Path()))
 	return httpSvr.Serve(lstnr)
 }
 
@@ -270,30 +272,6 @@ func lanListen(chnHTTP chan bool) {
 	}
 }
 
-// toast shows a toast window
-// Parameters: index to ezcomm.StringTran and second line string
-func toast(id, inf string) {
-	const to = time.Second * 3
-	go func(inf string) {
-		if drv, ok := ezcApp.Driver().(desktop.Driver); ok {
-			w := drv.CreateSplashWindow()
-			w.SetContent(widget.NewLabel(
-				ezcomm.StringTran[id] + "\n" + inf))
-			w.Show()
-			go func() {
-				time.Sleep(to)
-				w.Close()
-			}()
-		}
-	}(inf)
-}
-
-func cp2Clip(str string) {
-	drv := ezcApp.Driver()
-	clipboard := drv.AllWindows()[0].Clipboard()
-	clipboard.SetContent(str)
-	toast("StrCopied", str)
-}
 func makeTabLan(chnHTTP chan bool) *container.TabItem {
 	chnLan = make(chan bool, 1)
 	lanWeb = widget.NewList(

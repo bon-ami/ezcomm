@@ -4,12 +4,11 @@ import (
 	"io"
 	"net"
 	"net/url"
-	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/widget"
-	"gitee.com/bon-ami/eztools/v5"
+	"gitee.com/bon-ami/eztools/v6"
 	"gitlab.com/bon-ami/ezcomm"
 )
 
@@ -44,6 +43,8 @@ var (
 )
 
 func connEnable() {
+	tabs.DisableItem(tabLan)
+	tabs.DisableItem(tabWeb)
 	//for _, i := range selectCtrls {
 	for i := 0; i < 2; i++ {
 		sockLcl[i].Enable()
@@ -53,6 +54,8 @@ func connEnable() {
 }
 
 func connDisable() {
+	tabs.EnableItem(tabLan)
+	tabs.EnableItem(tabWeb)
 	//for _, i := range selectCtrls {
 	for i := 0; i < 2; i++ {
 		sockLcl[i].Disable()
@@ -61,10 +64,14 @@ func connDisable() {
 	lstBut.SetText(ezcomm.StringTran["StrStp"])
 }
 
+func setLclAddrs(addr []string) {
+	sockLcl[0].SetOptions(addr)
+}
+
 func setLclSck(addr string) {
-	ind := strings.LastIndex(addr, ":")
-	sockLcl[0].SetText(addr[:ind])
-	sockLcl[1].SetText(addr[ind+1:])
+	ho, po := parseSck(addr)
+	sockLcl[0].SetText(ho)
+	sockLcl[1].SetText(po)
 }
 
 func getRmtSckStr() string {
@@ -465,19 +472,15 @@ func Rcv(comm ezcomm.RoutCommStruc) {
 		return
 	}
 	var peer, addr string
-	getAddr := func() int {
-		ind := strings.LastIndex(peer, ":")
-		addr = peer[:ind]
-		return ind
-	}
 	if comm.PeerUDP != nil {
 		peer = comm.PeerUDP.String()
-		ind := getAddr()
+		var po string
+		addr, po = parseSck(peer)
 		add2Rmt(0, addr)
-		add2Rmt(1, peer[ind+1:])
+		add2Rmt(1, po)
 	} else if comm.PeerTCP != nil {
 		peer = comm.PeerTCP.String()
-		getAddr()
+		addr, _ = parseSck(peer)
 	}
 	if len(peer) > 0 {
 		Log(ezcomm.StringTran["StrGotFrom"], peer)
@@ -578,13 +581,13 @@ func SntMsg(comm ezcomm.RoutCommStruc) {
 	recSnd.Options = append(recSnd.Options, string(comm.Data))
 	if comm.PeerUDP != nil {
 		addrStr := comm.PeerUDP.String()
-		ind := strings.LastIndex(addrStr, ":")
-		sockRmt[0].SetText(addrStr[:ind])
-		sockRmt[1].SetText(addrStr[ind+1:])
+		ho, po := parseSck(addrStr)
+		sockRmt[0].SetText(ho)
+		sockRmt[1].SetText(po)
 	}
 }
 
-func makeControlsLclSocks() *fyne.Container {
+func makeControlsLclSocks(prot bool) *fyne.Container {
 	rowLbl := container.NewCenter(widget.NewLabel(
 		ezcomm.StringTran["StrLcl"]))
 
@@ -593,6 +596,9 @@ func makeControlsLclSocks() *fyne.Container {
 	rowSock := container.NewGridWithRows(2,
 		addrLbl, sockLcl[0], portLbl, sockLcl[1])
 
+	if !prot {
+		return container.NewVBox(rowLbl, rowSock)
+	}
 	rowProt := container.NewHBox(protRd, lstBut, disBut)
 	return container.NewVBox(rowLbl, rowSock, rowProt)
 }
@@ -667,7 +673,7 @@ func makeControlsLcl() *fyne.Container {
 	sndBut = widget.NewButton(ezcomm.StringTran["StrSnd"], Snd)
 	sndBut.Disable()
 
-	tops := container.NewVBox(makeControlsLclSocks(), rowRec)
+	tops := container.NewVBox(makeControlsLclSocks(true), rowRec)
 	return container.NewBorder(tops, sndBut, nil, nil, cntLcl)
 }
 
@@ -747,5 +753,6 @@ func chkNEnableSnd(filShown bool) {
 func tabMsgShown() {
 	protRd.Refresh()
 	lstBut.Refresh()
+	sndBut.Refresh()
 	chkNEnableSnd(false)
 }

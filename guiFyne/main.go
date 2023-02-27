@@ -8,12 +8,16 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/storage"
-	"gitee.com/bon-ami/eztools/v5"
+	"fyne.io/fyne/v2/widget"
+	"gitee.com/bon-ami/eztools/v6"
 	"gitlab.com/bon-ami/ezcomm"
 )
 
@@ -23,9 +27,9 @@ var (
 	thm        theme4Fonts
 	appStorage fyne.Storage
 	// chn is for TCP client and UDP
-	chn            [2]chan ezcomm.RoutCommStruc
-	tabs           *container.AppTabs
-	tabFil, tabLAf *container.TabItem
+	chn                            [2]chan ezcomm.RoutCommStruc
+	tabs                           *container.AppTabs
+	tabLan, tabWeb, tabFil, tabLAf *container.TabItem
 )
 
 func parseParams() {
@@ -161,11 +165,61 @@ func validateInt64(str string) error {
 	return nil
 }
 
+// parseSck splits host:port
+func parseSck(addr string) (string, string) {
+	ind := strings.LastIndex(addr, ":")
+	if ind < 0 {
+		return addr, ""
+	}
+	return addr[:ind], addr[ind+1:]
+}
+
 func cpFile(rd io.ReadCloser, wr io.WriteCloser) (err error) {
 	defer rd.Close()
 	defer wr.Close()
 	_, err = io.Copy(wr, rd)
 	return
+}
+
+var (
+	toastLock sync.Mutex
+	toastOn   bool
+)
+
+// toast shows a toast window
+// Parameters: index to ezcomm.StringTran and second line string
+func toast(id, inf string) {
+	const toNorm = time.Second * 3
+	const toFast = time.Second * 1
+	var to time.Duration
+	if toastOn {
+		to = toFast
+	} else {
+		to = toNorm
+	}
+	toastLock.Lock()
+	toastOn = true
+	go func(inf string, to time.Duration) {
+		if drv, ok := ezcApp.Driver().(desktop.Driver); ok {
+			w := drv.CreateSplashWindow()
+			w.SetContent(widget.NewLabel(
+				ezcomm.StringTran[id] + "\n" + inf))
+			w.Show()
+			go func(inf string, to time.Duration) {
+				time.Sleep(to)
+				w.Close()
+				toastOn = false
+				toastLock.Unlock()
+			}(inf, to)
+		}
+	}(inf, to)
+}
+
+func cp2Clip(str string) {
+	drv := ezcApp.Driver()
+	clipboard := drv.AllWindows()[0].Clipboard()
+	clipboard.SetContent(str)
+	go toast("StrCopied", str)
 }
 
 func main() {
@@ -216,20 +270,29 @@ func run(chnHTTP chan bool) {
 	tabMsg := makeTabMsg()
 	tabFil = makeTabFil()
 	tabCfg := makeTabCfg()
-	tabLan := makeTabLan(chnHTTP)
-	tabWeb := makeTabWeb()
+	tabLan = makeTabLan(chnHTTP)
+	tabWeb = makeTabWeb()
 	tabLAf = makeTabLAf()
 	tabs = container.NewAppTabs(
 		tabLan,
-		//tabWeb,
+		tabWeb,
 		tabMsg,
 		tabFil,
 		tabLAf,
 		tabLog,
 		tabCfg,
 	)
+	currTabLan := false // wait for tabs.OnSelected() to turn it on
 	tabs.OnSelected = func(tb *container.TabItem) {
-		tabLanShown(false)
+		if currTabLan {
+			switch tb {
+			case tabLan, tabWeb:
+				break
+			default:
+				currTabLan = false
+				tabLanShown(currTabLan)
+			}
+		}
 		switch tb {
 		case tabMsg:
 			tabMsgShown()
@@ -240,7 +303,10 @@ func run(chnHTTP chan bool) {
 		case tabCfg:
 			tabCfgShown()
 		case tabLan:
-			tabLanShown(true)
+			if !currTabLan { // web->lan
+				currTabLan = true
+				tabLanShown(currTabLan)
+			}
 		case tabWeb:
 			tabWebShown()
 		case tabLAf:

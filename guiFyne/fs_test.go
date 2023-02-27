@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"gitee.com/bon-ami/eztools/v5"
+	"gitee.com/bon-ami/eztools/v6"
 	"gitlab.com/bon-ami/ezcomm"
 )
 

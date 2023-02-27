@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitee.com/bon-ami/eztools/v5"
+	"gitee.com/bon-ami/eztools/v6"
 	"github.com/bon-ami/go-findfont"
 	"gitlab.com/bon-ami/ezcomm/res"
 )
@@ -102,6 +102,10 @@ var (
 		"StrRmAll",
 		"StrDel",
 		"StrCopied",
+		"StrHeader",
+		"StrValue",
+		"StrSE2Del",
+		"StrTxt2ShareBtCS",
 	}
 )
 

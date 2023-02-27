@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"gitee.com/bon-ami/eztools/v5"
+	"gitee.com/bon-ami/eztools/v6"
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,10 +19,14 @@ type HTTPSvr struct {
 
 // MakeHTTPSvr makes a HTTPSvr
 func MakeHTTPSvr() *HTTPSvr {
+	if !eztools.Debugging {
+		gin.SetMode(gin.ReleaseMode)
+	}
 	return &HTTPSvr{rt: gin. /*Default() */ New()}
 }
 
 // FS sets a static file system
+// Parameters: fs OR rootPath: to use a filesystem or gin's default
 func (svr *HTTPSvr) FS(relativePath, rootPath string, fs http.FileSystem) {
 	if fs == nil {
 		if eztools.Debugging && eztools.Verbose > 1 {
@@ -35,6 +39,83 @@ func (svr *HTTPSvr) FS(relativePath, rootPath string, fs http.FileSystem) {
 		}
 	}
 	svr.rt.StaticFS(relativePath, fs)
+}
+
+const (
+	// HTTPSvrHTMLContentType ContentType of HTML for HTTPSvr
+	HTTPSvrHTMLContentType = "text/html; charset=utf-8"
+	// HTTPSvrBodyString string as body for HTTPSvr
+	HTTPSvrBodyString = iota
+	// HTTPSvrBodyHTML html as body for HTTPSvr
+	// this is same as HTTPSvrBodyString,
+	// in addition, it sets ContentType to HTTPSvrHTMLContentType
+	HTTPSvrBodyHTML
+	// HTTPSvrBodyJSON json as body for HTTPSvr
+	HTTPSvrBodyJSON
+)
+
+// HTTPSvrBody body for HTTPSvr
+type HTTPSvrBody struct {
+	// Tp type, one of HTTPSvrBodyString, HTTPSvrBodyHTML
+	// and HTTPSvrBodyJSON
+	Tp int
+	// Str for HTTPSvrBodyString and HTTPSvrBodyHTML
+	Str string
+	// JSON for HTTPSvrBodyJSON, map[string]any
+	JSON gin.H
+}
+
+// HTTPSvrProcFunc method proc func type for HTTPSvr
+//
+//	Parameters:
+//
+// remote IP
+// request
+// func to get values by keys
+//
+//	Return values:
+//	response code, body, headers. 204 is default if fun is nil.
+type HTTPSvrProcFunc func(string, *http.Request,
+	func(string) string) (int, HTTPSvrBody, map[string]string)
+
+func (svr *HTTPSvr) methodsProc(c *gin.Context, fun HTTPSvrProcFunc) {
+	//buf, err := c.GetRawData()
+	code := http.StatusNoContent
+	var body HTTPSvrBody
+	if fun != nil {
+		var pS map[string]string
+		code, body, pS = fun(c.ClientIP(), c.Request, c.PostForm)
+		for k, v := range pS {
+			/*k, v, e := pS.GetNMove()
+			if e != nil {
+				break
+			}*/
+			c.Header(k, v)
+		}
+	}
+	switch body.Tp {
+	case HTTPSvrBodyHTML:
+		c.Header("Content-Type", HTTPSvrHTMLContentType)
+		fallthrough
+	case HTTPSvrBodyString:
+		c.String(code, body.Str)
+	case HTTPSvrBodyJSON:
+		c.JSON(code, body.JSON)
+	}
+}
+
+// GET sets a GET handler
+func (svr *HTTPSvr) GET(relativePath string, fun HTTPSvrProcFunc) {
+	svr.rt.GET(relativePath, func(c *gin.Context) {
+		svr.methodsProc(c, fun)
+	})
+}
+
+// POST shows a text input
+func (svr *HTTPSvr) POST(relativePath string, fun HTTPSvrProcFunc) {
+	svr.rt.POST(relativePath, func(c *gin.Context) {
+		svr.methodsProc(c, fun)
+	})
 }
 
 // Serve http.Serve with handler set by FS()

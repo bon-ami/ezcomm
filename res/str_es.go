@@ -1,7 +1,7 @@
 package res
 
 import (
-	"gitee.com/bon-ami/eztools/v5"
+	"gitee.com/bon-ami/eztools/v6"
 )
 
 // I18nEs initialize resource for es
@@ -54,8 +54,8 @@ func I18nEs() { // by bing.com
 		StrFlowOpenNot   = "archivo de flujo NO abierto"
 		StrFlowRunning   = "archivo de flujo en ejecución"
 		StrFlowRunNot    = "flujo NO ejecutado"
-		StrOK            = "DE ACUERDO"
-		StrNG            = "MAL"
+		StrOK            = "De acuerdo"
+		StrNG            = "Mal"
 		StrFlowFinAs     = "archivo de flujo terminado como"
 		StrCut           = "Cortar"
 		StrCpy           = "Copiar"
@@ -97,5 +97,9 @@ func I18nEs() { // by bing.com
 		StrRmAll        = "¿eliminar todos estos archivos?"
 		StrDel          = "borrar"
 		StrCopied       = "Copiado"
+		StrHeader      = "Encabezado de mensaje"
+		StrValue        = "Valor"
+		StrSE2Del       = "([Mayús]+)[Entrar] para eliminar"
+		StrTxt2ShareBtCS= "texto para compartir entre el cliente y el servidor"
 	`)
 }

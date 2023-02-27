@@ -4,12 +4,14 @@ import (
 	"io"
 	"os"
 
-	"gitee.com/bon-ami/eztools/v5"
+	"gitee.com/bon-ami/eztools/v6"
 )
 
 const (
 	// EzcName app name, such as for log file
 	EzcName = "EZComm"
+	// EzcURL URL of homepage
+	EzcURL = "https://gitlab.com/bon-ami/ezcomm"
 	// LogExt log file extension
 	LogExt = ".log"
 	// DefPeerAdr default peer address

@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"gitee.com/bon-ami/eztools/v5"
+	"gitee.com/bon-ami/eztools/v6"
 )
 
 // FuncLog is log function

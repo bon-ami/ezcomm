@@ -3,7 +3,7 @@ package ezcomm
 import (
 	"net"
 
-	"gitee.com/bon-ami/eztools/v5"
+	"gitee.com/bon-ami/eztools/v6"
 )
 
 // SvrTCP handles all clients and uses requested address to match them with user

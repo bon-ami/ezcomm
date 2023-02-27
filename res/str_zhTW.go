@@ -1,7 +1,7 @@
 package res
 
 import (
-	"gitee.com/bon-ami/eztools/v5"
+	"gitee.com/bon-ami/eztools/v6"
 )
 
 // I18nZhtw initialize resource for zhTW
@@ -55,7 +55,7 @@ func I18nZhtw() {
 		StrFlowRunning   = "正在運行流程"
 		StrFlowRunNot    = "流程未運行"
 		StrOK            = "通過"
-		StrNG            = "錯誤"
+		StrNG            = "不好"
 		StrFlowFinAs     = "流程結束為"
 		StrCut           = "剪切"
 		StrCpy           = "拷貝"
@@ -97,5 +97,9 @@ func I18nZhtw() {
 		StrRmAll        = "刪除所有這些檔?"
 		StrDel          = "刪除"
 		StrCopied       = "已複製"
+		StrHeader      = "消息頭"
+		StrValue        = "數值"
+		StrSE2Del       = "([Shift]+)[Enter]刪除"
+		StrTxt2ShareBtCS="要在用戶端和伺服器之間共用的文本"
 	`)
 }

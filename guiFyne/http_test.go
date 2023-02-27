@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"fyne.io/fyne/v2/test"
-	"gitee.com/bon-ami/eztools/v5"
+	"gitee.com/bon-ami/eztools/v6"
 	"gitlab.com/bon-ami/ezcomm"
 )
 

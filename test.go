@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"gitee.com/bon-ami/eztools/v5"
+	"gitee.com/bon-ami/eztools/v6"
 )
 
 const (
@@ -15,8 +15,11 @@ const (
 	tstDefVerbose      = 0
 	tstDefRoot         = "testdata"
 	tstDefProt         = "udp4"
-	tstBye             = "ciao"
-	tstSeparator       = ";"
+	// TstHalo beginning string
+	TstHalo = "bonjour"
+	// TstBye ending string
+	TstBye       = "ciao"
+	tstSeparator = ";"
 )
 
 var (
@@ -55,7 +58,7 @@ func init() {
 	TstLcl = flag.String("lcl", DefPeerAdr+":", "local address")
 	TstRmt = flag.String("rmt", "", "remote address")
 	TstMsg = flag.String("msg", "", "messages to send, separated by \""+
-		tstSeparator+"\". \""+tstBye+"\" to end udp server")
+		tstSeparator+"\". \""+TstBye+"\" to end udp server")
 	TstRoot = flag.String("root", tstDefRoot, "root dir for http server")
 	TstTimeout = flag.Int("timer", -1, "in seconds. default="+
 		strconv.Itoa(tstDefTimeout))
@@ -118,8 +121,8 @@ func Init4Tests(t *testing.T) {
 			t.Log(m)
 		}(eztools.GetCallerLog(), l)
 	})
-	eztools.Debugging = true
 	if *tstVerbose > 0 && *tstVerbose < 4 {
+		eztools.Debugging = true
 		eztools.Verbose = *tstVerbose
 	}
 	return
