@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"io"
 	"path/filepath"
 	"strconv"
@@ -12,7 +13,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
-	"gitee.com/bon-ami/eztools/v4"
+	"gitee.com/bon-ami/eztools/v6"
 	"gitlab.com/bon-ami/ezcomm"
 )
 
@@ -25,11 +26,10 @@ func writeCfg() {
 	cfgFileName := ezcomm.EzcName + ".xml"
 	cfgWriter, err := appStorage.Save(cfgFileName)
 	if err != nil {
-		/* TODO: fyne returns customized errors so I cannot check it now
 		if !errors.Is(err, storage.ErrNotExists) {
 			Log("failed to write to config file", err)
 			return
-		}*/
+		}
 		cfgWriter, err = appStorage.Create(cfgFileName)
 		if err != nil {
 			Log("failed to create config file", err)
@@ -45,12 +45,12 @@ func writerNew(p string) (io.WriteCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	if b, err := storage.CanWrite(uri); err != nil {
-		return nil, err
-	} else {
+	if b, err := storage.CanWrite(uri); err == nil {
 		if !b {
 			return nil, eztools.ErrAccess
 		}
+	} else {
+		return nil, err
 	}
 	return storage.Writer(uri)
 }
@@ -75,11 +75,14 @@ func makeTabCfg() *container.TabItem {
 }
 
 // treWriteFile overwrites the file with the name under Downloads of app,
+//
 //	and prompts user to create one,
 //	if no writer able to be created.
 //	The existing file will be truncated.
 //	DO NOT call this in UI thread!
+//
 // Return values:
+//
 //	wc=Close() to be called by caller
 //	res=error string, or selected file path by user
 //	abt=whether to abort
@@ -143,17 +146,14 @@ func chkFlowStruc(flow ezcomm.FlowStruc) (string, bool) {
 				len(step.Data) > 0 {
 				fn, fil := step.ParseData(flow, conn)
 				if fil == 1 {
-					if wr, res, ret := tryWriteFile(
-						ezcomm.FlowWriterNew, fn); ret {
-						if wr != nil {
-							wr.Close()
-						}
+					wr, res, ret := tryWriteFile(
+						ezcomm.FlowWriterNew, fn)
+					// since incoming files are saved under app's dir, we do not need wr
+					if wr != nil {
+						wr.Close()
+					}
+					if ret {
 						return res, ret
-					} else {
-						// since incoming files are saved under app's dir, we do not need wr
-						if wr != nil {
-							wr.Close()
-						}
 					}
 				}
 			}
@@ -307,33 +307,9 @@ func makeControlsCfg() *fyne.Container {
 
 	rowLang := container.NewCenter(widget.NewLabel(
 		ezcomm.StringTran["StrLang"]))
-	/*langMap := make(map[string]string)
-	langSel := widget.NewSelect(nil, func(str string) {
-		prevMsgLang := ezcomm.StringTran["StrReboot4Change"] + "\n"
-		//prevMsgFont := ezcomm.StringTran["StrFnt4LangBuiltin"] + "\n"
-		//Log("selecting", str)
-		//loadStr(langMap[str])
-		if ezcomm.CfgStruc.Language == langMap[str] {
-			return
-		}
-		ezcomm.CfgStruc.Language = langMap[str]
-		writeCfg()
-
-		lang, err := ezcomm.I18nLoad(ezcomm.CfgStruc.Language)
-		if err != nil {
-			Log("cannot set language", ezcomm.CfgStruc.Language, err)
-			return
-		}
-		ezcomm.CfgStruc.Language = lang
-		ezcomm.MatchFontFromCurrLanguageCfg()
-		markFont(useFontFromCfg(true, lang))
-		dialog.ShowInformation(ezcomm.StringTran["StrLang"], prevMsgLang+
-			ezcomm.StringTran["StrReboot4Change"], ezcWin)
-	})
-	langSel.PlaceHolder = ezcomm.StringTran["StrLang"]*/
 	langImgs := make([]fyne.CanvasObject, 0)
 	langButs = make([]fyne.CanvasObject, 0)
-	langId2But := make(map[string]*widget.Button)
+	langID2But := make(map[string]*widget.Button)
 	eztools.ListLanguages(func(name, id string) {
 		icon := LangsBuiltin[langResMap[id]].name
 		langSelFun := func() {
@@ -355,7 +331,7 @@ func makeControlsCfg() *fyne.Container {
 			if currLngBut != nil {
 				currLngBut.Enable()
 			}
-			currLngBut = langId2But[id]
+			currLngBut = langID2But[id]
 			currLngBut.Disable()
 			ezcomm.CfgStruc.Language = lang
 			ezcomm.MatchFontFromCurrLanguageCfg()
@@ -363,35 +339,35 @@ func makeControlsCfg() *fyne.Container {
 			title := prevMsgLang + " " +
 				ezcomm.StringTran["StrLang"]
 			if LangsBuiltin[langResMap[id]].rbt == nil {
+				// ASCII. no icon
 				dialog.ShowInformation(title,
-					prevMsgRbt+"\n"+
-						ezcomm.StringTran["StrReboot4Change"],
+					prevMsgRbt+"\n"+ezcomm.StringTran["StrReboot4Change"],
 					ezcWin)
 				return
 			}
-			msg := widget.NewFormItem("",
-				widget.NewLabel(prevMsgRbt))
-			icn := widget.NewFormItem("",
-				container.NewGridWrap(
-					fyne.NewSize(
-						LangsBuiltin[langResMap[id]].
-							rbtWidth,
-						LangsBuiltin[langResMap[id]].
-							rbtHeight),
-					canvas.NewImageFromResource(
-						LangsBuiltin[langResMap[id]].
-							rbt)))
-			formItems := []*widget.FormItem{msg, icn}
-			dialog.ShowForm(title, prevMsgOK,
-				ezcomm.StringTran["StrOK"],
-				formItems, nil, ezcWin)
+			// non-ASCII. show icon
+			msg := widget.NewLabel(prevMsgRbt)
+			icn := container.NewGridWrap(
+				fyne.NewSize(
+					LangsBuiltin[langResMap[id]].
+						rbtWidth,
+					LangsBuiltin[langResMap[id]].
+						rbtHeight),
+				canvas.NewImageFromResource(
+					LangsBuiltin[langResMap[id]].
+						rbt))
+			formItems := container.NewVBox(msg,
+				container.NewCenter(icn))
+			dialog.ShowCustom(title,
+				prevMsgOK+" "+ezcomm.StringTran["StrOK"],
+				formItems, ezcWin)
 		}
 		langBut1 := widget.NewButton(id, langSelFun)
 		imgContainer := container.NewGridWrap(
 			fyne.NewSize(LangsBuiltin[langResMap[id]].nameWidth,
 				LangsBuiltin[langResMap[id]].nameHeight),
 			canvas.NewImageFromResource(icon))
-		langId2But[id] = langBut1
+		langID2But[id] = langBut1
 		if ezcomm.CfgStruc.Language == id {
 			//langSel.SetSelected(full)
 			currLang = id
@@ -456,7 +432,7 @@ func saveFontFromIndx(lang string) {
 	}
 	if !found {
 		ezcomm.CfgStruc.Fonts = append(ezcomm.CfgStruc.Fonts,
-			ezcomm.EzcommFonts{Locale: lang, Font: font})
+			ezcomm.Fonts{Locale: lang, Font: font})
 
 	}
 	writeCfg()
@@ -502,7 +478,7 @@ func useFontFromCfg(setTheme bool, lang string) (fontPath string,
 			return "", i
 		}
 		// i != index of LangsBuiltin, but from all res.fnt != nil
-		i += 1
+		i++
 	}
 	if len(cfg) < 1 {
 		return

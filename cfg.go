@@ -4,25 +4,39 @@ import (
 	"io"
 	"os"
 
-	"gitee.com/bon-ami/eztools/v4"
+	"gitee.com/bon-ami/eztools/v6"
 )
 
 const (
-	EzcName      = "EZComm"
-	LogExt       = ".log"
-	DefAdr       = "localhost"       // use "" instead to listen on all interfaces
-	DefBrd       = "255.255.255.255" // broadcast addr
-	StrUdp       = "udp"
-	StrTcp       = "tcp"
+	// EzcName app name, such as for log file
+	EzcName = "EZComm"
+	// EzcURL URL of homepage
+	EzcURL = "https://gitlab.com/bon-ami/ezcomm"
+	// LogExt log file extension
+	LogExt = ".log"
+	// DefPeerAdr default peer address
+	DefPeerAdr = "localhost" // use "" instead to listen on all interfaces
+	// DefBrdAdr address for broadcast in lan discovery
+	DefBrdAdr = "255.255.255.255" // broadcast addr
+	// StrUDP is UDP protocol. otherwise, udp4, udp6, etc.
+	StrUDP = "udp"
+	// StrTCP is TCP protocol. otherwise, tcp4, tcp6, etc.
+	StrTCP = "tcp"
+	// DefAntFldLmt default anti-flood limit to tolerate a peer
 	DefAntFldLmt = 10
+	// DefAntFldPrd default anti-flood period to block a peer
 	DefAntFldPrd = 60
 )
 
 var (
-	Ver, Bld string
+	// Ver verison
+	Ver string
+	// Bld build, a number or date
+	Bld string
 )
 
-type EzcommFonts struct {
+// Fonts is a font-locale match
+type Fonts struct {
 	// Cmt is not used
 	Cmt string `xml:",comment"`
 	// Locale is like zh-TW
@@ -31,6 +45,7 @@ type EzcommFonts struct {
 	// or paths of fonts
 	Font string `xml:"font,attr"`
 }
+
 type ezcommCfg struct {
 	// Cmt = comments
 	Cmt string `xml:",comment"`
@@ -38,12 +53,10 @@ type ezcommCfg struct {
 	//Txt      string `xml:",chardata"`
 	// Verbose is level 0-3
 	Verbose int
-	// LogFile is path to log file, if enabled
-	LogFile string
 	// Language is locale
 	Language string
 	// Fonts are configurations of fonts
-	Fonts []EzcommFonts
+	Fonts []Fonts
 	// font is current font path, or built-in fonts, which are locales
 	font string
 	// AntiFlood stores anti-flood config
@@ -61,10 +74,12 @@ func (c ezcommCfg) GetFont() string {
 }
 
 var (
+	// CfgStruc config structure
 	CfgStruc ezcommCfg
 	cfgPath  string
 )
 
+// WriteCfg to save config
 func WriteCfg() error {
 	err := eztools.ErrNoValidResults
 	if len(cfgPath) > 0 {
@@ -74,7 +89,6 @@ func WriteCfg() error {
 		//log("failed to write config", cfgPath, err)
 		cfgPath, err = eztools.XMLWriteDefault(EzcName, CfgStruc, "\t")
 	}
-	//resWriteCfg(err)
 	if err != nil {
 		cfgPath = ""
 		return err
@@ -82,19 +96,16 @@ func WriteCfg() error {
 	return err
 }
 
-/*func resWriteCfg(err error) {
-	log("writing config", cfgPath,
-		CfgStruc, "with (no?) error", err)
-}*/
-
+// WriterCfg to save config using Writer
+// Closer is closed before returning
 func WriterCfg(wrt io.WriteCloser) error {
 	err := eztools.XMLWriter(wrt, CfgStruc, "\t")
 	wrt.Close()
-	//resWriteCfg(err)
 	return err
 }
 
-// ReaderCfg read config from a Reader
+// ReaderCfg reads config from a Reader
+// Closer is closed before returning
 func ReaderCfg(rdr io.ReadCloser) error {
 	if rdr != nil {
 		setDefCfg()
@@ -104,7 +115,7 @@ func ReaderCfg(rdr io.ReadCloser) error {
 	return procCfg()
 }
 
-// ReadCfg read config from a file
+// ReadCfg reads config from a file
 func ReadCfg(cfg string) error {
 	setDefCfg()
 	cfgPath, _ = eztools.XMLReadDefault(cfg, EzcName, &CfgStruc)
@@ -156,6 +167,7 @@ func procCfg() error {
 	return err
 }
 
+// MatchFontFromCurrLanguageCfg matches font for current language in config
 func MatchFontFromCurrLanguageCfg() {
 	if len(CfgStruc.Language) < 1 {
 		return
@@ -193,7 +205,8 @@ func SetLog(fil string, wr io.Writer) (err error) {
 	return nil
 }
 
-func DefLan() (ret int) {
+// DefLanPrt returns default port for lan discovery
+func DefLanPrt() (ret int) {
 	for _, c := range EzcName {
 		ret += int(c)
 	}

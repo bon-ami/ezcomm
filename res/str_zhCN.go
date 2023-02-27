@@ -1,9 +1,10 @@
 package res
 
 import (
-	"gitee.com/bon-ami/eztools/v4"
+	"gitee.com/bon-ami/eztools/v6"
 )
 
+// I18nZhcn initialize resource for zhCN
 func I18nZhcn() {
 	eztools.AddLanguage("zh-CN", `
 		StrInt = "交互"
@@ -54,7 +55,7 @@ func I18nZhcn() {
 		StrFlowRunning   = "正在运行流程"
 		StrFlowRunNot    = "流程未运行"
 		StrOK            = "通过"
-		StrNG            = "错误"
+		StrNG            = "不佳"
 		StrFlowFinAs     = "流程结束为"
 		StrCut           = "剪切"
 		StrCpy           = "拷贝"
@@ -82,9 +83,9 @@ func I18nZhcn() {
 		StrAntiFld       = "防攻击"
 		StrLmt = "每秒限制"
 		StrPrd = "拒绝时长"
-		StrTooLarge2Rcv = "UDP无法接收过大文件"
+		StrTooLarge2Rcv  = "UDP无法接收过大文件"
 		StrFileAwareness = "为了保存文件需要进行识别"
-		StrFileSave = "在下一步选择此文件才能进行保存"
+		StrFileSave     = "在下一步选择此文件才能进行保存"
 		StrInfLan       = "局域网"
 		StrPokePeer     = "寻找对端"
 		StrDiscoverFail = "发现失败"
@@ -95,5 +96,11 @@ func I18nZhcn() {
 		StrExp          = "导出"
 		StrRmAll        = "删除这些文件吗?"
 		StrDel          = "删除"
+		StrCopied       = "已拷贝"
+		StrHeader      = "消息头"
+		StrValue        = "取值"
+		StrSE2Del       = "([Shift]+)[Enter]删除"
+
+		StrTxt2ShareBtCS="要在客户端和服务器之间共享的文本"
 	`)
 }

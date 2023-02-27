@@ -5,12 +5,15 @@ import (
 	"os"
 	"time"
 
-	"gitee.com/bon-ami/eztools/v4"
+	"gitee.com/bon-ami/eztools/v6"
 	"gitlab.com/bon-ami/ezcomm"
 )
 
 var (
-	Ver, Bld string
+	// Ver version
+	Ver string
+	// Bld build number
+	Bld string
 )
 
 const (
@@ -91,7 +94,7 @@ func main() {
 	ezcomm.SetLog(ezcomm.EzcName+ezcomm.LogExt, nil)
 
 	// db is only for app upgrade
-	db, _, err := eztools.MakeDbs()
+	db, _, err := eztools.MakeDb()
 
 	if err != nil {
 		if eztools.Debugging {

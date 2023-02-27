@@ -12,7 +12,7 @@
                 <!-- client, greet the server -->
                 <step action="send" dest="%peer%" data="Bonjour" block="true" >
                         <!-- wait for echo and output it to r -->
-                        <step action="receive" data="%file%r%" block="true"/>
+                        <step action="receive" data="%file%testdata/r%" block="true"/>
                 </step>
         </conn>
 </ezcommFlow>
