@@ -12,7 +12,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
-	"gitee.com/bon-ami/eztools/v4"
+	"gitee.com/bon-ami/eztools/v6"
 	"gitlab.com/bon-ami/ezcomm"
 )
 
@@ -28,15 +28,26 @@ func initLog() error {
 	rd, err := appStorage.Open(nm)
 	var errMv error
 	if err == nil {
-		wr, err := appStorage.Create(ezcomm.EzcName +
-			ezcomm.CurrTime() + ezcomm.LogExt)
+		fn := ezcomm.EzcName + ezcomm.CurrTime() + ezcomm.LogExt
+		wr, err := appStorage.Create(fn)
 		errMv = err
 		if err == nil {
 			cpFile(rd, wr)
+			/*if eztools.Debugging && eztools.Verbose > 1 {
+				eztools.LogPrint(
+					"copied", nm, "to", fn, "err", err)
+			}*/
 		} else {
+			/*if eztools.Debugging && eztools.Verbose > 1 {
+				eztools.LogPrint("err creating", fn, err)
+			}*/
 			rd.Close()
 		}
 		// rd and wr are closed
+		/*} else {
+		if eztools.Debugging && eztools.Verbose > 1 {
+			eztools.LogPrint("no", nm)
+		}*/
 	}
 	defer func() {
 		if errMv != nil {
@@ -44,12 +55,18 @@ func initLog() error {
 		}
 	}()
 	var wr fyne.URIWriteCloser
-	if rd == nil {
+	if err != nil {
+		/*if eztools.Debugging && eztools.Verbose > 1 {
+			eztools.LogPrint("creating", nm)
+		}*/
 		wr, err = appStorage.Create(nm)
 		if err != nil {
 			return err
 		}
 	} else {
+		/*if eztools.Debugging && eztools.Verbose > 1 {
+			eztools.LogPrint("saving", nm)
+		}*/
 		wr, err = appStorage.Save(nm)
 		if err != nil {
 			return err
@@ -61,18 +78,21 @@ func initLog() error {
 
 var logLock sync.Mutex
 
+// Log appends info to log control with mm-dd hh:mm:ss,
+// and calls eztools.Log()
 func Log(inf ...any) {
 	if fyneRowLog != nil {
 		str := fmt.Sprintf("%s%v\n",
 			time.Now().Format("01-02 15:04:05"), inf)
 		logLock.Lock()
-		fyneRowLog.SetText(fyneRowLog.Text + //strconv.Itoa(rowLog.CursorRow) + ":" +
+		fyneRowLog.SetText(fyneRowLog.Text +
+			//strconv.Itoa(rowLog.CursorRow) + ":" +
 			str)
 		fyneRowLog.CursorRow++
 		logLock.Unlock()
 	}
 	logLock.Lock()
-	eztools.Log(inf)
+	eztools.Log(inf...)
 	logLock.Unlock()
 }
 
@@ -82,10 +102,10 @@ func expLogs(wr fyne.URIWriteCloser) (string, error) {
 		if strings.HasPrefix(f1, ezcomm.EzcName) &&
 			strings.HasSuffix(f1, ezcomm.LogExt) {
 			err := appStorage.Remove(f1)
-			Log("-----", f1, err)
+			Log("removing", f1, err)
 			rd, err := appStorage.Open(f1)
 			if err != nil {
-				Log(f1, err)
+				Log("opening", f1, err)
 				continue
 			}
 			files = append(files, rd)

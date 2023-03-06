@@ -12,7 +12,7 @@ import (
 	"sync"
 	"time"
 
-	"gitee.com/bon-ami/eztools/v4"
+	"gitee.com/bon-ami/eztools/v6"
 )
 
 /* bytes of packed files. the order must be guaranteed (by TCP).
@@ -54,10 +54,14 @@ func IsDataFile(data []byte) (isData, isEnd bool) {
 	return false, false
 }
 
+// CurrTime get time in yyyymmdd-hhmmss
 func CurrTime() string {
 	return time.Now().Format("20060102-150405")
 }
 
+// GetAvailFileName returns fn, if not exists, or, fn_addr_ with time appended
+// If both exist, append it with a number in addition.
+// Return values: file name and whether an available name found
 func GetAvailFileName(fn, addr string) (string, bool) {
 	if _, err := os.Stat(fn); err != nil && os.IsNotExist(err) {
 		return fn, true
@@ -68,7 +72,7 @@ func GetAvailFileName(fn, addr string) (string, bool) {
 	addr = strings.ReplaceAll(addr, ":", ".")
 	fn += "_" + addr + "_" + CurrTime()
 	allTaken := true
-	for nf, affix := fn, 1; affix < 100; affix += 1 {
+	for nf, affix := fn, 1; affix < 100; affix++ {
 		if _, err := os.Stat(nf); err != nil && os.IsNotExist(err) {
 			fn = nf
 			allTaken = false
@@ -121,14 +125,14 @@ func BulkFile(dir, affix string, data []byte) (fn string,
 		}
 		if len(dir) > 0 {
 			fn = filepath.Join(dir, fn)
-			if nfn, ok := GetAvailFileName(fn, affix); !ok {
+			if nfn, ok := GetAvailFileName(fn, affix); ok {
+				fn = nfn
+			} else {
 				if eztools.Debugging {
 					eztools.Log("NO available file names for",
 						fn)
 				}
 				return
-			} else {
-				fn = nfn
 			}
 		}
 		if !end {
@@ -150,31 +154,35 @@ func BulkFile(dir, affix string, data []byte) (fn string,
 
 var (
 	fileID       int
-	fileIdLock   sync.Mutex
+	fileIDLock   sync.Mutex
 	filePieceMap map[int]string
 	filePMLock   sync.Mutex
 )
 
 const (
-	FileIdMax     = 255
-	FileIdMin     = 1
+	// FileIDMax max file ID
+	FileIDMax = 255
+	// FileIDMin min file ID
+	FileIDMin = 1
+	// FileHdr1stLen min file header length
 	FileHdr1stLen = 6
+	// FileHdrRstLen min file header length
 	FileHdrRstLen = 6
 )
 
 func makeFileID() (ret int) {
-	fileIdLock.Lock()
+	fileIDLock.Lock()
 	switch fileID {
 	case 0:
 		rand.Seed(time.Now().UnixNano())
-		fileID = rand.Intn(FileIdMax-FileIdMin) + FileIdMin
-	case FileIdMax:
-		fileID = FileIdMin
+		fileID = rand.Intn(FileIDMax-FileIDMin) + FileIDMin
+	case FileIDMax:
+		fileID = FileIDMin
 	default:
-		fileID += 1
+		fileID++
 	}
 	ret = fileID
-	fileIdLock.Unlock()
+	fileIDLock.Unlock()
 	return ret
 }
 
@@ -294,7 +302,7 @@ func SndFile(fn string, rdr io.ReadCloser, proc func([]byte) error) error {
 	return proc(append(ret, buf...))
 }
 
-// SplitFile
+// SplitFile splits a file
 // Parameter: rdr is closed before returning
 func SplitFile(fn string, rdr io.ReadCloser, proc func([]byte) error) error {
 	readSz := func(indx uint32, name string) (uint32, string) {

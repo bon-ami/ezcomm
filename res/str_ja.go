@@ -1,9 +1,10 @@
 package res
 
 import (
-	"gitee.com/bon-ami/eztools/v4"
+	"gitee.com/bon-ami/eztools/v6"
 )
 
+// I18nJa initialize resource for ja
 func I18nJa() {
 	eztools.AddLanguage("ja", `
 		StrInt = "インターマティブ"
@@ -83,9 +84,9 @@ func I18nJa() {
 		StrAntiFld       = "アンチアタッ"
 		StrLmt = "1 秒あたりの制限"
 		StrPrd = "拒絶期間"
-		StrTooLarge2Rcv = "大きすぎて UDP で受信できない"
+		StrTooLarge2Rcv  = "大きすぎて UDP で受信できない"
 		StrFileAwareness = "出力に必要なファイル認識"
-		StrFileSave = "出力を許可するには、次の手順で次のファイルを選択してください"
+		StrFileSave     = "出力を許可するには、次の手順で次のファイルを選択してください"
 		StrInfLan       = "LAN"
 		StrPokePeer     = "ピアを探す"
 		StrDiscoverFail = "検出に失敗しました"
@@ -96,5 +97,10 @@ func I18nJa() {
 		StrExp          = "エクスポート"
 		StrRmAll        = "これらすべてのファイルを削除しますか?"
 		StrDel          = "削除"
+		StrCopied       = "コピー済み"
+		StrHeader      = "メッセージ ヘッダー"
+		StrValue        = "数値"
+		StrSE2Del       = "([Shift]+)[Enter]削除"
+		StrTxt2ShareBtCS= "クライアントとサーバー間で共有するテキスト"
 	`)
 }

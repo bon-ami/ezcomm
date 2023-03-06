@@ -6,11 +6,13 @@ import (
 	"gitlab.com/bon-ami/ezcomm"
 )
 
+// Entry adds copyall and i18n to widget.Entry
 type Entry struct {
 	widget.Entry
 	popUp *widget.PopUpMenu
 }
 
+// NewMultiLineEntry make an Entry
 func NewMultiLineEntry() *Entry {
 	//e := &widget.Entry{MultiLine: true, Wrapping: fyne.TextTruncate}
 	ret := &Entry{widget.Entry{MultiLine: true, Wrapping: fyne.TextTruncate}, nil}
@@ -18,6 +20,7 @@ func NewMultiLineEntry() *Entry {
 	return ret
 }
 
+// Hide hides it
 func (e *Entry) Hide() {
 	if e.popUp != nil {
 		e.popUp.Hide()
@@ -54,6 +57,7 @@ func (e *Entry) copyAll() {
 	clipboard.SetContent(e.Text)
 }
 
+// TappedSecondary when clicked
 func (e *Entry) TappedSecondary(pe *fyne.PointEvent) {
 	if e.Disabled() && e.Password {
 		return // no popup options for a disabled concealed field

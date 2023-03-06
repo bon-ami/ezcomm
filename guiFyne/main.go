@@ -8,29 +8,29 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/app"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/storage"
-	"gitee.com/bon-ami/eztools/v4"
+	"fyne.io/fyne/v2/widget"
+	"gitee.com/bon-ami/eztools/v6"
 	"gitlab.com/bon-ami/ezcomm"
 )
 
 var (
+	ezcApp     fyne.App
 	ezcWin     fyne.Window
 	thm        theme4Fonts
 	appStorage fyne.Storage
 	// chn is for TCP client and UDP
-	chn [2]chan ezcomm.RoutCommStruc
-	// svrTcp is for TCP server only
-	svrTcp         ezcomm.SvrTcp
-	tabs           *container.AppTabs
-	tabFil, tabLAf *container.TabItem
+	chn                            [2]chan ezcomm.RoutCommStruc
+	tabs                           *container.AppTabs
+	tabLan, tabWeb, tabFil, tabLAf *container.TabItem
 )
-
-// uiFyne implements Uis
-//type uiFyne struct{}
 
 func parseParams() {
 	var paramV, paramVV, paramVVV bool
@@ -70,14 +70,14 @@ func checkDldDir() (string, error) {
 	dldDirChk = true
 	incomDir = appStorage.RootURI().Path()
 	dldDirPath = filepath.Join(incomDir, dldDirNm)
-	dldUri = storage.NewFileURI(dldDirPath)
-	exi, err := storage.Exists(dldUri)
+	dldURI = storage.NewFileURI(dldDirPath)
+	exi, err := storage.Exists(dldURI)
 	if err != nil {
 		eztools.Log("NO", dldDirPath, "detectable!", err)
 		return "", err
 	}
 	if exi {
-		cn, err := storage.CanList(dldUri)
+		cn, err := storage.CanList(dldURI)
 		if err != nil {
 			eztools.Log("NO", dldDirPath, "listable!", err)
 			return "", err
@@ -88,7 +88,7 @@ func checkDldDir() (string, error) {
 			return "", eztools.ErrIncomplete
 		}
 	} else {
-		if err = storage.CreateListable(dldUri); err != nil {
+		if err = storage.CreateListable(dldURI); err != nil {
 			eztools.Log("NO", dldDirPath, "created!", err)
 			return "", err
 		}
@@ -136,9 +136,8 @@ func encodeFileDown(p string) (u fyne.URI, err error) {
 		return encodeFilePath(
 			filepath.Join(dldPath,
 				filepath.Base(p)))
-	} else {
-		return encodeFilePath(dldPath)
 	}
+	return encodeFilePath(dldPath)
 }
 
 func decodeFilePath(uri fyne.URI) string {
@@ -159,23 +158,98 @@ func decodeFilePath(uri fyne.URI) string {
 	return uri.Path()
 }
 
+func validateInt64(str string) error {
+	if _, err := strconv.ParseInt(str, 10, 64); err != nil {
+		return err
+	}
+	return nil
+}
+
+// parseSck splits host:port
+func parseSck(addr string) (string, string) {
+	ind := strings.LastIndex(addr, ":")
+	if ind < 0 {
+		return addr, ""
+	}
+	return addr[:ind], addr[ind+1:]
+}
+
+func cpFile(rd io.ReadCloser, wr io.WriteCloser) (err error) {
+	defer rd.Close()
+	defer wr.Close()
+	_, err = io.Copy(wr, rd)
+	return
+}
+
+var (
+	toastLock sync.Mutex
+	toastOn   bool
+)
+
+// toast shows a toast window
+// Parameters: index to ezcomm.StringTran and second line string
+func toast(id, inf string) {
+	const toNorm = time.Second * 3
+	const toFast = time.Second * 1
+	var to time.Duration
+	if toastOn {
+		to = toFast
+	} else {
+		to = toNorm
+	}
+	toastLock.Lock()
+	toastOn = true
+	go func(inf string, to time.Duration) {
+		if drv, ok := ezcApp.Driver().(desktop.Driver); ok {
+			w := drv.CreateSplashWindow()
+			w.SetContent(widget.NewLabel(
+				ezcomm.StringTran[id] + "\n" + inf))
+			w.Show()
+			go func(inf string, to time.Duration) {
+				time.Sleep(to)
+				w.Close()
+				toastOn = false
+				toastLock.Unlock()
+			}(inf, to)
+		}
+	}(inf, to)
+}
+
+func cp2Clip(str string) {
+	drv := ezcApp.Driver()
+	clipboard := drv.AllWindows()[0].Clipboard()
+	clipboard.SetContent(str)
+	go toast("StrCopied", str)
+}
+
 func main() {
+	ezcApp = app.NewWithID(ezcomm.EzcName)
+	run(nil)
+}
+
+func run(chnHTTP chan bool) {
 	parseParams()
-	ezcApp := app.NewWithID(ezcomm.EzcName)
 	appStorage = ezcApp.Storage()
 	cfgFileName := ezcomm.EzcName + ".xml"
 	rdr, err := appStorage.Open(cfgFileName)
 	if err != nil {
-		eztools.Log("failed to open config file", cfgFileName, ":", err)
+		if eztools.Verbose > 1 {
+			eztools.Log("failed to open config file", cfgFileName, ":", err)
+		}
 	}
 	err = ezcomm.ReaderCfg(rdr)
-	if err == nil {
+	if err != nil {
+		if eztools.Verbose > 1 {
+			eztools.Log("config/locale failure:", err)
+		}
+	}
+	if eztools.Debugging {
 		err = initLog()
 		if err != nil {
-			eztools.Log("failed to set log:", err)
+			if eztools.Verbose > 1 {
+				eztools.Log("failed to set log:", err)
+			}
 		}
-	} else {
-		eztools.Log("config/locale failure:", err)
 	}
 
 	useFontFromCfg(true, ezcomm.CfgStruc.Language)
@@ -191,23 +265,34 @@ func main() {
 	ezcApp.Settings().SetTheme(&thm)
 	ezcWin = ezcApp.NewWindow(ezcomm.EzcName)
 
+	makeControlsSocks()
 	tabLog := makeTabLog()
 	tabMsg := makeTabMsg()
 	tabFil = makeTabFil()
 	tabCfg := makeTabCfg()
-	tabLan := makeTabLan()
+	tabLan = makeTabLan(chnHTTP)
+	tabWeb = makeTabWeb()
 	tabLAf = makeTabLAf()
 	tabs = container.NewAppTabs(
 		tabLan,
+		tabWeb,
 		tabMsg,
 		tabFil,
 		tabLAf,
 		tabLog,
 		tabCfg,
 	)
-	ezcWin.SetContent(tabs)
+	currTabLan := false // wait for tabs.OnSelected() to turn it on
 	tabs.OnSelected = func(tb *container.TabItem) {
-		tabLanShown(false)
+		if currTabLan {
+			switch tb {
+			case tabLan, tabWeb:
+				break
+			default:
+				currTabLan = false
+				tabLanShown(currTabLan)
+			}
+		}
 		switch tb {
 		case tabMsg:
 			tabMsgShown()
@@ -218,15 +303,17 @@ func main() {
 		case tabCfg:
 			tabCfgShown()
 		case tabLan:
-			tabLanShown(true)
+			if !currTabLan { // web->lan
+				currTabLan = true
+				tabLanShown(currTabLan)
+			}
+		case tabWeb:
+			tabWebShown()
 		case tabLAf:
 			tabLAfShown()
 		}
 	}
-
-	svrTcp.ActFunc = tcpConnAct
-	svrTcp.ConnFunc = TcpSvrConnected
-	svrTcp.LogFunc = Log
+	ezcWin.SetContent(tabs)
 
 	//ezcWin.SetFixedSize(true)
 	ezcWin.Show()
@@ -239,18 +326,4 @@ func main() {
 	if logger != nil {
 		logger.Close()
 	}
-}
-
-func validateInt64(str string) error {
-	if _, err := strconv.ParseInt(str, 10, 64); err != nil {
-		return err
-	}
-	return nil
-}
-
-func cpFile(rd io.ReadCloser, wr io.WriteCloser) (err error) {
-	defer rd.Close()
-	defer wr.Close()
-	_, err = io.Copy(wr, rd)
-	return
 }

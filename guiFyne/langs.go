@@ -2,6 +2,7 @@ package main
 
 import "fyne.io/fyne/v2"
 
+// LangsBuiltin i18n configurations
 var LangsBuiltin = [...]struct {
 	locale                                     string
 	fnt, name, rbt                             *fyne.StaticResource

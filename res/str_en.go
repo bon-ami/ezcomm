@@ -1,9 +1,10 @@
 package res
 
 import (
-	"gitee.com/bon-ami/eztools/v4"
+	"gitee.com/bon-ami/eztools/v6"
 )
 
+// I18nEn initialize resource for en
 func I18nEn() {
 	eztools.AddLanguage("en", `
 		StrInt = "interative"
@@ -95,5 +96,10 @@ func I18nEn() {
 		StrExp          = "export"
 		StrRmAll        = "remove all these files?"
 		StrDel          = "delete"
+		StrCopied       = "Copied"
+		StrHeader      = "Header"
+		StrValue        = "Value"
+		StrSE2Del       = "([Shift]+)[Enter] to remove"
+		StrTxt2ShareBtCS= "text to share between client and server"
 	`)
 }

@@ -4,13 +4,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	"gitee.com/bon-ami/eztools/v4"
+	"gitee.com/bon-ami/eztools/v6"
 	"github.com/bon-ami/go-findfont"
 	"gitlab.com/bon-ami/ezcomm/res"
 )
 
 var (
+	// StringTran maps StringIndx to resource
 	StringTran map[string]string
+	// StringIndx is key to StringTran
 	StringIndx = [...]string{
 		"StrInt",
 		"StrFil",
@@ -99,9 +101,15 @@ var (
 		"StrExp",
 		"StrRmAll",
 		"StrDel",
+		"StrCopied",
+		"StrHeader",
+		"StrValue",
+		"StrSE2Del",
+		"StrTxt2ShareBtCS",
 	}
 )
 
+// I18nInit inits resource
 func I18nInit() {
 	eztools.InitLanguages()
 	res.I18nEn()

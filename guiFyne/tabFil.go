@@ -10,7 +10,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
-	"gitee.com/bon-ami/eztools/v4"
+	"gitee.com/bon-ami/eztools/v6"
 	"gitlab.com/bon-ami/ezcomm"
 )
 
@@ -22,7 +22,7 @@ var (
 	//filPieces      map[string]string
 	refRcv, refSnd    *widget.Select
 	filEnable         bool
-	outgoFile, dldUri fyne.URI
+	outgoFile, dldURI fyne.URI
 )
 
 // filLclChk checks whether file is too large for UDP
@@ -47,7 +47,7 @@ func filLclChk(rc fyne.URIReadCloser, fil string) (err error) {
 	cap := outgoFile.Name()
 	filEnable = true
 	switch protRd.Selected {
-	case ezcomm.StrUdp:
+	case ezcomm.StrUDP:
 		if rc == nil {
 			if len(fil) < 1 {
 				filEnable = false
@@ -73,7 +73,7 @@ func filLclChk(rc fyne.URIReadCloser, fil string) (err error) {
 			cap += "\n" + err.Error()
 		}
 		filEnable = false
-	case ezcomm.StrTcp:
+	case ezcomm.StrTCP:
 	}
 	filLclBut.SetText(cap)
 	if filEnable {
@@ -111,7 +111,8 @@ func filButLcl() {
 
 // isSndFile
 // Parameters: wrapperFunc must Close ReadCloser
-func isSndFile(wrapperFunc func(string, io.ReadCloser, func([]byte) error) error,
+func isSndFile(wrapperFunc func(string, io.ReadCloser,
+	func([]byte) error) error,
 	fun func(buf []byte) error) bool {
 	if tabFil.Content.Visible() {
 		if outgoFile != nil {
@@ -136,6 +137,7 @@ func SntFile(comm ezcomm.RoutCommStruc) (string, bool) {
 	return filepath.Base(fn), end
 }
 
+// SntFileOk successfully sent of a file
 func SntFileOk(fn string, fin bool) {
 	if !fin {
 		filRmt.SetText(fn + " ...>")
@@ -150,8 +152,10 @@ func SntFileOk(fn string, fin bool) {
 }
 
 // RcvFile saves incoming file piece
-//   To avoid asking user for every file, when permission needed,
-//   all files saved to app directory.
+//
+//	To avoid asking user for every file, when permission needed,
+//	all files saved to app directory.
+//
 // Return values: fn=file name or error string
 func RcvFile(comm ezcomm.RoutCommStruc, addr string) (peer, fn string) {
 	if len(incomDir) < 1 {
@@ -181,7 +185,8 @@ func RcvFile(comm ezcomm.RoutCommStruc, addr string) (peer, fn string) {
 		} else {
 			filRmt.SetText("<- " + fn)
 			if len(fn) > MaxRecLen {
-				refRcv.Options = append(refRcv.Options, fn[0:MaxRecLen])
+				refRcv.Options = append(refRcv.Options,
+					fn[0:MaxRecLen])
 			} else {
 				refRcv.Options = append(refRcv.Options, fn[0:])
 			}
@@ -192,15 +197,6 @@ func RcvFile(comm ezcomm.RoutCommStruc, addr string) (peer, fn string) {
 }
 
 func makeControlsLF() *fyne.Container {
-	rowLbl := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrLcl"]))
-
-	addrLbl := widget.NewLabel(ezcomm.StringTran["StrAdr"])
-	portLbl := widget.NewLabel(ezcomm.StringTran["StrPrt"])
-	rowSock := container.NewGridWithRows(2,
-		addrLbl, sockLcl[0], portLbl, sockLcl[1])
-
-	rowProt := container.NewHBox(protRd, lstBut, disBut)
-
 	recLbl := container.NewCenter(widget.NewLabel(
 		ezcomm.StringTran["StrRec"]))
 	refSnd = widget.NewSelect(nil, nil)
@@ -208,22 +204,20 @@ func makeControlsLF() *fyne.Container {
 
 	filLbl := widget.NewLabel(ezcomm.StringTran["StrFilO"])
 	filLbl.Wrapping = fyne.TextWrapWord
-	tops := container.NewVBox(rowLbl, rowSock, rowProt, rowRec, filLbl)
+	tops := container.NewVBox(makeControlsLclSocks(true), rowRec, filLbl)
 
 	filLclBut = widget.NewButton(ezcomm.StringTran["StrFil"], filButLcl)
 	filLAfL = widget.NewButton(ezcomm.StringTran["StrRcvFil"], func() {
 		tabs.Select(tabLAf)
 	})
 	bots := container.NewVBox(filLAfL, sndBut)
-	return container.NewBorder(tops, bots, nil, nil, container.NewHScroll(filLclBut))
+	return container.NewBorder(tops, bots, nil, nil,
+		container.NewHScroll(filLclBut))
 }
 
 var filLAfL, filLAfR *widget.Button
 
 func makeControlsRF() *fyne.Container {
-	rowLbl := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrRmt"]))
-	rowTo := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrTo"]))
-
 	recLbl := container.NewCenter(widget.NewLabel(
 		ezcomm.StringTran["StrRec"]))
 	refRcv = widget.NewSelect(nil, nil)
@@ -232,7 +226,7 @@ func makeControlsRF() *fyne.Container {
 	/*filLbl := widget.NewLabel(ezcomm.StringTran["StrDirI"])
 	filLbl.Wrapping = fyne.TextWrapWord*/
 	//dirRmtBut = widget.NewButton(ezcomm.StringTran["StrDir"], dirButRmt)
-	tops := container.NewVBox(rowLbl, rowTo, rowUdpSock2, rowTcpSock2, rowRec /*, dirRmt*/)
+	tops := container.NewVBox(makeControlsRmtSocks(), rowRec /*, dirRmt*/)
 	var err error
 	incomDir, err = checkDldDir()
 	if err != nil {
@@ -257,7 +251,8 @@ func makeControlsRF() *fyne.Container {
 
 func makeTabFil() *container.TabItem {
 	return container.NewTabItem(ezcomm.StringTran["StrFil"],
-		container.NewGridWithColumns(2, makeControlsLF(), makeControlsRF()))
+		container.NewGridWithColumns(2, makeControlsLF(),
+			makeControlsRF()))
 }
 
 func isFilEnable() bool {
@@ -277,6 +272,7 @@ func tabFilShown() {
 	}
 	protRd.Refresh()
 	lstBut.Refresh()
+	sndBut.Refresh()
 	filLAfL.Refresh()
 	filLAfR.Refresh()
 	filLclBut.Refresh()
