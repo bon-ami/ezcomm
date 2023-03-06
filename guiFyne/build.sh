@@ -89,7 +89,15 @@ function lwin1() {
         elif [ -f "$A$2" ]; then
                 rm ${A}$2
         fi
+        if [[ `go env GOHOSTOS` == linux && "$1" == windows ]]; then
+                export CGO_ENABLED=1
+                export CC=/usr/bin/x86_64-w64-mingw32-gcc
+        fi
         fyne package -os $1 $3 -appVersion $V
+        if [[ `go env GOHOSTOS` == linux && "$1" == windows ]]; then
+                unset CGO_ENABLED
+                unset CC
+        fi
         echo $?
 
         if [ -f "${A}.tar.xz" ]; then
@@ -136,8 +144,8 @@ else
 
         cp FyneApp.toml FyneApp.bak
 
-		chkMS
-		if (( $? == 0 )); then
+		#chkMS
+		#if (( $? == 0 )); then
 			if [ -f "${A}.apk" ]; then
 					rm "${A}.apk"
 			fi
@@ -145,10 +153,10 @@ else
 
 			lwin1 windows .exe ""
 			lwin1 windows .exe "--release"
-		else
+		#else
 			lwin1 linux "" ""
 			lwin1 linux "" "--release"
-		fi
+		#fi
 
         echo `grep "Build" FyneApp.toml`
 fi
