@@ -25,14 +25,18 @@ stages:          # List of stages for jobs, and their order of execution
   - build
 #  - deploy
 
+before_script:
+  - apt-get --quiet update --yes
+  - apt-get --quiet install --yes golang gcc libgl1-mesa-dev xorg-dev xz-utils gcc-mingw-w64-x86-64
+
 build-job:       # This job runs in the build stage, which runs first.
   stage: build
   script:
     - echo "Preparing the tools..."
     - more /etc/os-release
-    - sudo apt-get -y install golang gcc libgl1-mesa-dev xorg-dev
-    - sudo apt-get update
-    - sudo apt-get -y install xz-utils gcc-mingw-w64-x86-64
+#    - sudo apt-get -y install 
+#    - sudo apt-get update
+#    - sudo apt-get -y install 
     - go install fyne.io/fyne/v2/cmd/fyne@latest
     - echo "Compiling the code..."
     - cd guiFyne
