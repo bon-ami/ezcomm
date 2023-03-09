@@ -15,7 +15,15 @@ function bld1() {
 	done
 }
 
+if [ $# -lt 1 ]; then
+	echo "Version X.X.X missing"
+	V=0.0.0
+else
+        V=$1
+	V=${V#V}
+	shift 1
+fi
 fa=(EZComm EZComm_debug EZComm.exe EZComm_debug.exe)
-bld1 guiFyne ${@}
+bld1 guiFyne $V ${@}
 fa=(EZComm_debug)
-bld1 cmd ${@}
+bld1 cmd $V ${@}

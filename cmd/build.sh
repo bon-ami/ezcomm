@@ -8,5 +8,7 @@ else
         fi
 	echo building Linux $1.$bld
 	# nomsgpack for gin
-	go build -v -tags=nomsgpack -ldflags="-X main.Ver=$1" -ldflags="-X main.Bld=$bld" -o EZComm_cmd
+	GOOS=linux go build -v -tags=nomsgpack -ldflags="-X main.Ver=$1" -ldflags="-X main.Bld=$bld" -o EZComm_cmd
+	echo building Windows $1.$bld
+	GOOS=windows go build -v -tags=nomsgpack -ldflags="-X main.Ver=$1" -ldflags="-X main.Bld=$bld" -o EZComm_cmd
 fi

@@ -152,10 +152,9 @@ function lwin1() {
 
 if [ $# -lt 1 ]; then
 	echo "Version X.X.X missing"
-	V=0.0.0
+	return 1
 else
         V=$1
-	V=${V#V}
 fi
 echo "Version $V"
 
