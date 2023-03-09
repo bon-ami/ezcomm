@@ -17,6 +17,10 @@ function chkMS() {
 }
 
 function android1() {
+	if [ ! -d "$ANDROID_HOME/ndk-bundle" -o ! -d "$ANDROID_NDK_HOME" ]; then
+		echo NO NDK found!
+		return 1
+	fi
         local M=$1
         if [ -n "$M" ]; then
                 M="/${M}"
@@ -34,6 +38,11 @@ function android1() {
         cp FyneApp.bak FyneApp.toml
 	fyne package -os android$M --release -appVersion $V
         if [ -f "${A}.apk" -a -n "$S" -a -f "$K" ]; then
+		which $S
+		if (( $? != 0 )); then
+			echo $S NOT found!
+			return 1
+		fi
                 if [ -d "$E" ]; then
                         echo "removing previous temp dir $E"
                         rm -r "$E"
@@ -64,7 +73,7 @@ function android1() {
                 $S -verbose -keystore $K $P -signedjar ${A}_${V}${M}.apk ${A}.apk $L
                 if [ -f ${A}_${V}${M}.apk ]; then
                         echo done with ${A}_${V}${M}.apk
-                        jarsigner -verbose -verify  ${A}_${V}${M}.apk
+                        $S -verbose -verify  ${A}_${V}${M}.apk
                 fi
         else
                 echo "NOT personally signed"
@@ -90,8 +99,13 @@ function lwin1() {
                 rm ${A}$2
         fi
         if [[ `go env GOHOSTOS` == linux && "$1" == windows ]]; then
-                export CGO_ENABLED=1
-                export CC=/usr/bin/x86_64-w64-mingw32-gcc
+		if [ -f /usr/bin/x86_64-w64-mingw32-gcc ]; then
+			export CGO_ENABLED=1
+			export CC=/usr/bin/x86_64-w64-mingw32-gcc
+		else
+			echo NO cross compiler found!
+			return 1
+		fi
         fi
         fyne package -os $1 $3 -appVersion $V
         if [[ `go env GOHOSTOS` == linux && "$1" == windows ]]; then
@@ -123,7 +137,7 @@ function lwin1() {
                 ls -l ${A}$M$2
                 echo ${W} done with ${A}$M$2
         elif [ -f "$A$2" ]; then
-			if [ - z "$M" ]; then
+			if [ -z "$M" ]; then
 				ls -l ${A}$2
 				echo done with ${A}$2
 			else
