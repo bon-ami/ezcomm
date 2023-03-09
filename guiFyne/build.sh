@@ -138,25 +138,27 @@ function lwin1() {
 
 if [ $# -lt 1 ]; then
 	echo "Version X.X.X missing"
+	V=0.0.0
 else
         V=$1
-	echo "Version $V"
-
-        cp FyneApp.toml FyneApp.bak
-
-		#chkMS
-		#if (( $? == 0 )); then
-			if [ -f "${A}.apk" ]; then
-					rm "${A}.apk"
-			fi
-			android1 "arm64"
-
-			lwin1 windows .exe ""
-			lwin1 windows .exe "--release"
-		#else
-			lwin1 linux "" ""
-			lwin1 linux "" "--release"
-		#fi
-
-        echo `grep "Build" FyneApp.toml`
+	V=${V#V}
 fi
+echo "Version $V"
+
+cp FyneApp.toml FyneApp.bak
+
+	#chkMS
+	#if (( $? == 0 )); then
+		if [ -f "${A}.apk" ]; then
+				rm "${A}.apk"
+		fi
+		android1 "arm64"
+
+		lwin1 windows .exe ""
+		lwin1 windows .exe "--release"
+	#else
+		lwin1 linux "" ""
+		lwin1 linux "" "--release"
+	#fi
+
+echo `grep "Build" FyneApp.toml`
