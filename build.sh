@@ -25,5 +25,5 @@ else
 fi
 fa=(EZComm EZComm_debug EZComm.exe EZComm_debug.exe)
 bld1 guiFyne $V ${@}
-fa=(EZComm_debug)
+fa=(EZComm_cmd EZComm_cmd.exe)
 bld1 cmd $V ${@}
