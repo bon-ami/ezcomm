@@ -30,10 +30,17 @@ before_script:
   - apt-get --quiet update --yes
   - apt-get --quiet install --yes golang gcc libgl1-mesa-dev xorg-dev xz-utils gcc-mingw-w64-x86-64
   - go install fyne.io/fyne/v2/cmd/fyne@latest
+  - go install golang.org/x/lint/golint@latest
+  - go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
 
 build-job:       # This job runs in the build stage, which runs first.
   stage: build
+  variables:
+    SECURE_FILES_DOWNLOAD_PATH: './'
   script:
+    - echo "Getting secure files..."
+    - curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
+    - ls -a
     - echo "Compiling the code..."
     - ./build.sh ${CI_COMMIT_TAG}
   artifacts:
@@ -47,13 +54,16 @@ unit-test-job:   # This job runs in the test stage.
   stage: test    # It only starts when the job in the build stage completes successfully.
   script:
     - echo "Running unit tests..."
-    - go test
-    - echo "Code coverage is 90%"
+    - go test ./...
+    - go test -cover
 
 lint-test-job:   # This job also runs in the test stage.
   stage: test    # It can run at the same time as unit-test-job (in parallel).
   script:
     - echo "Linting code... "
+    - go vet ./...
+    - golint -set_exit_status $(go list ./...)
+    - gocyclo -over 30 .
 
 #deploy-job:      # This job runs in the deploy stage.
 #  stage: deploy  # It only runs when *both* jobs in the test stage complete successfully.
