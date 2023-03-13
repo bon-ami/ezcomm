@@ -28,10 +28,16 @@ stages:          # List of stages for jobs, and their order of execution
 before_script:
   - echo "Preparing the tools..."
   - apt-get --quiet update --yes
-  - apt-get --quiet install --yes golang gcc libgl1-mesa-dev xorg-dev xz-utils gcc-mingw-w64-x86-64
+  - apt-get --quiet install --yes golang gcc libgl1-mesa-dev xorg-dev xz-utils gcc-mingw-w64-x86-64 unzip apksigner
   - go install fyne.io/fyne/v2/cmd/fyne@latest
   - go install golang.org/x/lint/golint@latest
   - go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
+  - wget https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
+  #- wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+  - unzip android-ndk-r25c-linux.zip
+  #- unzip commandlinetools-linux-9477386_latest.zip
+  - pwd; ls android-ndk-r25c #; ls commandlinetools-linux-9477386_latest
+  - export ANDROID_NDK_HOME="${PWD}/android-ndk-r25c"
 
 build-job:       # This job runs in the build stage, which runs first.
   stage: build
@@ -49,6 +55,8 @@ build-job:       # This job runs in the build stage, which runs first.
     - EZComm_debug
     - EZComm.exe
     - EZComm_debug.exe
+    - EZComm.apk
+    - EZComm_debug.apk
 
 unit-test-job:   # This job runs in the test stage.
   stage: test    # It only starts when the job in the build stage completes successfully.
