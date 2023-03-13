@@ -18,7 +18,7 @@ function chkMS() {
 }
 
 function android1() {
-	if [ ! -d "$ANDROID_HOME/ndk-bundle" -o ! -d "$ANDROID_NDK_HOME" ]; then
+	if [ ! -d "$ANDROID_HOME/ndk-bundle" -a ! -d "$ANDROID_NDK_HOME" ]; then
 		echo NO NDK found!
 		return 1
 	fi
@@ -27,9 +27,8 @@ function android1() {
                 M="/${M}"
         fi
 	echo building Android $M `grep "Build" FyneApp.toml`
-        if [ -f "${A}.apk" ]; then
-			rm ${A}.apk
-        fi
+        [ -f "${A}.apk" ] && rm ${A}.apk
+        [ -f "${A}.aab" ] && rm ${A}.aab
 	fyne package -os android$M -appVersion $V
         if [ -f "${A}.apk" ]; then
                 mv ${A}.apk ${A}_debug.apk
@@ -37,13 +36,14 @@ function android1() {
         fi
         echo "retail version now"
         cp FyneApp.bak FyneApp.toml
+        [ -f "${A}.aab" ] && rm ${A}.aab
 	fyne package -os android$M --release -appVersion $V
         if [ -f "${A}.apk" -a -n "$S" -a -f "$K" ]; then
-		which $S
-		if (( $? != 0 )); then
-			echo $S NOT found!
-			return 1
-		fi
+			which $S
+			if [ $? -ne 0 -a ! -f $S ]; then
+				echo $S NOT found!
+				return 1
+			fi
                 #if [ -d "$E" ]; then
                 #        echo "removing previous temp dir $E"
                 #        rm -r "$E"
@@ -79,7 +79,7 @@ function android1() {
         else
                 echo "NOT personally signed"
         fi
-        #fyne release -os android -appID io.sourceforge.ezproject.ezcomm -appVersion $V -appBuild 1 -keyStore ../../ez.jks
+        #fyne release -os android -appID io.sourceforge.ezproject.ezcomm -appVersion $V -appBuild 1 -keyStore $K
 }
 
 function lwin1() {
