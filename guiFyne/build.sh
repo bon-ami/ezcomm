@@ -1,7 +1,8 @@
 #!/bin/bash
 #S=/d/sdk/build-tools/33.0.0/apksigner.bat
-S=jarsigner
-K=/d/ezproject/ez.jks
+#S=jarsigner
+S=apksigner
+K=ez.jks
 P=passwd
 L=keyez
 A=EZComm
@@ -43,38 +44,38 @@ function android1() {
 			echo $S NOT found!
 			return 1
 		fi
-                if [ -d "$E" ]; then
-                        echo "removing previous temp dir $E"
-                        rm -r "$E"
-                fi
-                echo "to remove Fyne certs"
-                unzip -d "$E" ${A}.apk
-                pushd "$E"
-                rm META-INF/CERT*
-                zip -0 -r ${A}.apk -xi *
-                mv ${A}.apk ..
-                popd
-                rm -r "$E"
-                M=$1
-                if [ -n "$M" ]; then
-                        M="_$M"
-                fi
-                if [ -f "${A}_${V}${M}.apk" ]; then
-					rm ${A}_${V}${M}.apk
-                fi
-                #$S sign --ks $K --out ${A}_${M}.apk ${A}.apk
-                if [ -f "$P" ]; then
-                        P=`cat $P`
-                        P="-storepass $P -keypass $P"
-                else
-                        echo "NO $P set for password"
-                        P=
-                fi
-                $S -verbose -keystore $K $P -signedjar ${A}_${V}${M}.apk ${A}.apk $L
-                if [ -f ${A}_${V}${M}.apk ]; then
-                        echo done with ${A}_${V}${M}.apk
-                        $S -verbose -verify  ${A}_${V}${M}.apk
-                fi
+                #if [ -d "$E" ]; then
+                #        echo "removing previous temp dir $E"
+                #        rm -r "$E"
+                #fi
+                #echo "to remove Fyne certs"
+                #unzip -d "$E" ${A}.apk
+                #pushd "$E"
+                #rm META-INF/CERT*
+                #zip -0 -r ${A}.apk -xi *
+                #mv ${A}.apk ..
+                #popd
+                #rm -r "$E"
+                #M=$1
+                #if [ -n "$M" ]; then
+                #        M="_$M"
+                #fi
+                #if [ -f "${A}_${V}${M}.apk" ]; then
+		#			rm ${A}_${V}${M}.apk
+                #fi
+                $S sign --ks-key-alias $L --ks-pass file:$P --ks $K ${A}.apk
+                #if [ -f "$P" ]; then
+                #        P=`cat $P`
+                #        P="-storepass $P -keypass $P"
+                #else
+                #        echo "NO $P set for password"
+                #        P=
+                #fi
+                #$S -verbose -keystore $K $P -signedjar ${A}_${V}${M}.apk ${A}.apk $L
+                #if [ -f ${A}_${V}${M}.apk ]; then
+                #        echo done with ${A}_${V}${M}.apk
+                #        $S -verbose -verify  ${A}_${V}${M}.apk
+                #fi
         else
                 echo "NOT personally signed"
         fi
