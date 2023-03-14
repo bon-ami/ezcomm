@@ -23,7 +23,7 @@ else
 	V=${V#V}
 	shift 1
 fi
-fa=(EZComm EZComm_debug EZComm.exe EZComm_debug.exe)
+fa=(EZComm EZComm_debug EZComm.exe EZComm_debug.exe EZComm.apk EZComm_debug.apk)
 bld1 guiFyne $V ${@}
 fa=(EZComm_cmd EZComm_cmd.exe)
 bld1 cmd $V ${@}
