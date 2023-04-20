@@ -30,7 +30,7 @@ README in other language(-s): [English](README.md)
  - 发送/接收的消息历史
  - 防攻击功能忽略同一IP频繁发来的流量
  - 可定制且预置字体
- - 多语言界面。当前支持语言：
+ - 多语言界面。当前支持语言（主要由[Bing Translator](https://cn.bing.com/translator)翻译自英语和中文简体）：
    - 英文
    - 西班牙文
    - 日文
@@ -41,11 +41,10 @@ README in other language(-s): [English](README.md)
 
 由[Issues](https://gitlab.com/bon-ami/ezcomm/-/issues)跟踪
 
-## 需求与里程碑
+## Requirements and milestones
 
-（英文）
-[需求](https://gitlab.com/bon-ami/ezcomm/-/requirements_management/requirements)
-[里程碑](https://gitlab.com/bon-ami/ezcomm/-/milestones)
+[Requirements](https://gitlab.com/bon-ami/ezcomm/-/requirements_management/requirements)
+[Milestones](https://gitlab.com/bon-ami/ezcomm/-/milestones)
 
 ## 授权
 
