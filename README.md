@@ -1,13 +1,13 @@
 # EZComm
 
-TCP/UDP, client & server all-in-one, with GUI or flow script.
+TCP/UDP/http, client & server all-in-one, with GUI or flow script.
 README in other language(-s): [简体中文](README_zhCN.md)
 
 [Home page of EZ project](https://ezproject.sourceforge.io/)
 
 ## Getting started
 
-Go to [Releases](https://gitlab.com/bon-ami/ezcomm/-/releases) for prebuilt binaries.
+Go to [Sourceforge](https://sourceforge.net/projects/ezproject/files/EZ%20Comm/) or [gitlab](https://gitlab.com/bon-ami/ezcomm/-/releases) for releases of prebuilt binaries.
 
 ### command line
 
@@ -30,7 +30,7 @@ Features
  - incoming/outgoing message history
  - anti-flood to neglect frequent incoming traffic from same IP
  - customizable and in-built fonts
- - multilingual interface. Current languages:
+ - multilingual interface. Current languages(Mainly translated by [Bing Translator](https://cn.bing.com/translator) from English and Chinese Simplified):
    - English
    - Spanish
    - Japanese
@@ -55,3 +55,7 @@ Built-in fonts are from following sites.
  - ja: Japanese. osaka.ttf https://cooltext.com/
  - zhCN: Chinese Simplified. YRDZST Medium.ttf https://chinesefonts.org/
  - zhTW: Chinese Traditional. YanKai.ttf https://cooltext.com/
+
+# similar project(s)
+
+- [LocalSend](https://localsend.org/#/) for msg/file exchanging, developed with flutter

@@ -1,13 +1,13 @@
 # 易通信
 
-集TCP、UDP，客户端、服务器端于一体。用图形界面或流程脚本。
+集TCP、UDP、HTTP，客户端、服务器端于一体。用图形界面或流程脚本。
 README in other language(-s): [English](README.md)
 
 [易项目主页](https://ezproject.sourceforge.io/default.htm)
 
 ## 开始
 
-到[发行版本](https://gitlab.com/bon-ami/ezcomm/-/releases)选择预编译二进制
+到[Sourceforge](https://sourceforge.net/projects/ezproject/files/EZ%20Comm/) or [gitlab](https://gitlab.com/bon-ami/ezcomm/-/releases)选择预编译二进制的发行版本
 
 ### 命令行
 
@@ -56,3 +56,7 @@ README in other language(-s): [English](README.md)
  - 日文 osaka.ttf https://cooltext.com/
  - 汉字简体 YRDZST Medium.ttf https://chinesefonts.org/
  - 繁体汉字 YanKai.ttf https://cooltext.com/
+
+# 相似项目
+
+- [LocalSend](https://localsend.org/#/)文件、文字收发，使用flutter开发
