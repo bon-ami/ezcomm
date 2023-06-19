@@ -14,6 +14,9 @@ var (
 	StringTran map[string]string
 	// StringIndx is key to StringTran
 	StringIndx = [...]string{
+		"StrURLReadMe",
+		"StrEzcName",
+		"StrEzpName",
 		"StrInt",
 		"StrFil",
 		"StrDir",
@@ -106,6 +109,7 @@ var (
 		"StrValue",
 		"StrSE2Del",
 		"StrTxt2ShareBtCS",
+		"StrLanHint",
 	}
 )
 

@@ -97,9 +97,10 @@ func I18nZhtw() {
 		StrRmAll        = "刪除所有這些檔?"
 		StrDel          = "刪除"
 		StrCopied       = "已複製"
-		StrHeader      = "消息頭"
+		StrHeader       = "消息頭"
 		StrValue        = "數值"
 		StrSE2Del       = "([Shift]+)[Enter]刪除"
-		StrTxt2ShareBtCS="要在用戶端和伺服器之間共用的文本"
+		StrTxt2ShareBtCS= "要在用戶端和伺服器之間共用的文本"
+		StrLanHint      = "按下下面的一個以複製要粘貼到瀏覽器中的本地位址"
 	`)
 }

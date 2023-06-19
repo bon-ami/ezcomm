@@ -9,20 +9,38 @@ README in other language(-s): [简体中文](README_zhCN.md)
 
 Go to [Sourceforge](https://sourceforge.net/projects/ezproject/files/EZ%20Comm/) or [gitlab](https://gitlab.com/bon-ami/ezcomm/-/releases) for releases of prebuilt binaries.
 
-### command line
-
-source code under cmd directory. only flow mode supported.
-
- - Run it with "-h" to show command line parameters.
- - Run it with "-flow" parameter with flow file name to run with no graphical UI but the script only. Refer to sample.xml to check how to write a flow script.
-
 ### GUI
 
-source code under guiFyne directory. It uses [fyne](https://fyne.io/) for graphical UI to support cross-platforms.
+ - Steps 1-4 as an http server.
+ - Steps 3,5-7 as a TCP/UDP client/server.
+ - Steps 8-9 are configuration and script related.
+
+1. LAN shows all local interfaces with HTTP port we are listening on.
+   ![tab LAN](https://ezproject.sourceforge.io/ezcomm/ezcomm6_1lan.PNG)
+2.  Click one item to copy it and open clipboard as address in a web browser. You can read readme or other info of this app with links then, exchange texts between browser server and clients, or view app's files.
+   ![tab LAN](https://ezproject.sourceforge.io/ezcomm/ezcomm6_2client.png)
+3. To interact between two devices within same network, use either LAN/HTTP or interactive/files/TCP/UDP mode. To ease discovery of each other, click "Look for a peer" to show its address and port on the other. Choosing the item on the other device will copy the IP to remote address in interactive and files tab.
+4. HTTP shows the server created as in LAN.
+   ![tab HTTP](https://ezproject.sourceforge.io/ezcomm/ezcomm6_2web.PNG)
+5. interactive mixes TCP/UDP client and server and sends/receives text.
+   ![tab interactive](https://ezproject.sourceforge.io/ezcomm/ezcomm6_3msg.PNG)
+    1. choose udp or tcp.
+    2. input local/remote address & port as needed. Local IP defaults to all interfaces and port defaults a system-chosen one.
+    3. choose listen to run as a server or send as a client.
+6. files sends/receives files between TCP/UDP client and server.
+   ![tab files](https://ezproject.sourceforge.io/ezcomm/ezcomm6_4fil.png)
+7. Downloads shows files in app's directory for files.
+   ![tab Downloads](https://ezproject.sourceforge.io/ezcomm/ezcomm6_5dwn.png)
+8. log shows logging for assistance.
+   ![tab log](https://ezproject.sourceforge.io/ezcomm/ezcomm6_6log.png)
+9. config contains anti-attack, language/font settings and flow switch.
+   ![tab config](https://ezproject.sourceforge.io/ezcomm/ezcomm6_7cfg.PNG)
+
+source code under guiFyne directory. It uses [Fyne](https://fyne.io/) for graphical UI to support cross-platforms.
 
 Features
 
- - TCP/UDP
+ - TCP/UDP/HTTP
  - client/server. send to different clients with different text as a server.
  - flow script to automatically listen, accept, receive and send messages or files.
  - file transfer. files or pieces are encapsulated to avoid confusion with text messages.
@@ -37,6 +55,13 @@ Features
    - Chinese simplified (CN)
    - Chinese traditional (TW)
 
+### command line
+
+source code under cmd directory. only flow mode supported.
+
+ - Run it with "-h" to show command line parameters.
+ - Run it with "-flow" parameter with flow file name to run with no graphical UI but the script only. Refer to sample.xml to check how to write a flow script.
+
 ## Issues
 
 Tracked by [Issues](https://gitlab.com/bon-ami/ezcomm/-/issues)
@@ -50,11 +75,13 @@ Tracked by [Issues](https://gitlab.com/bon-ami/ezcomm/-/issues)
 
 Refer to [COPYRIGHT](COPYRIGHT) for Explicit Distribution Declaration in addition to [Apache V2.0](LICENSE-2.0.txt).
 
+Most translations by [Bing](https://bing.com)
+
 Built-in fonts are from following sites.
 
- - ja: Japanese. osaka.ttf https://cooltext.com/
- - zhCN: Chinese Simplified. YRDZST Medium.ttf https://chinesefonts.org/
- - zhTW: Chinese Traditional. YanKai.ttf https://cooltext.com/
+ - ja: Japanese. osaka.ttf [cooltext.com](https://cooltext.com/)
+ - zhCN: Chinese Simplified. YRDZST Medium.ttf [chinesefonts.org](https://chinesefonts.org/)
+ - zhTW: Chinese Traditional. YanKai.ttf [cooltext.com](https://cooltext.com/)
 
 # similar project(s)
 

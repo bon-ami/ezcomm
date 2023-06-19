@@ -9,20 +9,38 @@ README in other language(-s): [English](README.md)
 
 到[Sourceforge](https://sourceforge.net/projects/ezproject/files/EZ%20Comm/) or [gitlab](https://gitlab.com/bon-ami/ezcomm/-/releases)选择预编译二进制的发行版本
 
-### 命令行
-
-在cmd目录下。只支持脚本模式。
-
- - 以"-h"运行可显示可用参数。
- - 以"-flow"加流程文件名参数运行可无图形界面运行流程脚本。流程脚本的书写参见sample.xml。
-
 ### 图形界面
 
-代码在guiFyne目录下。使用了[fyne](https://fyne.io/)跨平台显示图形界面。
+ - 1-4步是网页服务器
+ - 3、5-7步是TCP/UDP服务器/客户端
+ - 8-9步是配置和脚本相关
+
+1. 局域网页列出当前监听的所有接口。
+   ![局域网页](https://ezproject.sourceforge.io/ezcomm/ezcomm6_cn_1lan.png)
+2. 点击一项则将地址拷贝到剪贴板，在浏览器中打开能进一步点击使用说明和本品其它信息并在网页服务器和客户端间发送文字及显示文件。
+   ![局域网页](https://ezproject.sourceforge.io/ezcomm/ezcomm6_2client.png)
+3. 在同一网络下，选择局域网/HTTP页或交互/文件/页（TCP/UDP），能在设备间交互。点击“寻找对端”能方便地把地址和端口显示到另一设备；在另一设置上选择该条目就能把对应地址拷贝到交互和文件页的远端地址中。
+4. HTTP页显示网页服务器详情。
+   ![HTTP页](https://ezproject.sourceforge.io/ezcomm/ezcomm6_cn_2web.png)
+5. 交互页混合了TCP/UDP和服务器/客户端，能收发文字。
+   ![交互页](https://ezproject.sourceforge.io/ezcomm/ezcomm6_cn_3msg.png)
+    1. 选择udp或tcp
+    2. 按需要输入本地和远端的地址和端口。本地地址默认为所有接口；端口默认为系统指定。
+    3. 选择监听成为服务器端或发送成为客户端
+6. 文件页在UDP/TCP服务器和客户端间收发文件。
+   ![文件页](https://ezproject.sourceforge.io/ezcomm/ezcomm6_cn_4fil.png)
+7. 下载页显示应用的文件目录。
+   ![下载页](https://ezproject.sourceforge.io/ezcomm/ezcomm6_cn_5dwn.png)
+8. 日志页帮助定位问题。
+   ![日志页](https://ezproject.sourceforge.io/ezcomm/ezcomm6_cn_6log.png)
+9. 设置页包含防攻击、语言、字体设置和流程开关。
+   ![设置页](https://ezproject.sourceforge.io/ezcomm/ezcomm6_cn_7cfg.png)
+
+代码在guiFyne目录下。使用了[Fyne](https://fyne.io/)跨平台显示图形界面。
 
 功能
 
- - TCP/UDP
+ - TCP/UDP/HTTP
  - 服务器/客户端。服务器端面能向不同客户端改善不同消息。
  - 用脚本可自动监听、连接、发送或接收消息或文件。
  - 文件传输。文件或分片打包发送以避免与文本消息混淆。
@@ -37,6 +55,13 @@ README in other language(-s): [English](README.md)
    - 中文简体（中国）
    - 中文繁体（台湾）
 
+### 命令行
+
+在cmd目录下。只支持脚本模式。
+
+ - 以"-h"运行可显示可用参数。
+ - 以"-flow"加流程文件名参数运行可无图形界面运行流程脚本。流程脚本的书写参见sample.xml。
+
 ## 问题
 
 由[Issues](https://gitlab.com/bon-ami/ezcomm/-/issues)跟踪
@@ -49,6 +74,8 @@ README in other language(-s): [English](README.md)
 ## 授权
 
 参见[COPYRIGHT](COPYRIGHT_zhCN)为[Apache V2.0](LICENSE-2.0.txt)（英文）基础上的明确发布说明.
+
+大部分翻译来自[Bing](https://bing.com)
 
 内置字体来自以下网站：
 

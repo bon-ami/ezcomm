@@ -300,8 +300,8 @@ func makeTabLan(chnHTTP chan bool) *container.TabItem {
 		})
 
 	return container.NewTabItem(ezcomm.StringTran["StrInfLan"],
-		container.NewBorder(nil, container.NewVBox(lanBut, lanLst),
-			nil, nil, lanWeb))
+		container.NewBorder(widget.NewLabel(ezcomm.StringTran["StrLanHint"]),
+			container.NewVBox(lanBut, lanLst), nil, nil, lanWeb))
 }
 
 func tabLanShown(yes bool) {

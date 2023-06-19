@@ -65,6 +65,20 @@ type ezcommCfg struct {
 	}
 }
 
+func (c ezcommCfg) EzcName() string {
+	if ret, ok := StringTran["StrEzcName"]; ok {
+		return ret
+	}
+	return EzcName
+}
+
+func (c ezcommCfg) EzpName() string {
+	if ret, ok := StringTran["StrEzpName"]; ok {
+		return ret
+	}
+	return eztools.EzpName
+}
+
 func (c ezcommCfg) SetFont(f string) {
 	c.font = f
 }

@@ -73,11 +73,14 @@ var (
 func httpTemplate2Page() (ret ezcomm.HTTPSvrBody) {
 	ret.Tp = ezcomm.HTTPSvrBodyHTML
 	ret.Str = eztools.HTMLHead + httpTemplateHead + ezcomm.EzcName +
-		httpTemplateStyles + ezcomm.EzcURL + httpTemplateEzc +
-		ezcomm.EzcName + httpTemplateVer + ezcomm.Ver + "." +
-		ezcomm.Bld + httpTemplatePrjLnk + eztools.EzpURL +
-		httpTemplatePrjName + eztools.EzpName + httpTemplateSMSForm +
-		httpSmsDir + httpTemplateSMSCtrl + httpSmsID +
+		httpTemplateStyles +
+		ezcomm.EzcURL + ezcomm.StringTran["StrURLReadMe"] +
+		httpTemplateEzc + ezcomm.CfgStruc.EzcName() + " readme" +
+		httpTemplateVer + ezcomm.Ver + "." + ezcomm.Bld +
+		httpTemplatePrjLnk + eztools.EzpURL +
+		httpTemplatePrjName + ezcomm.CfgStruc.EzpName() +
+		httpTemplateSMSForm + httpSmsDir +
+		httpTemplateSMSCtrl + httpSmsID +
 		httpTemplateSMSHint + ezcomm.StringTran["StrTxt2ShareBtCS"] +
 		httpTemplateSMSText + html.EscapeString(smsWeb) +
 		httpTemplateSubmit + httpAppDir + httpTemplateTail

@@ -98,9 +98,10 @@ func I18nJa() {
 		StrRmAll        = "これらすべてのファイルを削除しますか?"
 		StrDel          = "削除"
 		StrCopied       = "コピー済み"
-		StrHeader      = "メッセージ ヘッダー"
+		StrHeader       = "メッセージ ヘッダー"
 		StrValue        = "数値"
 		StrSE2Del       = "([Shift]+)[Enter]削除"
 		StrTxt2ShareBtCS= "クライアントとサーバー間で共有するテキスト"
+		StrLanHint      = "ブラウザに貼り付けるローカルアドレスをコピーするには、以下をクリックしてください"
 	`)
 }

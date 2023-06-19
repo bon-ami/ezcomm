@@ -7,6 +7,7 @@ import (
 // I18nEn initialize resource for en
 func I18nEn() {
 	eztools.AddLanguage("en", `
+		StrURLReadMe = "/-/blob/main/README.md"
 		StrInt = "interative"
 		StrFil = "files"
 		StrDir = "directory"
@@ -83,9 +84,9 @@ func I18nEn() {
 		StrAntiFld       = "Anti Attack"
 		StrLmt = "Limit per second"
 		StrPrd = "Period of refusal"
-		StrTooLarge2Rcv  = "too large to receive by UDP"
-		StrFileAwareness = "File awareness needed for output"
-		StrFileSave      = "Choose following file in next step to allow output"
+		StrTooLarge2Rcv = "too large to receive by UDP"
+		StrFileAwareness= "File awareness needed for output"
+		StrFileSave     = "Choose following file in next step to allow output"
 		StrInfLan       = "LAN"
 		StrPokePeer     = "Look for a peer"
 		StrDiscoverFail = "Discovery Failed"
@@ -97,9 +98,10 @@ func I18nEn() {
 		StrRmAll        = "remove all these files?"
 		StrDel          = "delete"
 		StrCopied       = "Copied"
-		StrHeader      = "Header"
+		StrHeader       = "Header"
 		StrValue        = "Value"
 		StrSE2Del       = "([Shift]+)[Enter] to remove"
 		StrTxt2ShareBtCS= "text to share between client and server"
+		StrLanHint      = "Click one below to copy a local address to paste in a browser"
 	`)
 }

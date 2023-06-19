@@ -97,9 +97,10 @@ func I18nEs() { // by bing.com
 		StrRmAll        = "¿eliminar todos estos archivos?"
 		StrDel          = "borrar"
 		StrCopied       = "Copiado"
-		StrHeader      = "Encabezado de mensaje"
+		StrHeader       = "Encabezado de mensaje"
 		StrValue        = "Valor"
 		StrSE2Del       = "([Mayús]+)[Entrar] para eliminar"
 		StrTxt2ShareBtCS= "texto para compartir entre el cliente y el servidor"
+		StrLanHint      = "Haga clic en uno de abajo para copiar una dirección local para pegarla en un navegador"
 	`)
 }

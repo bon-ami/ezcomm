@@ -7,6 +7,9 @@ import (
 // I18nZhcn initialize resource for zhCN
 func I18nZhcn() {
 	eztools.AddLanguage("zh-CN", `
+		StrURLReadMe = "/-/blob/main/README_zhCN.md"
+		StrEzcName   = "易通信"
+		StrEzpName   = "易项目"
 		StrInt = "交互"
 		StrFil = "文件"
 		StrDir = "目录"
@@ -97,10 +100,10 @@ func I18nZhcn() {
 		StrRmAll        = "删除这些文件吗?"
 		StrDel          = "删除"
 		StrCopied       = "已拷贝"
-		StrHeader      = "消息头"
+		StrHeader       = "消息头"
 		StrValue        = "取值"
 		StrSE2Del       = "([Shift]+)[Enter]删除"
-
-		StrTxt2ShareBtCS="要在客户端和服务器之间共享的文本"
+		StrTxt2ShareBtCS= "要在客户端和服务器之间共享的文本"
+		StrLanHint      = "点击下列会拷贝浏览器中能打开的本地地址"
 	`)
 }
