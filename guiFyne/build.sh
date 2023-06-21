@@ -30,56 +30,38 @@ function android1() {
         [ -f "${A}.apk" ] && rm ${A}.apk
         [ -f "${A}.aab" ] && rm ${A}.aab
 	fyne package -os android$M -appVersion $V
+	if [ $? -ne 0 ]; then
+		return 2
+	fi
         if [ -f "${A}.apk" ]; then
                 mv ${A}.apk ${A}_debug.apk
                 echo done with ${A}_debug.apk
+		else
+			return 2
         fi
         echo "retail version now"
         cp FyneApp.bak FyneApp.toml
         [ -f "${A}.aab" ] && rm ${A}.aab
 	fyne package -os android$M --release -appVersion $V
+	if [ $? -ne 0 ]; then
+		return 2
+	fi
         if [ -f "${A}.apk" -a -n "$S" -a -f "$K" ]; then
 			which $S
 			if [ $? -ne 0 -a ! -f $S ]; then
 				echo $S NOT found!
-				return 1
+				return 2
 			fi
-                #if [ -d "$E" ]; then
-                #        echo "removing previous temp dir $E"
-                #        rm -r "$E"
-                #fi
-                #echo "to remove Fyne certs"
-                #unzip -d "$E" ${A}.apk
-                #pushd "$E"
-                #rm META-INF/CERT*
-                #zip -0 -r ${A}.apk -xi *
-                #mv ${A}.apk ..
-                #popd
-                #rm -r "$E"
-                #M=$1
-                #if [ -n "$M" ]; then
-                #        M="_$M"
-                #fi
-                #if [ -f "${A}_${V}${M}.apk" ]; then
-		#			rm ${A}_${V}${M}.apk
-                #fi
                 $S sign --ks-key-alias $L --ks-pass file:$P --ks $K ${A}.apk
-                #if [ -f "$P" ]; then
-                #        P=`cat $P`
-                #        P="-storepass $P -keypass $P"
-                #else
-                #        echo "NO $P set for password"
-                #        P=
-                #fi
-                #$S -verbose -keystore $K $P -signedjar ${A}_${V}${M}.apk ${A}.apk $L
-                #if [ -f ${A}_${V}${M}.apk ]; then
-                #        echo done with ${A}_${V}${M}.apk
-                #        $S -verbose -verify  ${A}_${V}${M}.apk
-                #fi
+				if [ $? -ne 0 ]; then
+					return 3
+				fi
         else
                 echo "NOT personally signed"
+                return 3
         fi
         #fyne release -os android -appID io.sourceforge.ezproject.ezcomm -appVersion $V -appBuild 1 -keyStore $K
+	return 0
 }
 
 function lwin1() {
@@ -109,11 +91,13 @@ function lwin1() {
 		fi
         fi
         fyne package -os $1 $3 -appVersion $V
+		if [ $? -ne 0 ]; then
+			return 2
+		fi
         if [[ `go env GOHOSTOS` == linux && "$1" == windows ]]; then
                 unset CGO_ENABLED
                 unset CC
         fi
-        echo $?
 
         if [ -f "${A}.tar.xz" ]; then
 			echo "Extracting ${W}$2 from ${A}.tar.xz"
@@ -126,7 +110,7 @@ function lwin1() {
 				rm ${A}.tar.xz
 			else
 				echo "${W} NOT found in ${A}.tar.xz"
-				return
+				return 2
 			fi
         fi
 
@@ -136,24 +120,35 @@ function lwin1() {
         if [ -f "$W$2" ]; then
                 mv ${W}$2 ${A}$M$2
                 ls -l ${A}$M$2
+				if [ $? -ne 0 ]; then
+					return 3
+				fi
                 echo ${W} done with ${A}$M$2
         elif [ -f "$A$2" ]; then
 			if [ -z "$M" ]; then
 				ls -l ${A}$2
+				if [ $? -ne 0 ]; then
+					return 3
+				fi
 				echo done with ${A}$2
 			else
                 mv ${A}$2 ${A}$M$2
                 ls -l ${A}$M$2
+				if [ $? -ne 0 ]; then
+					return 3
+				fi
                 echo ${A}$2 done with ${A}$M$2
             fi
         else
 			echo "$W$2 and $A$2 NOT found!"
+			return 3
         fi
+        return 0
 }
 
 if [ $# -lt 1 ]; then
 	echo "Version X.X.X missing"
-	return 1
+	exit 1
 else
         V=$1
 fi
@@ -167,12 +162,27 @@ cp FyneApp.toml FyneApp.bak
 				rm "${A}.apk"
 		fi
 		android1 "arm64"
+		if [ $? -ne 0 ]; then
+			exit 1
+		fi
 
 		lwin1 windows .exe ""
+		if [ $? -ne 0 ]; then
+			exit 2
+		fi
 		lwin1 windows .exe "--release"
+		if [ $? -ne 0 ]; then
+			exit 3
+		fi
 	#else
 		lwin1 linux "" ""
+		if [ $? -ne 0 ]; then
+			exit 4
+		fi
 		lwin1 linux "" "--release"
+		if [ $? -ne 0 ]; then
+			exit 5
+		fi
 	#fi
 
 echo `grep "Build" FyneApp.toml`
