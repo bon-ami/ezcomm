@@ -54,6 +54,7 @@ function bld1() {
 			[ -f "${A}.aab" ] && rm ${A}.aab
 			;;
 	esac
+	echo fyne package -os ${OS1} ${VAR1} -appVersion $V
 	fyne package -os ${OS1} ${VAR1} -appVersion $V
 	local ret=$?
 	case ${OS1} in
@@ -144,26 +145,38 @@ function bld1() {
 function loop() {
 	local VAR=("")
 	local V
+	local OSS=("")
+	local i=0
 
 	if [ $# -gt 0 ]; then
 		VAR[1]="--release"
 		V=$1
 		echo "Version $V"
+		shift 1
+		while (( $# > 0 )); do
+			OSS[${i}]=$1
+			let i+=1
+			shift 1
+		done
+		if (( $i == 0 )); then
+			OSS=("android/arm64" "windows")
+			chkMS
+			if (( $? != 0 )); then
+				OSS[2]="linux"
+			fi
+		fi
 	else
 		echo "Version X.X.X = 0.0.0"
 		V=0.0.0
 	fi
-	local OSS=("android/arm64" "windows")
-	chkMS
-	if (( $? != 0 )); then
-		OSS[2]="linux"
-	fi
-	if [ ! -d "$ANDROID_HOME/ndk-bundle" -a ! -d "$ANDROID_NDK_HOME" ]; then
-		echo NO NDK found!
-		return 1
+	if [[ ${OSS[@]} == *android* ]]; then
+		if [ ! -d "$ANDROID_HOME/ndk-bundle" -a ! -d "$ANDROID_NDK_HOME" ]; then
+			echo NO NDK found!
+			return 1
+		fi
 	fi
 	cp FyneApp.toml FyneApp.bak
-	local i=0
+	i=0
 	while (( $i < ${#VAR[@]} )); do
 		for O in ${OSS[@]}; do
 			cp FyneApp.bak FyneApp.toml
