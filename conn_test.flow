@@ -1,0 +1,43 @@
+connectedTCPNet	ConnectedTCP	tstClnt	TestClient*	TestSvrCln	TestServer	tstUDPSvr	ConnectedUDP	connectedUDPNet
+								    go=>
+									go----------------------------->
+									tstChnSvr[0]<-
+									go------------->
+	       								tstClntRdMsg<-
+							<-tstClntRdMsg #server ready
+
+						    *<=go & chs<-
+			    <==============go
+	       <=====go
+		go=============>
+				tstChnClnt<-
+					<-tstChnClnt
+					tstClntRdMsg<-
+							*<-tstClntRdMsg #next client
+				tchn[0]<-
+		<-tchn[0]
+		tchn[1]<-FlowChnSnd
+<-tchn[1]
+				<-tchn[1]
+				tstChnClnt<-
+					<-tstChnClnt
+
+							*<-chs #gather clients
+				
+									<-tstChnSvr[0]
+															chn[1]<- #from client
+											<-chn[1]
+											chn[0]<-
+													<-chn[0] #echo
+													chn[1]<-FlowChnSnd
+
+											<-chn[1]:: bye received
+											chn[0]<-FlowChnEnd
+													FlowChnEnd<-chn[0]
+															chn[1]<-...FlowChnEnd
+											FlowChnEnd<-chn[1]
+											tstChnSvr[1]<-:: bye received -> (wait for FlowChnEnd from chn[1] &&) true; ErrAccess/FlowChnEnd -> false
+									<-tstChnSvr[1]:: wait for TO if false!
+						      <=
+									tstSvrChan<-
+							<-tstSvrChan

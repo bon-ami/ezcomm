@@ -40,7 +40,7 @@ func TestSvrCln(t *testing.T) {
 	<-tstClntRdMsg // server ready
 	chs := make([]chan struct{}, clnts)
 	for i := range chs {
-		chs[i] = make(chan struct{})
+		chs[i] = make(chan struct{}, 1)
 	}
 	for i := 0; i < clnts; i++ {
 		go func(ind int) {
@@ -161,6 +161,7 @@ func TestClient(t *testing.T) {
 		t.Skip("rmt needed")
 	}
 	tstChnClnt = make(chan struct{}, 2)
+	chnFromClnt := tstChnClnt
 	id := tstClntID
 	conn, err := Client(t.Log, tstClnt,
 		*TstProt, *TstRmt, ConnectedTCP)
@@ -172,13 +173,13 @@ func TestClient(t *testing.T) {
 		panic(conn)
 	}
 	// wait for init
-	<-tstChnClnt
+	<-chnFromClnt
 	if tstClntRdMsg != nil {
 		// init done (for clntId)
 		tstClntRdMsg <- struct{}{}
 	}
 	// wait for end
-	<-tstChnClnt
+	<-chnFromClnt
 	eztools.Debugging = false // do not let conn routines to print since now
 	if eztools.Verbose > 1 {
 		t.Log("client died", id)
@@ -266,11 +267,11 @@ func TestServer(t *testing.T) {
 	if eztools.Verbose > 0 {
 		t.Log("server", id, "will TO in", TstTO)
 	}
-	for i := range tstChnSvr {
-		tstChnSvr[i] = make(chan bool, tstDefSimulClients)
-	}
 	var chnEnd chan error
 	if strings.HasPrefix(*TstProt, "udp") {
+		for i := range tstChnSvr {
+			tstChnSvr[i] = make(chan bool, 1)
+		}
 		conn, err = ListenUDP(*TstProt, *TstLcl)
 		if err != nil {
 			t.Error(tstErrPre, err)
@@ -284,6 +285,9 @@ func TestServer(t *testing.T) {
 		tstChnSvr[0] <- true
 		go tstUDPSvr(tstChnSvr[1], chn)
 	} else {
+		for i := range tstChnSvr {
+			tstChnSvr[i] = make(chan bool, tstDefSimulClients)
+		}
 		chnEnd = make(chan error)
 		lstnr, err = ListenTCP(t.Log, tstTCPSvr, *TstProt, *TstLcl, ConnectedTCP, chnEnd)
 	}
@@ -321,6 +325,8 @@ ServerLoop:
 		case <-time.After(TstTO):
 			if !everConn {
 				t.Skip("server TO")
+			} else {
+				t.Log("server TO")
 			}
 			break ServerLoop
 		case <-tstChnSvr[0]:

@@ -14,7 +14,7 @@ const (
 	tstDefTimeout      = 10
 	tstDefVerbose      = 0
 	tstDefRoot         = "testdata"
-	tstDefProt         = "udp4"
+	tstDefProt         = "tcp4"
 	// TstHalo beginning string
 	TstHalo = "bonjour"
 	// TstBye ending string
