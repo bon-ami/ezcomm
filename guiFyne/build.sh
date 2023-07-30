@@ -158,16 +158,16 @@ function loop() {
 			let i+=1
 			shift 1
 		done
-		if (( $i == 0 )); then
-			OSS=("android/arm64" "windows")
-			chkMS
-			if (( $? != 0 )); then
-				OSS[2]="linux"
-			fi
-		fi
 	else
 		echo "Version X.X.X = 0.0.0"
 		V=0.0.0
+	fi
+	if (( $i == 0 )); then
+		OSS=("android/arm64" "windows")
+		chkMS
+		if (( $? != 0 )); then
+			OSS[2]="linux"
+		fi
 	fi
 	if [[ ${OSS[@]} == *android* ]]; then
 		if [ ! -d "$ANDROID_HOME/ndk-bundle" -a ! -d "$ANDROID_NDK_HOME" ]; then

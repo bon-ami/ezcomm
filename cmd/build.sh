@@ -11,12 +11,12 @@ if [ -z "$bld" ]; then
 fi
 echo building Linux ${V}.$bld
 # nomsgpack for gin
-GOOS=linux go build -v -tags=nomsgpack -ldflags="-X main.Ver=$1" -ldflags="-X main.Bld=$bld" -o EZComm_cmd
+GOOS=linux go build -tags=nomsgpack -ldflags="-X main.Ver=$1" -ldflags="-X main.Bld=$bld" -o EZComm_cmd
 if [ $? -ne 0 ]; then
 	exit 2
 fi
 echo building Windows $1.$bld
-GOOS=windows go build -v -tags=nomsgpack -ldflags="-X main.Ver=$1" -ldflags="-X main.Bld=$bld" -o EZComm_cmd.exe
+GOOS=windows go build -tags=nomsgpack -ldflags="-X main.Ver=$1" -ldflags="-X main.Bld=$bld" -o EZComm_cmd.exe
 if [ $? -ne 0 ]; then
 	exit 3
 fi
