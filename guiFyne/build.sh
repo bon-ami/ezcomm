@@ -135,7 +135,7 @@ function bld1() {
 			else
 				echo "NOT personally signed"
 				whereis "$S"
-				ls "$K" $P"
+				ls "$K" "$P"
 				return 3
 			fi
 			#fyne release -os android -appID io.sourceforge.ezproject.ezcomm -appVersion $V -appBuild 1 -keyStore $K
