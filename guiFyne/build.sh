@@ -1,6 +1,6 @@
 #!/bin/bash
-#S=jarsigner
-S=apksigner
+#SA=jarsigner
+SA=apksigner
 K=ez.jks
 P=passwd
 L=keyez
@@ -21,6 +21,7 @@ function bld1() {
 	local VAR1=$2
 	local SUFF
 	local TZ=.tar.xz
+	local S
 	case ${OS1} in
 		windows)
 			SUFF=.exe
@@ -42,10 +43,7 @@ function bld1() {
 		android*)
 			if [ -n "${VAR1}" ]; then
 				SUFF=.apk
-				if [ -z "$S" ]; then
-					echo "NO signer"
-					return 1
-				fi
+				S=${SA}
 			else
 				[ -f "${A}${SUFF}" ] && rm ${A}${SUFF}
 				SUFF=${D}.apk
