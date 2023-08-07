@@ -56,7 +56,7 @@ type RoutCommStruc struct {
 	Err  error
 }
 
-func replyWtErr(comm RoutCommStruc, err error, chn chan RoutCommStruc) {
+func replyWtErr(logFunc FuncLog, comm RoutCommStruc, err error, chn chan RoutCommStruc) {
 	//logFunc("UDP", cmd.PeerUdp, n, err)
 	comm.Err = err
 	chn <- comm
@@ -170,7 +170,7 @@ func ConnectedUDP(logFunc FuncLog, chn [2]chan RoutCommStruc, conn *net.UDPConn)
 			} else {
 				_, err = conn.WriteToUDP(cmd.Data, cmd.PeerUDP)
 			}
-			replyWtErr(cmd, err, chn[1])
+			replyWtErr(logFunc, cmd, err, chn[1])
 		case FlowChnEnd:
 			//logFunc("exiting", lcl)
 			return
@@ -232,7 +232,7 @@ func floodChk(peerAddr string) bool {
 	return false
 }
 
-func connectedTCPNet(logFunc FuncLog, conn net.Conn, chn [2]chan RoutCommStruc,
+func rcvFrom1Peer(logFunc FuncLog, conn net.Conn, chn [2]chan RoutCommStruc,
 	localAddr string, peer net.Addr, peerHost, peerAddr string) {
 	if eztools.Debugging && eztools.Verbose > 1 {
 		logFunc("entering routine",
@@ -244,7 +244,7 @@ func connectedTCPNet(logFunc FuncLog, conn net.Conn, chn [2]chan RoutCommStruc,
 	)
 	defer func() {
 		if eztools.Debugging && eztools.Verbose > 1 {
-			logFunc("exiting TCP", localAddr,
+			logFunc("exiting TCP/UDP", localAddr,
 				"routine peer", peerAddr)
 		}
 		chn[1] <- RoutCommStruc{
@@ -255,7 +255,7 @@ func connectedTCPNet(logFunc FuncLog, conn net.Conn, chn [2]chan RoutCommStruc,
 	for {
 		buf := make([]byte, FlowRcvLen)
 		if eztools.Debugging && eztools.Verbose > 2 {
-			logFunc("receiving TCP", localAddr)
+			logFunc("receiving TCP/UDP", localAddr)
 		}
 		n, err := conn.Read(buf)
 		if err != nil {
@@ -268,13 +268,13 @@ func connectedTCPNet(logFunc FuncLog, conn net.Conn, chn [2]chan RoutCommStruc,
 			break
 		}
 		if eztools.Debugging && eztools.Verbose > 2 {
-			logFunc("received TCP", localAddr, n, "from", peerAddr, err, buf[:n])
+			logFunc("received TCP/UDP", localAddr, n, "from", peerAddr, err, buf[:n])
 		}
 		comm := RoutCommStruc{
 			Act:     FlowChnRcv,
 			PeerTCP: peer,
 		}
-		floodChkTCP := func() bool {
+		floodChk := func() bool {
 			isFile, isEnd := IsDataFile(comm.Data)
 			if isFile && !isEnd {
 				return false
@@ -283,8 +283,7 @@ func connectedTCPNet(logFunc FuncLog, conn net.Conn, chn [2]chan RoutCommStruc,
 			ok, floodRecs = floodCtrl(
 				floodRecs, peerHost)
 			if ok {
-				if eztools.Debugging &&
-					eztools.Verbose > 2 {
+				if eztools.Debugging && eztools.Verbose > 0 {
 					logFunc("flooding", peerHost)
 				}
 				return true
@@ -294,7 +293,7 @@ func connectedTCPNet(logFunc FuncLog, conn net.Conn, chn [2]chan RoutCommStruc,
 
 		comm.Data = make([]byte, n)
 		copy(comm.Data, buf[:n])
-		if floodChkTCP() {
+		if floodChk() {
 			errRet = eztools.ErrAccess
 			break
 		}
@@ -302,9 +301,9 @@ func connectedTCPNet(logFunc FuncLog, conn net.Conn, chn [2]chan RoutCommStruc,
 	}
 }
 
-// ConnectedTCP also works for UDP, if remote does not change
-// Parameters:
+// Connected1Peer works for TCP and UDP, when remote does not change
 //
+//	Parameters:
 //	logFunc for logging
 //	connFunc is callback function upon entrance of this function.
 //		It blocks the routine.
@@ -320,8 +319,8 @@ func connectedTCPNet(logFunc FuncLog, conn net.Conn, chn [2]chan RoutCommStruc,
 //
 // -> ui: connFunc(), FlowChnRcv, FlowChnSnd, FlowChnEnd
 // <- ui: FlowChnSnd, FlowChnEnd // this may block routine from exiting,
-// // if too much incoming traffic not read
-func ConnectedTCP(logFunc FuncLog, connFunc FuncConn,
+//                               // if too much incoming traffic not read
+func Connected1Peer(logFunc FuncLog, connFunc FuncConn,
 	conn net.Conn, addrReq [2]string) {
 	defer conn.Close()
 	peer := conn.RemoteAddr()
@@ -344,27 +343,27 @@ func ConnectedTCP(logFunc FuncLog, connFunc FuncConn,
 		chn[i] = make(chan RoutCommStruc, FlowComLen)
 	}
 	go connCB()
-	go connectedTCPNet(logFunc, conn, chn, localAddr, peer, peerHost, peerAddr)
-	if eztools.Debugging && eztools.Verbose > 2 {
-		logFunc("listening on TCP", chn)
+	go rcvFrom1Peer(logFunc, conn, chn, localAddr, peer, peerHost, peerAddr)
+	if eztools.Debugging && eztools.Verbose > 0 {
+		logFunc("listening on TCP/UDP", chn)
 	}
 	for {
 		if eztools.Debugging && eztools.Verbose > 2 {
-			logFunc("command tcp", chn, "waiting")
+			logFunc("command tcp/udp", chn, "w1iting")
 		}
 		cmd := <-chn[0]
 		if eztools.Debugging && eztools.Verbose > 2 {
-			logFunc("command tcp", chn, peerAddr, cmd)
+			logFunc("command tcp/udp", chn, peerAddr, cmd)
 		}
 		switch cmd.Act {
 		case FlowChnSnd:
 			cmd.PeerTCP = peer
 			// TODO: confirm to anti-flood
 			_, err := conn.Write(cmd.Data)
-			replyWtErr(cmd, err, chn[1])
+			replyWtErr(logFunc, cmd, err, chn[1])
 		case FlowChnEnd:
 			if eztools.Debugging && eztools.Verbose > 1 {
-				logFunc("exiting TCP connection routine",
+				logFunc("exiting TCP/UDP connection routine",
 					localAddr, "peer", peerAddr)
 			}
 			return

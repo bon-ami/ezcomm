@@ -185,7 +185,7 @@ func Connect() {
 	pr := getRmtSckStr()
 	connDisable()
 	_, err := ezcomm.Client(Log, TCPClnConnected,
-		protRd.Selected, pr, ezcomm.ConnectedTCP)
+		protRd.Selected, pr, ezcomm.Connected1Peer)
 	if err != nil {
 		connEnable()
 		Log(ezcomm.StringTran["StrConnFail"]+pr, err)

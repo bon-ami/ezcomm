@@ -41,20 +41,21 @@ function bld1() {
 			;;
 		android*)
 			if [ -n "${VAR1}" ]; then
-				SUFF=${D}.apk
+				SUFF=.apk
 				if [ -z "$S" ]; then
 					echo "NO signer"
 					return 1
 				fi
 			else
-				SUFF=.apk
+				[ -f "${A}${SUFF}" ] && rm ${A}${SUFF}
+				SUFF=${D}.apk
 				S=
 			fi
-			[ -f "${A}.apk" ] && rm ${A}.apk
+			[ -f "${A}${SUFF}" ] && rm ${A}${SUFF}
 			[ -f "${A}.aab" ] && rm ${A}.aab
 			;;
 	esac
-	echo fyne package -os ${OS1} ${VAR1} -appVersion $V
+	echo ${A}${SUFF}: fyne package -os ${OS1} ${VAR1} -appVersion $V
 	fyne package -os ${OS1} ${VAR1} -appVersion $V
 	local ret=$?
 	case ${OS1} in

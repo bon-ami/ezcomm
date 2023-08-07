@@ -254,7 +254,7 @@ func (s *SvrTCP) Listen(network, addr string) (err error) {
 	// [1] is to be created when connected
 	//}
 	s.lstnr, err = ListenTCP(s.LogFunc, s.connected,
-		network, addr, ConnectedTCP, s.chnErr)
+		network, addr, Connected1Peer, s.chnErr)
 	if err != nil {
 		s.chnErr = nil
 		s.chnLstn = nil

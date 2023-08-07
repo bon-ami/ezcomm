@@ -31,7 +31,7 @@ func TestSvrCln(t *testing.T) {
 	}
 	AntiFlood.Limit = -1
 	//*prot = "tcp"
-	tstSvrChan = make(chan struct{})
+	tstSvrChan = make(chan struct{}, 1)
 	tstClntRdMsg = make(chan struct{})
 	clnts := *TstClntNo
 	go func() {
@@ -164,7 +164,7 @@ func TestClient(t *testing.T) {
 	chnFromClnt := tstChnClnt
 	id := tstClntID
 	conn, err := Client(t.Log, tstClnt,
-		*TstProt, *TstRmt, ConnectedTCP)
+		*TstProt, *TstRmt, Connected1Peer)
 	if err != nil {
 		t.Error(tstErrPre, err)
 		return
@@ -279,7 +279,7 @@ func TestServer(t *testing.T) {
 		}
 		var chn [2]chan RoutCommStruc
 		for i := range chn {
-			chn[i] = make(chan RoutCommStruc, FlowComLen)
+			chn[i] = make(chan RoutCommStruc, *TstClntNo)
 		}
 		go ConnectedUDP(t.Log, chn, conn)
 		tstChnSvr[0] <- true

@@ -65,7 +65,7 @@ if [ -n "$V" ]; then
 		let IND+=1
 	fi
 fi
-bld1 guiFyne $V ${@}
+bld1 guiFyne "$V" ${@}
 ret=$?
 if [ ${ret} -ne 0 ]; then
 	echo "failed ${ret}"
@@ -73,7 +73,7 @@ if [ ${ret} -ne 0 ]; then
 fi
 # cmd does not vary
 fa=(EZComm_cmd EZComm_cmd.exe)
-bld1 cmd $V ${@}
+bld1 cmd "$V" ${@}
 ret=$?
 if [ ${ret} -ne 0 ]; then
 	echo "failed ${ret}"
