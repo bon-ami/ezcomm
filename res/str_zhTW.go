@@ -7,6 +7,9 @@ import (
 // I18nZhtw initialize resource for zhTW
 func I18nZhtw() {
 	eztools.AddLanguage("zh-TW", `
+		StrURLReadMe = "/-/blob/main/README_zhCN.md"
+		StrEzcName   = "易通訊"
+		StrEzpName   = "易專案"
 		StrInt = "交互"
 		StrFil = "文件"
 		StrDir = "資料夾"

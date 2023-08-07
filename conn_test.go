@@ -153,7 +153,7 @@ ClientLoop:
 	return
 }
 
-// TestClient uses ConnectedTCP
+// TestClient uses Connected1Peer
 func TestClient(t *testing.T) {
 	Init4Tests(t)
 	AntiFlood.Limit = -1
@@ -253,7 +253,7 @@ func tstUDPSvr(fin chan bool, chn [2]chan RoutCommStruc) {
 	}
 }
 
-// TestServer uses ConnectedUDP or ConnectedTCP
+// TestServer uses ConnectedUDP or Connected1Peer
 func TestServer(t *testing.T) {
 	Init4Tests(t)
 	var (
@@ -289,7 +289,7 @@ func TestServer(t *testing.T) {
 			tstChnSvr[i] = make(chan bool, tstDefSimulClients)
 		}
 		chnEnd = make(chan error)
-		lstnr, err = ListenTCP(t.Log, tstTCPSvr, *TstProt, *TstLcl, ConnectedTCP, chnEnd)
+		lstnr, err = ListenTCP(t.Log, tstTCPSvr, *TstProt, *TstLcl, Connected1Peer, chnEnd)
 	}
 	if err != nil {
 		t.Error(tstErrPre, err)

@@ -8,6 +8,8 @@ import (
 func I18nEn() {
 	eztools.AddLanguage("en", `
 		StrURLReadMe = "/-/blob/main/README.md"
+		StrEzcName   = "EZComm"
+		StrEzpName   = "EZ Project"
 		StrInt = "interative"
 		StrFil = "files"
 		StrDir = "directory"

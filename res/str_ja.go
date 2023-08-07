@@ -7,6 +7,9 @@ import (
 // I18nJa initialize resource for ja
 func I18nJa() {
 	eztools.AddLanguage("ja", `
+		StrURLReadMe = "/-/blob/main/README.md"
+		StrEzcName   = "EZコム"
+		StrEzpName   = "EZ プロジェクト"
 		StrInt = "インターマティブ"
 		StrFil = "ファイル"
 		StrDir = "フォルダ"

@@ -7,6 +7,9 @@ import (
 // I18nEs initialize resource for es
 func I18nEs() { // by bing.com
 	eztools.AddLanguage("es", `
+		StrURLReadMe = "/-/blob/main/README.md"
+		StrEzcName   = "EZComm"
+		StrEzpName   = "EZ Project"
 		StrInt = "interacción"
 		StrFil = "archivo"
 		StrDir = "carpeta"
