@@ -125,6 +125,9 @@ function bld1() {
 			if [[ "${S}" != *.bat && `go env GOHOSTOS` == windows ]]; then
 				S="${S}.bat"
 			fi
+			if [ ! -f "$K" -a -f "../$K" ]; then
+				mv ../$K .
+			fi
 			if [ -f "${A}.apk" -a -f "$K" ]; then
 				$S sign --ks-key-alias $L --ks-pass file:$P --ks $K ${A}.apk
 				if [ $? -ne 0 ]; then
@@ -132,7 +135,8 @@ function bld1() {
 				fi
 			else
 				echo "NOT personally signed"
-				ls "$S" "$K"
+				which "$S"
+				ls "$K" "../$K"
 				return 3
 			fi
 			#fyne release -os android -appID io.sourceforge.ezproject.ezcomm -appVersion $V -appBuild 1 -keyStore $K
