@@ -16,11 +16,6 @@ var (
 	Bld string
 )
 
-const (
-	modName = "EZComm"
-	logExt  = ".log"
-)
-
 func main() {
 	var (
 		paramCfg, paramLog, paramFlw      string

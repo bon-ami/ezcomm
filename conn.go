@@ -319,7 +319,8 @@ func rcvFrom1Peer(logFunc FuncLog, conn net.Conn, chn [2]chan RoutCommStruc,
 //
 // -> ui: connFunc(), FlowChnRcv, FlowChnSnd, FlowChnEnd
 // <- ui: FlowChnSnd, FlowChnEnd // this may block routine from exiting,
-//                               // if too much incoming traffic not read
+//
+//	if too much incoming traffic not read
 func Connected1Peer(logFunc FuncLog, connFunc FuncConn,
 	conn net.Conn, addrReq [2]string) {
 	defer conn.Close()
