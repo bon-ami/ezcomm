@@ -68,6 +68,7 @@ var (
 	cntWeb               *widget.Entry
 	hdrWebLcl, hdrWebRmt *widget.Accordion
 	smsWeb               string
+	tabWebInit           bool
 )
 
 func httpTemplate2Page() (ret ezcomm.HTTPSvrBody) {
@@ -209,6 +210,14 @@ func makeTabWeb() *container.TabItem {
 }
 
 func tabWebShown() {
+	if tabWebInit {
+		return
+	}
+	tabWebInit = true
 	protRd.Refresh()
 	lstBut.Refresh()
+	sockLcl[0].Refresh()
+	sockLcl[1].Refresh()
+	sockRmt[0].Refresh()
+	sockRmt[1].Refresh()
 }

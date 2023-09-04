@@ -39,7 +39,7 @@ var (
 	lstBut, disBut, sndBut *widget.Button
 	cntLcl, cntRmt         *widget.Entry
 	tabMsg                 *container.TabItem
-	sndEnable              bool
+	sndEnable, tabMsgInit  bool
 )
 
 func connEnable() {
@@ -751,8 +751,11 @@ func chkNEnableSnd(filShown bool) {
 }
 
 func tabMsgShown() {
-	protRd.Refresh()
-	lstBut.Refresh()
+	if tabMsgInit {
+		return
+	}
+	tabMsgInit = true
+	tabWebShown()
 	sndBut.Refresh()
 	chkNEnableSnd(false)
 }

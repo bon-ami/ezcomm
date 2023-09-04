@@ -26,21 +26,10 @@ func (m *theme4Fonts) SetFontByDir(font string) error {
 }
 
 func (m theme4Fonts) Color(name fyne.ThemeColorName, variant fyne.ThemeVariant) color.Color {
-	if name == theme.ColorNameBackground {
-		if variant == theme.VariantLight {
-			return color.White
-		}
-		return color.Black
-	}
-
 	return theme.DefaultTheme().Color(name, variant)
 }
 
 func (m theme4Fonts) Icon(name fyne.ThemeIconName) fyne.Resource {
-	/*if name == theme.IconNameHome {
-		fyne.NewStaticResource("myHome", homeBytes)
-	}*/
-
 	return theme.DefaultTheme().Icon(name)
 }
 func (m theme4Fonts) Font(style fyne.TextStyle) fyne.Resource {

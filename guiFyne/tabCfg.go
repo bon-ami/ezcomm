@@ -19,7 +19,9 @@ import (
 
 var (
 	fontSel         *widget.Select
+	flowFnTxt       *widget.Entry
 	fontsNumBuiltin int
+	tabCfgInit      bool
 )
 
 func writeCfg() {
@@ -253,7 +255,7 @@ func makeControlsCfg() *fyne.Container {
 	flowFnStt = widget.NewEntry()
 	flowFnStt.PlaceHolder = ezcomm.StringTran["StrStb"]
 	flowFnStt.Disable()
-	flowFnTxt := widget.NewEntry()
+	flowFnTxt = widget.NewEntry()
 	flowFnTxt.SetText(ezcomm.StringTran["StrFlw"])
 	flowFnTxt.Disable()
 	flowResChn = make(chan bool, 1)
@@ -543,8 +545,15 @@ func verboseFrmStr(str string) int {
 }
 
 func tabCfgShown() {
+	if tabCfgInit {
+		return
+	}
+	tabCfgInit = true
 	flowFlBut.Refresh()
+	flowFnStt.Refresh()
+	flowFnTxt.Refresh()
 	fontBut.Refresh()
+	fontSel.Refresh()
 	for _, but := range langButs {
 		but.Refresh()
 	}

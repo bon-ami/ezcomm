@@ -15,14 +15,15 @@ import (
 )
 
 var (
-	filLclBut/*, dirRmtBut*/ *widget.Button
-	filRmt   *widget.Entry
-	incomDir string
+	tops            *fyne.Container
+	filLclBut       *widget.Button
+	filRmt, dirPath *widget.Entry
+	incomDir        string
 	// filPieces maps peer address to former file name to append to
 	//filPieces      map[string]string
-	refRcv, refSnd    *widget.Select
-	filEnable         bool
-	outgoFile, dldURI fyne.URI
+	refRcv, refSnd        *widget.Select
+	filEnable, tabFilInit bool
+	outgoFile, dldURI     fyne.URI
 )
 
 // filLclChk checks whether file is too large for UDP
@@ -226,7 +227,7 @@ func makeControlsRF() *fyne.Container {
 	/*filLbl := widget.NewLabel(ezcomm.StringTran["StrDirI"])
 	filLbl.Wrapping = fyne.TextWrapWord*/
 	//dirRmtBut = widget.NewButton(ezcomm.StringTran["StrDir"], dirButRmt)
-	tops := container.NewVBox(makeControlsRmtSocks(), rowRec /*, dirRmt*/)
+	tops = container.NewVBox(makeControlsRmtSocks(), rowRec /*, dirRmt*/)
 	var err error
 	incomDir, err = checkDldDir()
 	if err != nil {
@@ -235,7 +236,7 @@ func makeControlsRF() *fyne.Container {
 			ezcomm.StringTran["StrFnt4LangBuiltin"], ezcWin)
 	}
 	if len(incomDir) > 0 {
-		dirPath := widget.NewMultiLineEntry()
+		dirPath = widget.NewMultiLineEntry()
 		dirPath.Wrapping = fyne.TextWrapWord
 		dirPath.SetText(incomDir)
 		tops.Add(dirPath)
@@ -270,10 +271,16 @@ func tabFilShown() {
 	} else {
 		chkNEnableSnd(true)
 	}
-	protRd.Refresh()
-	lstBut.Refresh()
+	if tabFilInit {
+		return
+	}
+	tabFilInit = true
+	tabWebShown()
 	sndBut.Refresh()
 	filLAfL.Refresh()
 	filLAfR.Refresh()
 	filLclBut.Refresh()
+	refRcv.Refresh()
+	filRmt.Refresh()
+	tops.Refresh()
 }

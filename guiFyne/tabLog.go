@@ -20,6 +20,8 @@ var (
 	fyneRowLog *Entry
 	logger     fyne.URIWriteCloser
 	logBut     *widget.Button
+	verboseSel *widget.Select
+	tabLogInit bool
 )
 
 func initLog() error {
@@ -176,7 +178,7 @@ func makeTabLog() *container.TabItem {
 		}, ezcWin)
 	})
 	rowVerbose := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrVbs"]))
-	verboseSel := widget.NewSelect(nil, func(lvl string) {
+	verboseSel = widget.NewSelect(nil, func(lvl string) {
 		newLvl := verboseFrmStr(lvl)
 		if newLvl == ezcomm.CfgStruc.Verbose {
 			return
@@ -198,5 +200,11 @@ func makeTabLog() *container.TabItem {
 }
 
 func tabLogShown() {
+	if tabLogInit {
+		return
+	}
+	tabLogInit = true
 	logBut.Refresh()
+	verboseSel.Refresh()
+	fyneRowLog.Refresh()
 }
