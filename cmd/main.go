@@ -33,12 +33,11 @@ func main() {
 		argCfgStr string
 	)
 	for _, arg1 := range os.Args {
-		eztools.Log("chk", arg1)
 		if argCfgGot {
 			argCfgStr = arg1
 			break
 		}
-		if arg1 == paramCfgStr {
+		if arg1 == "-"+paramCfgStr {
 			argCfgGot = true
 			continue
 		}

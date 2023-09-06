@@ -51,7 +51,18 @@ var (
 	tstClntID    int
 )
 
-func init() {
+// InitFlags4Tests needs to be included in init() from a test file,
+// to be parsed in Init4Tests()
+// prot: protocol, tcp, tcp4, tcp6, unix or unixpacket
+// lcl: local address
+// rmt: remote address
+// msg: messages to send
+// root: root dir for http server
+// timeout: in seconds
+// verbose: verbose level
+// msgCount: number of messages to send per client for TestSvrCln
+// quan: quantity of clients
+func InitFlags4Tests() {
 	TstProt = flag.String("prot", tstDefProt,
 		"protocol, tcp, tcp4, tcp6, unix or unixpacket. "+
 			"default is "+tstDefProt)
@@ -88,16 +99,8 @@ func Deinit4Tests() {
 	eztools.Verbose = *tstVerbose
 }
 
-// Init4Tests inits flags
-// prot: protocol, tcp, tcp4, tcp6, unix or unixpacket
-// lcl: local address
-// rmt: remote address
-// msg: messages to send
-// root: root dir for http server
-// timeout: in seconds
-// verbose: verbose level
-// msgCount: number of messages to send per client for TestSvrCln
-// quan: quantity of clients
+// Init4Tests parse flags, that are introduced from
+// InitFlags4Tests() included in init()
 func Init4Tests(t *testing.T) {
 	tstClntID++
 	if tstInitDone {
