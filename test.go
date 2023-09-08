@@ -66,7 +66,7 @@ func InitFlags4Tests() {
 	TstProt = flag.String("prot", tstDefProt,
 		"protocol, tcp, tcp4, tcp6, unix or unixpacket. "+
 			"default is "+tstDefProt)
-	TstLcl = flag.String("lcl", DefPeerAdr+":", "local address")
+	TstLcl = flag.String("lcl", Localhost+":", "local address")
 	TstRmt = flag.String("rmt", "", "remote address")
 	TstMsg = flag.String("msg", "", "messages to send, separated by \""+
 		tstSeparator+"\". \""+TstBye+"\" to end udp server")
@@ -87,7 +87,7 @@ func Deinit4Tests() {
 	tstInitDone = false
 	TstT = nil
 	*TstProt = ""
-	*TstLcl = DefPeerAdr + ":" /*"localhost:"*/
+	*TstLcl = Localhost + ":" /*"localhost:"*/
 	*TstRmt = ""
 	*TstMsg = ""
 	*TstRoot = ""

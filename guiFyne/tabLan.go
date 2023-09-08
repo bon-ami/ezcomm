@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"net"
 	"strconv"
-	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
@@ -33,7 +32,8 @@ func httpListUpdate(id widget.ListItemID, item fyne.CanvasObject) {
 		item.(*widget.Label).SetText("")
 		return
 	}
-	item.(*widget.Label).SetText(localAddrSlc[id] + lanPrtHTTP)
+	item.(*widget.Label).SetText(net.JoinHostPort(localAddrSlc[id],
+		lanPrtHTTP))
 }
 
 func runHTTP() chan error {
@@ -42,10 +42,8 @@ func runHTTP() chan error {
 	if err != nil {
 		eztools.LogFatal(err)
 	}
-	addr := lstnr.Addr().String()
-	ind := strings.LastIndex(addr, ":")
-	lanPrtHTTP = addr[ind:]
-	setLclSck(addr)
+	setLclSck(lstnr.Addr().String())
+	lanPrtHTTP = sockLcl[1].Text
 	setLclAddrs(localAddrSlc)
 	lanWeb.Refresh()
 	httpSvr = ezcomm.MakeHTTPSvr()
@@ -205,7 +203,7 @@ func lanListen(chnHTTP chan bool) {
 	}
 	bonjourLen := len(bonjour)
 	addrBrd, err := net.ResolveUDPAddr(ezcomm.StrUDP,
-		ezcomm.DefBrdAdr+":"+defLanPrtStr)
+		net.JoinHostPort(ezcomm.DefBrdAdr, defLanPrtStr))
 	if err != nil || addrBrd == nil {
 		Log("bad broadcast addr", err)
 		return
@@ -227,16 +225,11 @@ func lanListen(chnHTTP chan bool) {
 		localAddrMap = make(map[string]struct{})
 		localAddrSlc = make([]string, 0)
 		for _, localAddr1 := range localAddrs {
-			str := localAddr1.String()
-			ind := strings.LastIndex(str, "/")
-			localAddrMap[str[:ind]] = struct{}{}
-			var pref, suff string
-			if str[(ind+1):] == "64" {
-				pref = "["
-				suff = "]"
+			if ipnet, ok := localAddr1.(*net.IPNet); ok {
+				ip := ipnet.IP.String()
+				localAddrMap[ip] = struct{}{}
+				localAddrSlc = append(localAddrSlc, ip)
 			}
-			localAddrSlc = append(localAddrSlc,
-				pref+str[:ind]+suff)
 		}
 	}
 	refreshPeerMap := func(pckNt ezcomm.RoutCommStruc,
@@ -252,12 +245,12 @@ func lanListen(chnHTTP chan bool) {
 			// duplicate
 			return
 		}
-		// TODO: afix with [] to IPv6 like localAddrSlc
 		peerMap[peer] = struct{}{}
 		add2Rmt(0, peer)
-		lanLst.Append(peer + ":" + strconv.Itoa(peerHTTPPort))
+		sk := net.JoinHostPort(peer, strconv.Itoa(peerHTTPPort))
+		lanLst.Append(sk)
 		if eztools.Debugging && eztools.Verbose > 1 {
-			eztools.Log("discovered", peer, ":", peerHTTPPort)
+			eztools.Log("discovered", sk)
 		}
 	}
 	for {
@@ -284,7 +277,7 @@ func makeTabLan(chnHTTP chan bool) *container.TabItem {
 		if len(localAddrSlc) <= id {
 			return
 		}
-		cp2Clip(localAddrSlc[id] + lanPrtHTTP)
+		cp2Clip(net.JoinHostPort(localAddrSlc[id], lanPrtHTTP))
 	}
 	lanLbl = widget.NewLabel("")
 	go lanListen(chnHTTP)
@@ -293,10 +286,12 @@ func makeTabLan(chnHTTP chan bool) *container.TabItem {
 	})
 	lanLst = widget.NewRadioGroup([]string{},
 		func(sel string) {
-			cp2Clip(sel)
-			// TODO: handle [] w/t or w/o port to IPv6 like localAddrSlc
-			i := strings.LastIndex(sel, ":")
-			sockRmt[0].SetText(sel[:i])
+			if ho, _, err := net.SplitHostPort(sel); err != nil {
+				Log("failed to parse socket", sel, err)
+			} else {
+				cp2Clip(sel)
+				sockRmt[0].SetText(ho)
+			}
 		})
 
 	return container.NewTabItem(ezcomm.StringTran["StrInfLan"],

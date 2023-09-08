@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"io"
+	"net"
 	"net/url"
 	"path/filepath"
 	"runtime"
@@ -167,11 +168,13 @@ func validateInt64(str string) error {
 
 // parseSck splits host:port
 func parseSck(addr string) (string, string) {
-	ind := strings.LastIndex(addr, ":")
-	if ind < 0 {
+	ip, port, err := net.SplitHostPort(addr)
+	//Log("parsing", addr, "to", ip, port)
+	if err != nil {
+		Log(err)
 		return addr, ""
 	}
-	return addr[:ind], addr[ind+1:]
+	return ip, port
 }
 
 func cpFile(rd io.ReadCloser, wr io.WriteCloser) (err error) {

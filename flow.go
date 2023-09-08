@@ -4,7 +4,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net"
 	"reflect"
 	"strings"
@@ -213,27 +212,31 @@ func (flow FlowStruc) ParseVar(str string,
 //	2nd.
 //	 1: a file name
 //	 0: a string
-func (step FlowStepStruc) ParseData(flow FlowStruc, conn FlowConnStruc) (string, int) {
+func (step FlowStepStruc) ParseData(flow FlowStruc,
+	conn FlowConnStruc) (string, int) {
 	retWhole, parseRes := flow.ParseVar(step.Data, nil) // TODO: match a server
 	switch parseRes {
 	case FlowParseValSimple, FlowParseValSign:
 		switch {
 		case strings.HasPrefix(retWhole, FlowVarFil+FlowVarSign):
-			return strings.TrimPrefix(retWhole, FlowVarFil+FlowVarSign), 1
+			return strings.TrimPrefix(retWhole,
+				FlowVarFil+FlowVarSign), 1
 		}
 	}
 	return retWhole, 0
 }
 
 // ParseDest parses destination in flow
-func (step FlowStepStruc) ParseDest(flow FlowStruc, conn FlowConnStruc) *net.UDPAddr {
+func (step FlowStepStruc) ParseDest(flow FlowStruc,
+	conn FlowConnStruc) *net.UDPAddr {
 	var ret string
-	retWhole, parseRes := flow.ParseVar(step.Dest, func(svrInd int, varStr string) {
-		switch varStr {
-		case FlowVarLcl:
-			ret = flow.Conns[svrInd].Addr
-		}
-	})
+	retWhole, parseRes := flow.ParseVar(step.Dest,
+		func(svrInd int, varStr string) {
+			switch varStr {
+			case FlowVarLcl:
+				ret = flow.Conns[svrInd].Addr
+			}
+		})
 	if len(ret) < 1 {
 		ret = retWhole
 		switch parseRes {
@@ -268,7 +271,8 @@ func (conn FlowConnStruc) Step1(flow *FlowStruc, step *FlowStepStruc) {
 		case FlowActSnd:
 			dest := step.ParseDest(*flow, conn)
 			if dest == nil && eztools.Verbose > 1 {
-				eztools.LogWtTime("NO dest parsed for", step.Act, "as", step.Dest)
+				eztools.LogWtTime("NO dest parsed for",
+					step.Act, "as", step.Dest)
 			}
 			data, fil := step.ParseData(*flow, conn)
 			conn.chanComm <- RoutCommStruc{
@@ -292,8 +296,10 @@ func (conn FlowConnStruc) Step1(flow *FlowStruc, step *FlowStepStruc) {
 			step.Data = string(respStruc.Data)
 			if respStruc.PeerUDP != nil {
 				if eztools.Verbose > 1 {
-					eztools.Log("refreshing dest of", step.Name,
-						"from", step.Dest, "to", respStruc.PeerUDP.String())
+					eztools.Log("refreshing dest of",
+						step.Name, "from", step.Dest,
+						"to",
+						respStruc.PeerUDP.String())
 				}
 				step.Dest = respStruc.PeerUDP.String()
 			}
@@ -301,7 +307,8 @@ func (conn FlowConnStruc) Step1(flow *FlowStruc, step *FlowStepStruc) {
 				flow.Vals[step.Name] = step
 			}
 			if eztools.Verbose > 2 {
-				eztools.LogWtTime("step done", step.Name, "action", step.Act,
+				eztools.LogWtTime("step done",
+					step.Name, "action", step.Act,
 					"data", step.Data)
 			}
 			conn.StepAll(flow, step.Steps)
@@ -357,11 +364,14 @@ func (conn *FlowConnStruc) Connected(logFunc FuncLog,
 				_, err = connTCP.Write(buf)
 				return
 			}
-			rcvFunc = func(buf []byte, fun func([]byte, int) error) error {
+			rcvFunc = func(buf []byte,
+				fun func([]byte, int) error) error {
 				ln, err := connTCP.Read(buf)
 				if err != nil {
 					if !errors.Is(err, io.EOF) {
-						logFunc(connTCP.LocalAddr().String(), "reading", err)
+						logFunc(connTCP.LocalAddr().
+							String(), "reading",
+							err)
 						com.Err = err
 						return err
 					}
@@ -379,18 +389,23 @@ func (conn *FlowConnStruc) Connected(logFunc FuncLog,
 			defer connUDP.Close()
 			sndFunc = func(buf []byte) (err error) {
 				if com.PeerUDP != nil {
-					_, err = connUDP.WriteTo(buf, com.PeerUDP)
+					_, err = connUDP.WriteTo(buf,
+						com.PeerUDP)
 				} else { // TODO: default to current peer?
 					_, err = connUDP.Write(buf)
 				}
 				return err
 			}
-			rcvFunc = func(buf []byte, fun func([]byte, int) error) error {
+			rcvFunc = func(buf []byte,
+				fun func([]byte, int) error) error {
 				//logFunc(connStruc.Name, "to recv", connUdp.LocalAddr().String())
 				ln, addr, err := connUDP.ReadFromUDP(buf)
 				if err != nil {
 					if !errors.Is(err, io.EOF) {
-						logFunc(conn.Name, connUDP.LocalAddr().String(), "reading error", err)
+						logFunc(conn.Name,
+							connUDP.LocalAddr().
+								String(),
+							"reading error", err)
 						com.Err = err
 						return err
 					}
@@ -427,14 +442,17 @@ func (conn *FlowConnStruc) Connected(logFunc FuncLog,
 			var byteLen int
 			bytes := make([]byte, FlowRcvLen)
 			for {
-				err := rcvFunc(bytes, func(buf []byte, ln int) error {
-					com.Data = append(com.Data, buf[:ln]...)
-					byteLen = ln
-					return nil
-				})
+				err := rcvFunc(bytes,
+					func(buf []byte, ln int) error {
+						com.Data = append(com.Data,
+							buf[:ln]...)
+						byteLen = ln
+						return nil
+					})
 				if eztools.Verbose > 2 {
 					logFunc(conn.Name,
-						"received", err, string(bytes[:byteLen]))
+						"received", err,
+						string(bytes[:byteLen]))
 				}
 				//if err != nil {
 				break
@@ -471,7 +489,8 @@ func (conn *FlowConnStruc) sndFil(logFunc FuncLog, connUDP *net.UDPConn,
 		ln, err = fr.Read(buf)
 		if err != nil {
 			if !errors.Is(err, io.EOF) {
-				logFunc(connUDP.LocalAddr(), "error reading!", err)
+				logFunc(connUDP.LocalAddr(),
+					"error reading!", err)
 			}
 			break
 		}
@@ -530,10 +549,12 @@ func (conn *FlowConnStruc) ParsePeer(flow FlowStruc) {
 			conn.wait4Svr = &flow.Conns[svrInd]
 			conn.wait4Act = FlowVarLst
 			if flow.Conns[svrInd].chanStrs == nil {
-				flow.Conns[svrInd].chanStrs = make(chan string, 1)
+				flow.Conns[svrInd].chanStrs =
+					make(chan string, 1)
 			} else {
 				curr := cap(flow.Conns[svrInd].chanStrs)
-				flow.Conns[svrInd].chanStrs = make(chan string, curr+1)
+				flow.Conns[svrInd].chanStrs =
+					make(chan string, curr+1)
 			}
 			break
 		}
@@ -591,15 +612,20 @@ func (conn *FlowConnStruc) RunCln(flow FlowStruc) {
 		eztools.LogWtTime("client", conn.Name, conn.Protocol)
 	}
 	conn.Peer = conn.Wait4(flow)
-	parts := strings.Split(conn.Peer, ":")
-	conn.Peer = "localhost:" + parts[len(parts)-1]
+	_, po, err := net.SplitHostPort(conn.Peer)
+	if err != nil {
+		eztools.LogWtTime("failed to parse socket for", conn.Peer, err)
+	}
+	conn.Peer = net.JoinHostPort(Localhost, po)
 	if eztools.Verbose > 1 {
-		eztools.LogWtTime("client", conn.Name, conn.Protocol, conn.Addr, "->", conn.Peer)
+		eztools.LogWtTime("client", conn.Name,
+			conn.Protocol, conn.Addr, "->", conn.Peer)
 	}
 	if strings.HasPrefix(conn.Protocol, "udp") {
 		clnt, err := ListenUDP(conn.Protocol, conn.Addr)
 		if err != nil {
-			eztools.LogWtTime(conn.Name, "failed to connect to", conn.Peer)
+			eztools.LogWtTime(conn.Name,
+				"failed to connect to", conn.Peer)
 			return
 		}
 		conn.conn = clnt
@@ -611,9 +637,11 @@ func (conn *FlowConnStruc) RunCln(flow FlowStruc) {
 			conn.Connected(eztools.LogWtTime, nil, nil, [2]string{})
 		}()
 	} else {
-		clnt, err := Client(eztools.LogWtTime, nil, conn.Protocol, conn.Peer, conn.Connected)
+		clnt, err := Client(eztools.LogWtTime, nil,
+			conn.Protocol, conn.Peer, conn.Connected)
 		if err != nil {
-			eztools.LogWtTime(conn.Name, "failed to connect to", conn.Peer)
+			eztools.LogWtTime(conn.Name,
+				"failed to connect to", conn.Peer)
 			return
 		}
 		if eztools.Verbose > 0 {
@@ -650,8 +678,10 @@ func (conn *FlowConnStruc) RunSvr(flow FlowStruc) {
 	} else {
 		lstnr, err := ListenTCP(eztools.LogWtTime, nil, conn.Protocol,
 			conn.Addr, func(logFunc FuncLog,
-				connFunc FuncConn, cnx net.Conn, addr [2]string) {
-				go conn.Connected(logFunc, connFunc, cnx, [2]string{})
+				connFunc FuncConn, cnx net.Conn,
+				addr [2]string) {
+				go conn.Connected(logFunc, connFunc,
+					cnx, [2]string{})
 			}, conn.chanErrs)
 		if err != nil {
 			eztools.LogWtTime(conn.Name, "failed to listen",
@@ -713,7 +743,7 @@ func RunFlow(flow FlowStruc) bool {
 
 // ReadFlowReader reads flow from a reader
 func ReadFlowReader(rdr io.ReadCloser) (flow FlowStruc, err error) {
-	bytes, err := ioutil.ReadAll(rdr)
+	bytes, err := io.ReadAll(rdr)
 	rdr.Close()
 	//n, err = uri.Read(bytes)
 	if err != nil {

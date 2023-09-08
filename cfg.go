@@ -14,8 +14,8 @@ const (
 	EzcURL = "https://gitlab.com/bon-ami/ezcomm"
 	// LogExt log file extension
 	LogExt = ".log"
-	// DefPeerAdr default peer address
-	DefPeerAdr = "localhost" // use "" instead to listen on all interfaces
+	// Localhost default peer address
+	Localhost = "localhost" // use "" instead to listen on all interfaces
 	// DefBrdAdr address for broadcast in lan discovery
 	DefBrdAdr = "255.255.255.255" // broadcast addr
 	// StrUDP is UDP protocol. otherwise, udp4, udp6, etc.

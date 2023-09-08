@@ -15,6 +15,8 @@ import (
 const (
 	// MaxRecLen max length of a text to show in records
 	MaxRecLen = 10
+	// DefPeerAdr default peer address
+	DefPeerAdr = "localhost" // TODO: use "" instead to listen on all interfaces
 )
 
 var (
@@ -77,9 +79,9 @@ func setLclSck(addr string) {
 func getRmtSckStr() string {
 	addr := sockRmt[0].Text
 	if len(addr) < 1 {
-		addr = ezcomm.DefPeerAdr
+		addr = DefPeerAdr
 	}
-	return addr + ":" + sockRmt[1].Text
+	return net.JoinHostPort(addr, sockRmt[1].Text)
 }
 
 func getRmtSck() *net.UDPAddr {
@@ -140,7 +142,7 @@ func Lstn() {
 		err       error
 		addrStruc net.Addr
 	)
-	addr := sockLcl[0].Text + ":" + sockLcl[1].Text
+	addr := net.JoinHostPort(sockLcl[0].Text, sockLcl[1].Text)
 	connDisable()
 	switch protRd.Selected {
 	case ezcomm.StrUDP:
@@ -639,7 +641,7 @@ func makeControlsSocks() {
 	for i := 0; i < 2; i++ {
 		sockRmt[i] = widget.NewSelectEntry(nil)
 	}
-	sockRmt[0].PlaceHolder = ezcomm.DefPeerAdr
+	sockRmt[0].PlaceHolder = DefPeerAdr
 	sockRmt[1].OnChanged = func(str string) {
 		if len(str) > 0 { //&& len(sockRmt[0].Text) > -1 {
 			if isFilEnable() {

@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"testing"
 	"time"
@@ -17,7 +18,7 @@ func tstReadHTTP(t *testing.T, chn chan error) {
 		chn <- eztools.ErrNoValidResults
 		return
 	}
-	addr := "http://" + localAddrSlc[0] + lanPrtHTTP
+	addr := "http://" + net.JoinHostPort(localAddrSlc[0], lanPrtHTTP)
 	if eztools.Verbose > 0 {
 		t.Log("reading from", addr)
 	}
@@ -88,6 +89,7 @@ TSTHTTPLOOP:
 			//t.Log(err)
 			break TSTHTTPLOOP
 		case err = <-chnSvr:
+			//t.Log("from server", err)
 			break TSTHTTPLOOP
 		case frmHTTP := <-chnHTTP:
 			switch frmHTTP {
