@@ -180,6 +180,12 @@ func lanMsgFromNet(pckNt ezcomm.RoutCommStruc, connIn *net.UDPConn, bonjour []by
 				}
 			}
 		}
+		for _, ip := range localAddrSlc {
+			if ip == pckNt.PeerUDP.IP.String() {
+				//Log("echo", ip)
+				return
+			}
+		}
 		refreshPeerMap(pckNt, peerHTTPPort)
 	}
 	return
