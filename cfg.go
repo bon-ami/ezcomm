@@ -29,12 +29,16 @@ const (
 )
 
 var (
-	// Ver=verison. Bld=build, a number or date
-	Ver, Bld string
+	// Ver = verison
+	Ver string
+	// Bld = build, a number or date
+	Bld string
 	// Vendor & AdditionalCfgPath are to locate config file {EzcName}.xml under
 	// {system-app-local-dir}/{Vendor}/{EzcName}/{AdditionalCfgPath}
 	// it may vary among GUI's
-	Vendor, AdditionalCfgPath string
+	Vendor string
+	// AdditionalCfgPath is to locate config file. Refer to Vendor
+	AdditionalCfgPath string
 )
 
 // Fonts is a font-locale match
