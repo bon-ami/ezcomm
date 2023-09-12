@@ -7,7 +7,7 @@ README in other language(-s): [简体中文](README_zhCN.md)
 
 ## Getting started
 
-Go to [Sourceforge](https://sourceforge.net/projects/ezproject/files/EZ%20Comm/) or [gitlab](https://gitlab.com/bon-ami/ezcomm/-/releases) for releases of prebuilt binaries.
+Go to [Sourceforge](https://sourceforge.net/projects/ezproject/files/EZ%20Comm/) or [GitLab](https://gitlab.com/bon-ami/ezcomm/-/releases) for releases of prebuilt binaries.
 
 ### GUI
 
@@ -24,9 +24,9 @@ Go to [Sourceforge](https://sourceforge.net/projects/ezproject/files/EZ%20Comm/)
    ![tab HTTP](https://ezproject.sourceforge.io/ezcomm/ezcomm6_2web.PNG)
 5. interactive mixes TCP/UDP client and server and sends/receives text.
    ![tab interactive](https://ezproject.sourceforge.io/ezcomm/ezcomm6_3msg.PNG)
-    1. choose udp or tcp.
-    2. input local/remote address & port as needed. Local IP defaults to all interfaces and port defaults a system-chosen one.
-    3. choose listen to run as a server or send as a client.
+    5.1. choose udp or tcp.
+    5.2. input local/remote address & port as needed. Local IP defaults to all interfaces and port defaults a system-chosen one.
+    5.3. choose listen to run as a server or send as a client.
 6. files sends/receives files between TCP/UDP client and server.
    ![tab files](https://ezproject.sourceforge.io/ezcomm/ezcomm6_4fil.png)
 7. Downloads shows files in app's directory for files.
@@ -36,9 +36,9 @@ Go to [Sourceforge](https://sourceforge.net/projects/ezproject/files/EZ%20Comm/)
 9. config contains anti-attack, language/font settings and flow switch.
    ![tab config](https://ezproject.sourceforge.io/ezcomm/ezcomm6_7cfg.PNG)
 
-source code under guiFyne directory. It uses [Fyne](https://fyne.io/) for graphical UI to support cross-platforms.
+Source code under guiFyne directory uses [Fyne](https://fyne.io/) for graphical UI to support cross-platforms.
 
-Features
+#### Features
 
  - TCP/UDP/HTTP
  - client/server. send to different clients with different text as a server.
@@ -48,7 +48,7 @@ Features
  - incoming/outgoing message history
  - anti-flood to neglect frequent incoming traffic from same IP
  - customizable and in-built fonts
- - multilingual interface. Current languages(Mainly translated by [Bing Translator](https://cn.bing.com/translator) from English and Chinese Simplified):
+ - multilingual interface. Current languages (mainly translated by [Bing Translator](https://cn.bing.com/translator) from English and Chinese Simplified):
    - English
    - Spanish
    - Japanese
@@ -60,11 +60,15 @@ Features
 source code under cmd directory. only flow mode supported.
 
  - Run it with "-h" to show command line parameters.
- - Run it with "-flow" parameter with flow file name to run with no graphical UI but the script only. Refer to sample.xml to check how to write a flow script.
+ - Run it with "-flow" parameter with flow file name to run with no graphical UI but the script only. Refer to sample*.xml to check how to write a flow script.
 
-## Issues
+## Issues, Security & Tests
 
-Tracked by [Issues](https://gitlab.com/bon-ami/ezcomm/-/issues)
+Tracked by [Issues on GitLab](https://gitlab.com/bon-ami/ezcomm/-/issues)
+
+Tested and auto-built on [GitLab](https://gitlab.com/bon-ami/ezcomm/-/pipelines)
+
+[![Security Status](https://www.murphysec.com/platform3/v31/badge/1701444498127192064.svg)](https://www.murphysec.com/console/report/1701444496843735040/1701444498127192064) (not real-time)
 
 ## Requirements and milestones
 

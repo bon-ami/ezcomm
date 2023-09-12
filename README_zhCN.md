@@ -7,7 +7,7 @@ README in other language(-s): [English](README.md)
 
 ## 开始
 
-到[Sourceforge](https://sourceforge.net/projects/ezproject/files/EZ%20Comm/) or [gitlab](https://gitlab.com/bon-ami/ezcomm/-/releases)选择预编译二进制的发行版本
+到[Sourceforge](https://sourceforge.net/projects/ezproject/files/EZ%20Comm/) or [GitLab](https://gitlab.com/bon-ami/ezcomm/-/releases)选择预编译二进制的发行版本
 
 ### 图形界面
 
@@ -36,9 +36,9 @@ README in other language(-s): [English](README.md)
 9. 设置页包含防攻击、语言、字体设置和流程开关。
    ![设置页](https://ezproject.sourceforge.io/ezcomm/ezcomm6_cn_7cfg.png)
 
-代码在guiFyne目录下。使用了[Fyne](https://fyne.io/)跨平台显示图形界面。
+代码在guiFyne目录下，使用了[Fyne](https://fyne.io/)跨平台显示图形界面。
 
-功能
+#### 功能
 
  - TCP/UDP/HTTP
  - 服务器/客户端。服务器端面能向不同客户端改善不同消息。
@@ -60,11 +60,15 @@ README in other language(-s): [English](README.md)
 在cmd目录下。只支持脚本模式。
 
  - 以"-h"运行可显示可用参数。
- - 以"-flow"加流程文件名参数运行可无图形界面运行流程脚本。流程脚本的书写参见sample.xml。
+ - 以"-flow"加流程文件名参数运行可无图形界面运行流程脚本。流程脚本的书写参见sample*.xml。
 
-## 问题
+## 问题、安全和测试
 
-由[Issues](https://gitlab.com/bon-ami/ezcomm/-/issues)跟踪
+由[GitLab Issues](https://gitlab.com/bon-ami/ezcomm/-/issues)跟踪
+
+由[GitLab Pipelines](https://gitlab.com/bon-ami/ezcomm/-/pipelines)测试和编译
+
+[![安全状态](https://www.murphysec.com/platform3/v31/badge/1701444498127192064.svg)](https://www.murphysec.com/console/report/1701444496843735040/1701444498127192064) （非实时）
 
 ## Requirements and milestones
 
