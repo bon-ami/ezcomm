@@ -240,7 +240,8 @@ func run(chnHTTP chan bool) {
 			eztools.Log("failed to open config file", cfgFileName, ":", err)
 		}
 	}
-	err = ezcomm.ReaderCfg(rdr)
+	// to avoid no fonts for current env, use en regardless of system language
+	err = ezcomm.ReaderCfg(rdr, "en")
 	if err != nil {
 		if eztools.Verbose > 1 {
 			eztools.Log("config/locale failure:", err)

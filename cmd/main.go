@@ -23,8 +23,8 @@ func main() {
 		paramH, paramV, paramVV, paramVVV bool
 	)
 	// read current OS language
-	ezcomm.I18nInit()
-	ezcomm.I18nLoad("")
+	/*ezcomm.I18nInit()
+	ezcomm.I18nLoad("")*/
 
 	const paramCfgStr = "cfg"
 	// try to get cfg param, for language settings
@@ -43,7 +43,10 @@ func main() {
 		}
 	}
 	// read config file or default config for default language
-	ezcomm.ReadCfg(argCfgStr)
+	// keep consistent with guiFyne
+	ezcomm.Vendor = "fyne"
+	ezcomm.AdditionalCfgPath = "Documents"
+	ezcomm.ReadCfg(argCfgStr, "")
 	// all possible language settings got. parse all params again.
 
 	flag.BoolVar(&paramVer, "version", false, ezcomm.StringTran["StrVer"])
@@ -84,7 +87,7 @@ func main() {
 		eztools.Verbose = 3
 	}
 
-	ezcomm.ReadCfg(paramCfg)
+	ezcomm.ReadCfg(paramCfg, "")
 	ezcomm.SetLog(ezcomm.EzcName+ezcomm.LogExt, nil)
 
 	// db is only for app upgrade

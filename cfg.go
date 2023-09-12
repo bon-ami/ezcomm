@@ -29,10 +29,12 @@ const (
 )
 
 var (
-	// Ver verison
-	Ver string
-	// Bld build, a number or date
-	Bld string
+	// Ver=verison. Bld=build, a number or date
+	Ver, Bld string
+	// Vendor & AdditionalCfgPath are to locate config file {EzcName}.xml under
+	// {system-app-local-dir}/{Vendor}/{EzcName}/{AdditionalCfgPath}
+	// it may vary among GUI's
+	Vendor, AdditionalCfgPath string
 )
 
 // Fonts is a font-locale match
@@ -99,15 +101,18 @@ func WriteCfg() error {
 	if len(cfgPath) > 0 {
 		err = eztools.XMLWrite(cfgPath, CfgStruc, "\t")
 	}
-	if err != nil {
-		//log("failed to write config", cfgPath, err)
-		cfgPath, err = eztools.XMLWriteDefault(EzcName, CfgStruc, "\t")
-	}
-	if err != nil {
-		cfgPath = ""
+	if err == nil {
 		return err
 	}
-	return err
+	//log("failed to write config", cfgPath, err)
+	var errs []error
+	cfgPath, errs = eztools.XMLWriteDefault(Vendor,
+		"", AdditionalCfgPath, EzcName, CfgStruc, "\t")
+	if errs != nil {
+		cfgPath = ""
+		return errs[0]
+	}
+	return nil
 }
 
 // WriterCfg to save config using Writer
@@ -120,24 +125,26 @@ func WriterCfg(wrt io.WriteCloser) error {
 
 // ReaderCfg reads config from a Reader
 // Closer is closed before returning
-func ReaderCfg(rdr io.ReadCloser) error {
+func ReaderCfg(rdr io.ReadCloser, fallbackLang string) error {
 	if rdr != nil {
 		setDefCfg()
 		eztools.XMLReader(rdr, &CfgStruc)
 		rdr.Close()
 	}
-	return procCfg()
+	return procCfg(fallbackLang)
 }
 
 // ReadCfg reads config from a file
-func ReadCfg(cfg string) error {
+func ReadCfg(cfg string, fallbackLang string) error {
 	setDefCfg()
-	cfgPath, _ = eztools.XMLReadDefault(cfg, EzcName, &CfgStruc)
-	if len(cfgPath) < 1 && len(cfg) > 0 {
+	var err []error
+	cfgPath, err = eztools.XMLReadDefault(cfg, Vendor, "",
+		AdditionalCfgPath, EzcName, &CfgStruc)
+	if err != nil || len(cfgPath) < 1 && len(cfg) > 0 {
 		// not exist yet?
 		cfgPath = cfg
 	}
-	return procCfg()
+	return procCfg(fallbackLang)
 }
 
 func setDefCfg() {
@@ -145,7 +152,7 @@ func setDefCfg() {
 	CfgStruc.AntiFlood.Period = DefAntFldPrd
 }
 
-func procCfg() error {
+func procCfg(fallbackLang string) error {
 	if CfgStruc.Verbose > 0 {
 		if eztools.Verbose < CfgStruc.Verbose {
 			eztools.Verbose = CfgStruc.Verbose
@@ -166,8 +173,7 @@ func procCfg() error {
 		lang string
 	)
 	if len(CfgStruc.Language) < 1 {
-		// to avoid no fonts for current env, though I18nLoad can get system language from empty input
-		lang, err = I18nLoad("en")
+		lang, err = I18nLoad(fallbackLang)
 	} else {
 		lang, err = I18nLoad(CfgStruc.Language)
 	}
