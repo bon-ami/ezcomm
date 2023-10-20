@@ -3,14 +3,15 @@ package ezcomm
 import (
 	"context"
 	"net"
+	"sync"
 
 	"github.com/pion/mdns"
 	"golang.org/x/net/ipv4"
 )
 
-// MDNS_Server creats a server and waits for queries
+// MdnsServer creats a server and waits for queries
 // Parameters: chnErr can be nil, others must not be
-func MDNS_Server(localName string, chnStp chan struct{}, chnErr chan error) {
+func MdnsServer(localName string, chnStp chan struct{}, chnErr chan error) {
 	var err error
 	defer func() {
 		chnErr <- err
@@ -34,9 +35,9 @@ func MDNS_Server(localName string, chnStp chan struct{}, chnErr chan error) {
 	<-chnStp
 }
 
-// MDNS_Client creats a client and queries
+// MdnsClient creats a client and queries
 // Parameters: channels can be nil
-func MDNS_Client(localName string, chnAddr chan net.Addr,
+func MdnsClient(localName string, chnAddr chan net.Addr,
 	chnStp chan struct{}, chnErr chan error) {
 	addr, err := net.ResolveUDPAddr("udp", mdns.DefaultAddress)
 	defer func() {
@@ -56,16 +57,31 @@ func MDNS_Client(localName string, chnAddr chan net.Addr,
 		return
 	}
 	ctx, cancel := context.WithCancel(context.Background())
+	var (
+		cancelled bool
+		lock      sync.Mutex
+	)
+	cancelDo := func() {
+		lock.Lock()
+		if !cancelled {
+			cancelled = true
+			cancel()
+		}
+		lock.Unlock()
+	}
+	defer cancelDo()
+	chnEnd := make(chan struct{}, 1)
+	defer close(chnEnd)
 	if chnStp != nil {
-		go func(chnStp chan struct{}) {
+		go func() {
 			select {
 			case <-chnStp:
-				cancel()
-			case <-ctx.Done():
-				break
+				cancelDo()
+			case <-chnEnd:
 			}
-		}(chnStp)
+		}()
 	}
 	_, src, err := server.Query(ctx, localName)
+	chnEnd <- struct{}{}
 	chnAddr <- src
 }

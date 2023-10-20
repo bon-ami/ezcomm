@@ -58,10 +58,12 @@ func runHTTP() chan error {
 	return httpSvr.Serve(lstnr)
 }
 
-func stpHTTP() error {
+func stpHTTP() (ret error) {
 	lanPrtHTTP = ""
-	ret := httpSvr.Shutdown(1)
-	httpSvr = nil
+	if httpSvr != nil {
+		ret = httpSvr.Shutdown(1)
+		httpSvr = nil
+	}
 	return ret
 }
 

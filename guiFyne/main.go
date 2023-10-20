@@ -276,8 +276,8 @@ func run(chnHTTP chan bool) {
 	tabCfg := makeTabCfg()
 	if chnHTTP == nil {
 		chnHTTP = make(chan bool, 1)
+		defer close(chnHTTP)
 	}
-	defer close(chnHTTP)
 	chnLan = make(chan bool, 1)
 	defer close(chnLan)
 	tabLan = makeTabLan(chnHTTP)
@@ -335,8 +335,7 @@ func run(chnHTTP chan bool) {
 	if eztools.Debugging && runtime.NumGoroutine() > 7 {
 		buf := make([]byte, 16384)
 		stackSize := runtime.Stack(buf, true)
-		eztools.Log("=== Start Goroutine Stack Traces ===\n%s",
-			buf[:stackSize])
+		eztools.Log(buf[:stackSize])
 	}
 	if logger != nil {
 		logger.Close()
