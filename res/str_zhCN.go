@@ -18,6 +18,7 @@ func I18nZhcn() {
 		StrLcl = "本地"
 		StrRmt = "远端"
 		StrLst = "监听"
+		StrLstFl ="无法侦听。更改本地地址和端口或将其留空以让系统决定。"
 		StrDis = "断开对端"
 		StrStp = "停止监听"
 		StrCon = "连接"

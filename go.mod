@@ -7,6 +7,7 @@ require (
 	gitee.com/bon-ami/eztools/v6 v6.2.0
 	github.com/bon-ami/go-findfont v0.3.0
 	github.com/gin-gonic/gin v1.9.1
+	github.com/pion/mdns v0.0.9
 	github.com/pkg/errors v0.8.1
 	golang.org/x/net v0.15.0
 )
@@ -52,6 +53,7 @@ require (
 	github.com/mongodb-forks/digest v1.0.5 // indirect
 	github.com/nicksnyder/go-i18n/v2 v2.2.1 // indirect
 	github.com/pelletier/go-toml/v2 v2.1.0 // indirect
+	github.com/pion/logging v0.2.2 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sanbornm/go-selfupdate v0.0.0-20230714125711-e1c03e3d6ac7 // indirect
 	github.com/shibukawa/configdir v0.0.0-20170330084843-e180dbdc8da0 // indirect

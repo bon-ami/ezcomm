@@ -1,7 +1,7 @@
 package ezcomm
 
 import (
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
 	"strings"
@@ -50,6 +50,7 @@ func TestHTTPSvrFS(t *testing.T) {
 		t.Log("wait for server for", TstTO)
 	}
 	chClnt := make(chan error, 1)
+	defer close(chClnt)
 	go func() {
 		resp, err := eztools.HTTPSend(tstDefHTTPMeth,
 			tstDefHTTPUrlPref+lstnr.Addr().String(),
@@ -60,7 +61,7 @@ func TestHTTPSvrFS(t *testing.T) {
 			return
 		}
 		defer resp.Body.Close()
-		data, err := ioutil.ReadAll(resp.Body)
+		data, err := io.ReadAll(resp.Body)
 		if err != nil {
 			//t.Error(err)
 			chClnt <- errors.Wrap(err, "Read Body")
@@ -106,6 +107,7 @@ func TestHTTPSvrPst(t *testing.T) {
 		t.Log(lstnr.Addr().String())
 	}
 	chClnt := make(chan error, 1)
+	defer close(chClnt)
 	svr := MakeHTTPSvr()
 	const (
 		bodyInput      = "info"
@@ -257,10 +259,11 @@ func TestHTTPSvrHdr(t *testing.T) {
 		hdrs["Header"+string(i)] = "Value" + string(i)
 	}
 	chClnt := make(chan error, 1)
+	defer close(chClnt)
 	svr := MakeHTTPSvr()
 	svr.GET("", func(peer string, req *http.Request, _ func(string) string) (
 		int, HTTPSvrBody, map[string]string) {
-		data, err := ioutil.ReadAll(req.Body)
+		data, err := io.ReadAll(req.Body)
 		//bd, err := req.GetBody()
 		if err != nil {
 			//t.Error(err)
@@ -329,7 +332,7 @@ func TestHTTPSvrHdr(t *testing.T) {
 			}
 		}
 		// check body
-		data, err := ioutil.ReadAll(resp.Body)
+		data, err := io.ReadAll(resp.Body)
 		if err != nil {
 			//t.Error(err)
 			chClnt <- errors.Wrap(err, "Read Body from Response")

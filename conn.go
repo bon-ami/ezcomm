@@ -15,6 +15,7 @@ type FuncLog func(...any)
 
 // FuncConn is run when Connected.
 // addr=address info.
+// close(chan[...]) upon exiting!
 //
 //	[0]: parsed local
 //	[1]: remote
@@ -259,12 +260,11 @@ func rcvFrom1Peer(logFunc FuncLog, conn net.Conn, chn [2]chan RoutCommStruc,
 		}
 		n, err := conn.Read(buf)
 		if err != nil {
-			if errors.Is(err, io.EOF) ||
-				errors.Is(err, net.ErrClosed) {
-				break
+			if !errors.Is(err, io.EOF) &&
+				!errors.Is(err, net.ErrClosed) {
+				// reading on a closed TCP connection also here
+				errRet = err
 			}
-			// reading on a closed TCP connection also here
-			errRet = err
 			break
 		}
 		if eztools.Debugging && eztools.Verbose > 2 {

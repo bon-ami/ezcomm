@@ -18,6 +18,7 @@ func I18nEn() {
 		StrLcl = "local"
 		StrRmt = "remote"
 		StrLst = "listen"
+		StrLstFl = "Failed to listen. Change local address and port or leave them empty to let system decide."
 		StrDis = "disconnect peer"
 		StrStp = "stop listening"
 		StrCon = "connect"

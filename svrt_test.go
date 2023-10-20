@@ -81,6 +81,7 @@ func TestSvrTcp(t *testing.T) {
 	*TstProt = "tcp"
 	tstSvrTP = make(map[string]struct{})
 	tstSvrTD = make(chan struct{}, 1)
+	defer close(tstSvrTD)
 	tstSvrT.ActFunc = tstSvrTAct
 	tstSvrT.LogFunc = t.Log
 	tstSvrT.ConnFunc = tstSvrTConn

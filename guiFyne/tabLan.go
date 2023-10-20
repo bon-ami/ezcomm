@@ -13,14 +13,17 @@ import (
 )
 
 var (
-	chnLan       chan bool
-	httpSvr      *ezcomm.HTTPSvr
-	localAddrSlc []string
-	lanPrtHTTP   string
-	lanWeb       *widget.List
-	lanBut       *widget.Button
-	lanLbl       *widget.Label
-	lanLst       *widget.RadioGroup
+	lanTabShown     bool
+	chnLan, chnHTTP chan bool
+	httpSvr         *ezcomm.HTTPSvr
+	localAddrSlc    []string
+	lanPrtHTTP      string
+	lanWeb          *widget.List
+	lanBut          *widget.Button
+	lanLbl          *widget.Label
+	lanLst          *widget.RadioGroup
+	// chnWeb is for TCP client and UDP
+	chnWeb [2]chan ezcomm.RoutCommStruc
 )
 
 func httpListNum() int {
@@ -36,6 +39,8 @@ func httpListUpdate(id widget.ListItemID, item fyne.CanvasObject) {
 		lanPrtHTTP))
 }
 
+// runHTTP runs HTTP server in a routine
+// Return value: chan is closed upon server exit
 func runHTTP() chan error {
 	lstnr, err := ezcomm.ListenTCP(
 		Log, nil, "", ":", nil, nil)
@@ -69,7 +74,7 @@ func runUDP(defLanPrtStr string) *net.UDPConn {
 		return nil
 	}
 	lanLbl.SetText(ezcomm.StringTran["StrLst"])
-	go ezcomm.ConnectedUDP(Log, chn, conn)
+	go ezcomm.ConnectedUDP(Log, chnWeb, conn)
 	return conn
 }
 
@@ -87,16 +92,17 @@ func sndUDP(conn *net.UDPConn, addrBrd *net.UDPAddr, bonjour []byte) {
 		Act:     ezcomm.FlowChnSnd,
 		Data:    bonjour,
 		PeerUDP: addrBrd}
-	chn[0] <- pckNt
+	chnWeb[0] <- pckNt
 }
 
-func switchHTTP(chn chan bool) {
+func switchHTTP() {
 	for {
-		switch <-chn {
+		switch <-chnHTTP {
 		case true:
 			runHTTP()
 		case false:
 			stpHTTP()
+			return
 		}
 	}
 }
@@ -107,10 +113,10 @@ func end2worker() {
 	}
 	var pckNt ezcomm.RoutCommStruc
 	pckNt.Act = ezcomm.FlowChnEnd
-	chn[0] <- pckNt
+	chnWeb[0] <- pckNt
 }
 
-func lanTabSwitched(reqUI bool, chnHTTP chan bool, connIn *net.UDPConn,
+func lanTabSwitched(reqUI bool, connIn *net.UDPConn,
 	addrBrd *net.UDPAddr, bonjour []byte, defLanPrtStr string,
 	makeLclInf func()) (connOut *net.UDPConn) {
 	connOut = connIn
@@ -119,12 +125,26 @@ func lanTabSwitched(reqUI bool, chnHTTP chan bool, connIn *net.UDPConn,
 		if connIn != nil {
 			end2worker()
 			connOut = nil
-			<-chn[1] // wait for ezcomm to end
+			<-chnWeb[1] // wait for ezcomm to end
 		}
 		if httpSvr != nil {
 			chnHTTP <- false
 		}
+		for i := range chnWeb {
+			if chnWeb[i] == nil {
+				continue
+			}
+			close(chnWeb[i])
+			chnWeb[i] = nil
+		}
 	case true:
+		for i := range chnWeb {
+			if chnWeb[i] != nil {
+				continue
+			}
+			chnWeb[i] = make(chan ezcomm.RoutCommStruc,
+				ezcomm.FlowComLen)
+		}
 		if connIn != nil {
 			sndUDP(connIn, addrBrd, bonjour)
 			break
@@ -191,16 +211,12 @@ func lanMsgFromNet(pckNt ezcomm.RoutCommStruc, connIn *net.UDPConn, bonjour []by
 	return
 }
 
-func lanListen(chnHTTP chan bool) {
+func lanListen() {
 	var (
 		conn  *net.UDPConn
 		reqUI bool
 		pckNt ezcomm.RoutCommStruc
 	)
-	for i := range chn {
-		chn[i] = make(chan ezcomm.RoutCommStruc,
-			ezcomm.FlowComLen)
-	}
 	defLanPrtInt := ezcomm.DefLanPrt()
 	defLanPrtStr := strconv.Itoa(defLanPrtInt)
 	var bonjour []byte
@@ -214,10 +230,7 @@ func lanListen(chnHTTP chan bool) {
 		Log("bad broadcast addr", err)
 		return
 	}
-	if chnHTTP == nil {
-		chnHTTP = make(chan bool, 1)
-		go switchHTTP(chnHTTP)
-	}
+	go switchHTTP()
 	var localAddrMap, peerMap map[string]struct{}
 	makeLclInf := func() {
 		localAddrs, err := net.InterfaceAddrs()
@@ -262,17 +275,20 @@ func lanListen(chnHTTP chan bool) {
 	for {
 		select {
 		case reqUI = <-chnLan:
-			conn = lanTabSwitched(reqUI, chnHTTP, conn, addrBrd,
+			conn = lanTabSwitched(reqUI, conn, addrBrd,
 				bonjour, defLanPrtStr, makeLclInf)
-		case pckNt = <-chn[1]:
+			if !reqUI {
+				return
+			}
+		case pckNt = <-chnWeb[1]:
 			conn = lanMsgFromNet(pckNt, conn, bonjour, bonjourLen,
 				defLanPrtInt, refreshPeerMap)
 		}
 	}
 }
 
-func makeTabLan(chnHTTP chan bool) *container.TabItem {
-	chnLan = make(chan bool, 1)
+func makeTabLan(chnHTTPin chan bool) *container.TabItem {
+	chnHTTP = chnHTTPin
 	lanWeb = widget.NewList(
 		httpListNum,
 		func() fyne.CanvasObject {
@@ -286,7 +302,6 @@ func makeTabLan(chnHTTP chan bool) *container.TabItem {
 		cp2Clip(net.JoinHostPort(localAddrSlc[id], lanPrtHTTP))
 	}
 	lanLbl = widget.NewLabel("")
-	go lanListen(chnHTTP)
 	lanBut = widget.NewButton(ezcomm.StringTran["StrPokePeer"], func() {
 		chnLan <- true
 	})
@@ -306,9 +321,14 @@ func makeTabLan(chnHTTP chan bool) *container.TabItem {
 }
 
 func tabLanShown(yes bool) {
+	if lanTabShown == yes {
+		return
+	}
+	lanTabShown = yes
 	switch yes {
 	case true:
 		lanBut.Refresh()
+		go lanListen()
 	case false:
 	}
 	chnLan <- yes

@@ -14,6 +14,7 @@ import (
 )
 
 func tstReadHTTP(t *testing.T, chn chan error) {
+	defer close(chn)
 	if localAddrSlc == nil || len(localAddrSlc) < 1 {
 		chn <- eztools.ErrNoValidResults
 		return
@@ -109,8 +110,9 @@ TSTHTTPLOOP:
 func TestHttp(t *testing.T) {
 	ezcomm.Init4Tests(t)
 	ezcApp = test.NewApp()
-	chnHTTP := make(chan bool, 1)
+	chnHTTP := make(chan bool, 1) // closed by run()
 	chnRes := make(chan error, 1)
+	defer close(chnRes)
 	go tstSwitchHTTP(t, chnHTTP, chnRes)
 	run(chnHTTP)
 	if err := <-chnRes; err != nil {

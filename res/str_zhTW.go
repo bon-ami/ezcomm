@@ -18,6 +18,7 @@ func I18nZhtw() {
 		StrLcl = "當地"
 		StrRmt = "遠端"
 		StrLst = "監聽"
+		StrLstFl ="無法偵聽。更改本地位址和埠或將其留空以讓系統決定。"
 		StrDis = "斷開對端"
 		StrStp = "停止收聽"
 		StrCon = "連接"

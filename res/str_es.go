@@ -18,6 +18,7 @@ func I18nEs() { // by bing.com
 		StrLcl = "local"
 		StrRmt = "remoto"
 		StrLst = "escuchar"
+		StrLstFl = "No se escuchó. Cambie la dirección local y el puerto o déjelos vacíos para que el sistema decida."
 		StrDis = "desconectar del mismo nivel"
 		StrStp = "dejar de escuchar"
 		StrCon = "conectar"

@@ -18,6 +18,7 @@ func I18nJa() {
 		StrLcl = "ローカル"
 		StrRmt = "リモート"
 		StrLst = "聞く"
+		StrLstFl = "リッスンできませんでした。ローカルアドレスとポートを変更するか、空のままにしてシステムに決定させます。"
 		StrDis = "ピアの切断"
 		StrStp = "リスニングを停止"
 		StrCon = "接続"

@@ -20,6 +20,7 @@ const (
 )
 
 var (
+	chn [2]chan ezcomm.RoutCommStruc
 	// svrTCP is for TCP server only
 	svrTCP ezcomm.SvrTCP
 	// snd2Slc is for UDP peer display
@@ -45,8 +46,8 @@ var (
 )
 
 func connEnable() {
-	tabs.DisableItem(tabLan)
-	tabs.DisableItem(tabWeb)
+	tabs.EnableItem(tabLan)
+	tabs.EnableItem(tabWeb)
 	//for _, i := range selectCtrls {
 	for i := 0; i < 2; i++ {
 		sockLcl[i].Enable()
@@ -56,8 +57,8 @@ func connEnable() {
 }
 
 func connDisable() {
-	tabs.EnableItem(tabLan)
-	tabs.EnableItem(tabWeb)
+	tabs.DisableItem(tabLan)
+	tabs.DisableItem(tabWeb)
 	//for _, i := range selectCtrls {
 	for i := 0; i < 2; i++ {
 		sockLcl[i].Disable()
@@ -157,19 +158,19 @@ func Lstn() {
 		addrStruc = udpConn.LocalAddr()
 		setLclSck(addrStruc.String())
 		for i := range chn {
+			if chn[i] != nil {
+				close(chn[i])
+			}
 			chn[i] = make(chan ezcomm.RoutCommStruc,
 				ezcomm.FlowComLen)
 		}
 		go ezcomm.ConnectedUDP(Log, chn, udpConn)
-		clntRoutine()
+		go clntRoutine()
 	case ezcomm.StrTCP:
 		err = svrTCP.Listen("", addr)
-		if err != nil {
-			//Log(ezcomm.StringTran["StrListeningOn"], err)
-			break
-		}
 	}
 	if err != nil {
+		go toast("StrNG", ezcomm.StringTran["StrLstFl"])
 		connEnable()
 		Log(ezcomm.StringTran["StrListeningOn"], err)
 	} else {
@@ -229,28 +230,40 @@ func TCPClnConnected(addr [4]string, chnC [2]chan ezcomm.RoutCommStruc) {
 			return
 		}
 	}
+	for _, chn1 := range chn {
+		if chn1 != nil {
+			close(chn1)
+		}
+	}
 	chn = chnC
 	svrConnected(addr)
 	TCPSvrConnected(addr)
 	lstBut.Hide()
-	clntRoutine()
+	go clntRoutine()
 }
 
 // clntRoutine is for TCP client and UDP
 func clntRoutine() {
-	go func(chn chan ezcomm.RoutCommStruc) {
-		if eztools.Debugging && eztools.Verbose > 1 {
-			Log("entering client routine")
-			defer Log("exiting client routine")
-		}
-		for {
-			comm := <-chn
-			tcpConnAct(comm)
-			if comm.Act == ezcomm.FlowChnEnd {
-				break
+	if eztools.Debugging && eztools.Verbose > 1 {
+		Log("entering client routine")
+		defer func() {
+			Log("exiting client routine")
+			for i := range chn {
+				if chn[i] == nil {
+					continue
+				}
+				close(chn[i])
+				chn[i] = nil
 			}
+		}()
+	}
+	for {
+		comm := <-chn[1]
+		tcpConnAct(comm)
+		if comm.Act == ezcomm.FlowChnEnd {
+			break
 		}
-	}(chn[1])
+	}
 }
 
 func svrConnected(addr [4]string) {
@@ -355,6 +368,10 @@ func svrStopped() {
 	disBut.Hide()
 	rowTCPSock2.Options = nil
 	for i := range chn {
+		if chn[i] == nil {
+			continue
+		}
+		close(chn[i])
 		chn[i] = nil
 	}
 }

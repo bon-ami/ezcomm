@@ -32,6 +32,7 @@ func TestSvrCln(t *testing.T) {
 	AntiFlood.Limit = -1
 	//*prot = "tcp"
 	tstSvrChan = make(chan struct{}, 1)
+	defer close(tstSvrChan)
 	tstClntRdMsg = make(chan struct{})
 	clnts := *TstClntNo
 	go func() {
@@ -58,6 +59,7 @@ func TestSvrCln(t *testing.T) {
 	if eztools.Verbose > 1 {
 		t.Log("client", *TstMsg)
 	}
+	close(tstClntRdMsg)
 	tstClntRdMsg = nil
 	TestClient(t)
 	if tstSvrChan != nil {
@@ -67,6 +69,7 @@ func TestSvrCln(t *testing.T) {
 
 func tstClnt(addr [4]string, chn [2]chan RoutCommStruc) {
 	for _, chn1 := range chn {
+		defer close(chn1)
 		if chn1 == nil {
 			TstT.Error(tstErrPre, "flooding?")
 			return
@@ -150,6 +153,9 @@ ClientLoop:
 			}
 		}
 	}
+	chn[0] <- RoutCommStruc{Act: FlowChnEnd}
+	// wait for End
+	<-chn[1]
 	return
 }
 
@@ -208,6 +214,9 @@ func tstUDPSvr(fin chan bool, chn [2]chan RoutCommStruc) {
 					break
 				}
 			}
+		}
+		for _, chn1 := range chn {
+			close(chn1)
 		}
 		if fin != nil {
 			fin <- done
@@ -280,6 +289,7 @@ func TestServer(t *testing.T) {
 		var chn [2]chan RoutCommStruc
 		for i := range chn {
 			chn[i] = make(chan RoutCommStruc, *TstClntNo)
+			defer close(chn[i])
 		}
 		go ConnectedUDP(t.Log, chn, conn)
 		tstChnSvr[0] <- true

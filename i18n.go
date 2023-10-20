@@ -25,6 +25,7 @@ var (
 		"StrLcl",
 		"StrRmt",
 		"StrLst",
+		"StrLstFl",
 		"StrDis",
 		"StrStp",
 		"StrCon",

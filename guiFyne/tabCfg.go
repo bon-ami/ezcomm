@@ -95,6 +95,7 @@ func tryWriteFile(fun func(string) (io.WriteCloser, error),
 		return wr, fn, false
 	}
 	ch := make(chan bool, 1)
+	defer close(ch)
 	dialog.ShowConfirm(
 		ezcomm.StringTran["StrFileAwareness"],
 		ezcomm.StringTran["StrFileSave"]+
@@ -209,7 +210,6 @@ func runFlow(uri fyne.URIReadCloser) {
 var (
 	flowFlBut, fontBut, currLngBut *widget.Button
 	flowFnStt                      *widget.Entry
-	flowResChn                     chan bool
 	currLang                       string
 	langResMap                     map[string]int
 	langButs                       []fyne.CanvasObject
@@ -258,7 +258,6 @@ func makeControlsCfg() *fyne.Container {
 	flowFnTxt = widget.NewEntry()
 	flowFnTxt.SetText(ezcomm.StringTran["StrFlw"])
 	flowFnTxt.Disable()
-	flowResChn = make(chan bool, 1)
 	flowFlBut = widget.NewButton(ezcomm.StringTran["StrFlw"], func() {
 		dialog.ShowFileOpen(func(uri fyne.URIReadCloser, err error) {
 			flowFnStt.SetText("")

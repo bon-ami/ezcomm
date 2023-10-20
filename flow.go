@@ -290,6 +290,7 @@ func (conn FlowConnStruc) Step1(flow *FlowStruc, step *FlowStepStruc) {
 			}
 		}
 		respStruc = <-respChn
+		close(respChn)
 		if respStruc.Err != nil {
 			eztools.LogWtTime(conn.Name, step.Act, respStruc.Err)
 		} else {
@@ -553,6 +554,7 @@ func (conn *FlowConnStruc) ParsePeer(flow FlowStruc) {
 					make(chan string, 1)
 			} else {
 				curr := cap(flow.Conns[svrInd].chanStrs)
+				close(flow.Conns[svrInd].chanStrs)
 				flow.Conns[svrInd].chanStrs =
 					make(chan string, curr+1)
 			}
@@ -563,7 +565,7 @@ func (conn *FlowConnStruc) ParsePeer(flow FlowStruc) {
 
 // Wait4 waits for chan from server
 func (conn *FlowConnStruc) Wait4(flow FlowStruc) (ret string) {
-	if conn.wait4Svr == nil {
+	if (conn.wait4Svr == nil) || (conn.wait4Svr.chanStrs == nil) {
 		return
 	}
 	conn.LockLog(conn.wait4Svr.Name, true)
@@ -590,9 +592,14 @@ func (conn *FlowConnStruc) LockLog(nm string, lck bool) {
 }
 
 // Run runs a flow
+// to be run by RunFlow, b/c no (de-)init for channels
 func (conn *FlowConnStruc) Run(flow *FlowStruc) {
 	if conn.chanComm == nil {
 		conn.chanComm = make(chan RoutCommStruc, FlowComLen)
+		defer func() {
+			close(conn.chanComm)
+			conn.chanComm = nil
+		}()
 	}
 	if len(conn.Peer) > 1 {
 		conn.RunCln(*flow)
@@ -607,6 +614,7 @@ func (conn *FlowConnStruc) Run(flow *FlowStruc) {
 }
 
 // RunCln runs a client
+// to be run by FlowConnStruc.Run(), b/c no (de-)init for channels
 func (conn *FlowConnStruc) RunCln(flow FlowStruc) {
 	if eztools.Verbose > 2 {
 		eztools.LogWtTime("client", conn.Name, conn.Protocol)
@@ -653,6 +661,7 @@ func (conn *FlowConnStruc) RunCln(flow FlowStruc) {
 }
 
 // RunSvr supports TCP & UDP only. TODO: IP & Unix
+// to be run by FlowConnStruc.Run(), b/c no (de-)init for channels
 func (conn *FlowConnStruc) RunSvr(flow FlowStruc) {
 	if len(conn.Protocol) < 1 {
 		return
@@ -698,8 +707,7 @@ func (conn *FlowConnStruc) RunSvr(flow FlowStruc) {
 			"local", conn.Addr)
 	}
 	//svr.lock.Unlock()
-	listeners := cap(conn.chanStrs)
-	for i := 0; i < listeners; i++ {
+	for i := 0; i < cap(conn.chanStrs); i++ {
 		conn.chanStrs <- conn.Addr
 	}
 }
@@ -723,6 +731,16 @@ func RunFlow(flow FlowStruc) bool {
 		if flow.Conns[i].chanErrs == nil {
 			flow.Conns[i].chanErrs = make(chan error, 1)
 		}
+		defer func() {
+			if flow.Conns[i].chanStrs != nil {
+				close(flow.Conns[i].chanStrs)
+				flow.Conns[i].chanStrs = nil
+			}
+			if flow.Conns[i].chanErrs != nil {
+				close(flow.Conns[i].chanErrs)
+				flow.Conns[i].chanErrs = nil
+			}
+		}()
 		if flow.Conns[i].Block {
 			flow.Conns[i].Run(&flow)
 		} else {

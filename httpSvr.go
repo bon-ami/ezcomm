@@ -124,6 +124,7 @@ func (svr *HTTPSvr) Serve(lst net.Listener) chan error {
 	svr.svr.Handler = svr.rt
 	ec := make(chan error, 1)
 	go func() {
+		defer close(ec)
 		if err := svr.svr.Serve(lst); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			ec <- err
 		} else {

@@ -69,14 +69,13 @@ type SvrTCP struct {
 
 // listening is routine for channels from EZ Comm
 func (s SvrTCP) listening() {
-	chnErr := s.chnErr
-	chnLstn := s.chnLstn
-	chnStp := s.chnStp
 	peerMpO := make(map[string]chan RoutCommStruc)
 	if eztools.Debugging && eztools.Verbose > 1 {
 		s.LogFunc("entering TCP server listening routine")
 		defer func() {
-			//chnStp <- struct{}{}
+			//s.chnStp <- struct{}{}
+			close(s.chnLstn)
+			s.chnLstn = nil
 			s.LogFunc("exiting TCP server listening routine")
 		}()
 	}
@@ -91,13 +90,13 @@ func (s SvrTCP) listening() {
 	for {
 		//s.LogFunc("looping")
 		select {
-		case /*err :=*/ <-chnErr:
+		case /*err :=*/ <-s.chnErr:
 			//s.LogFunc("chn err")
-			chnStp[0] <- struct{}{}
+			s.chnStp[0] <- struct{}{}
 			svrDone = true
 			if noClients, allDone := chkDone(); allDone {
-				if noClients && chnStp[1] != nil {
-					chnStp[1] <- struct{}{}
+				if noClients && s.chnStp[1] != nil {
+					s.chnStp[1] <- struct{}{}
 				}
 				return
 			}
@@ -109,7 +108,7 @@ func (s SvrTCP) listening() {
 				Act: FlowChnEnd,
 				Err: err,
 			})*/
-		case comm := <-chnLstn:
+		case comm := <-s.chnLstn:
 			//s.LogFunc("user requesting", comm)
 			act1Conn := func(addr string) { //bool {
 				chn, ok := peerMpO[comm.ReqAddr]
@@ -131,8 +130,8 @@ func (s SvrTCP) listening() {
 				} else {
 					s.LogFunc("adding peer", comm.ReqAddr)
 				}*/
-				if chnStp[1] == nil {
-					chnStp[1] = make(chan struct{}, 1)
+				if s.chnStp[1] == nil {
+					s.chnStp[1] = make(chan struct{}, 1)
 				}
 				peerMpO[comm.ReqAddr] = comm.Resp
 				// from user
@@ -161,8 +160,8 @@ func (s SvrTCP) listening() {
 				comm.Act = FlowChnEnd
 				s.ActFunc(comm)
 				noClients, allDone := chkDone()
-				if noClients && chnStp[1] != nil {
-					chnStp[1] <- struct{}{}
+				if noClients && s.chnStp[1] != nil {
+					s.chnStp[1] <- struct{}{}
 				}
 				if allDone {
 					return
@@ -256,8 +255,11 @@ func (s *SvrTCP) Listen(network, addr string) (err error) {
 	s.lstnr, err = ListenTCP(s.LogFunc, s.connected,
 		network, addr, Connected1Peer, s.chnErr)
 	if err != nil {
+		close(s.chnErr)
 		s.chnErr = nil
+		close(s.chnLstn)
 		s.chnLstn = nil
+		close(s.chnStp[0])
 		s.chnStp[0] = nil
 		return
 	}
@@ -280,8 +282,10 @@ func (s *SvrTCP) Wait(clients bool) {
 		return
 	}
 	<-s.chnStp[indx]
+	close(s.chnStp[indx])
 	s.chnStp[indx] = nil
 	if !clients {
+		close(s.chnErr)
 		s.chnErr = nil
 	}
 }

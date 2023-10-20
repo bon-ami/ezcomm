@@ -128,6 +128,7 @@ func main() {
 	}()
 	if db != nil {
 		upch = make(chan bool, 2)
+		defer close(upch)
 		go db.AppUpgrade("", ezcomm.EzcName, Ver, nil, upch)
 	}
 	// db ends

@@ -28,7 +28,6 @@ var (
 	thm        theme4Fonts
 	appStorage fyne.Storage
 	// chn is for TCP client and UDP
-	chn                            [2]chan ezcomm.RoutCommStruc
 	tabs                           *container.AppTabs
 	tabLan, tabWeb, tabFil, tabLAf *container.TabItem
 )
@@ -230,6 +229,7 @@ func main() {
 	run(nil)
 }
 
+// run the main loop of UI
 func run(chnHTTP chan bool) {
 	parseParams()
 	appStorage = ezcApp.Storage()
@@ -274,6 +274,12 @@ func run(chnHTTP chan bool) {
 	tabMsg := makeTabMsg()
 	tabFil = makeTabFil()
 	tabCfg := makeTabCfg()
+	if chnHTTP == nil {
+		chnHTTP = make(chan bool, 1)
+	}
+	defer close(chnHTTP)
+	chnLan = make(chan bool, 1)
+	defer close(chnLan)
 	tabLan = makeTabLan(chnHTTP)
 	tabWeb = makeTabWeb()
 	tabLAf = makeTabLAf()
@@ -286,7 +292,7 @@ func run(chnHTTP chan bool) {
 		tabLog,
 		tabCfg,
 	)
-	currTabLan := false // wait for tabs.OnSelected() to turn it on
+	var currTabLan bool
 	tabs.OnSelected = func(tb *container.TabItem) {
 		if currTabLan {
 			switch tb {
@@ -321,11 +327,16 @@ func run(chnHTTP chan bool) {
 
 	//ezcWin.SetFixedSize(true)
 	ezcWin.Show()
+	currTabLan = true
 	tabLanShown(true)
 	// 9 routines here
 	ezcApp.Run()
-	if eztools.Debugging {
-		eztools.Log("routines (5 is normal) left", runtime.NumGoroutine())
+	tabLanShown(false)
+	if eztools.Debugging && runtime.NumGoroutine() > 7 {
+		buf := make([]byte, 16384)
+		stackSize := runtime.Stack(buf, true)
+		eztools.Log("=== Start Goroutine Stack Traces ===\n%s",
+			buf[:stackSize])
 	}
 	if logger != nil {
 		logger.Close()
