@@ -64,22 +64,20 @@ var (
 // quan: quantity of clients
 func InitFlags4Tests() {
 	TstProt = flag.String("prot", tstDefProt,
-		"protocol, tcp, tcp4, tcp6, unix or unixpacket. "+
-			"default is "+tstDefProt)
+		"protocol, tcp, tcp4, tcp6, unix or unixpacket")
 	TstLcl = flag.String("lcl", Localhost+":", "local address")
 	TstRmt = flag.String("rmt", "", "remote address")
 	TstMsg = flag.String("msg", "", "messages to send, separated by \""+
 		tstSeparator+"\". \""+TstBye+"\" to end udp server")
 	TstRoot = flag.String("root", tstDefRoot, "root dir for http server")
 	TstTimeout = flag.Int("timer", -1, "in seconds. default="+
-		strconv.Itoa(tstDefTimeout))
+		strconv.Itoa(tstDefTimeout)+", NOT=>")
 	tstVerbose = flag.Int("verbose", tstDefVerbose, "verbose level. "+
 		"default="+strconv.Itoa(tstDefVerbose))
 	TstMsgCount = flag.Int("msgCount", 0, "number of messages to send "+
 		"per client for TestSvrCln. default=all greek")
 	TstClntNo = flag.Int("quan", tstDefSimulClients,
-		"quantity of clients or seconds for HTTP shutdown. default="+
-			strconv.Itoa(tstDefSimulClients))
+		"quantity of clients or seconds for HTTP shutdown")
 }
 
 // Deinit4Tests to use between multiple tests matching Init4Tests

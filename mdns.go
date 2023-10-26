@@ -10,7 +10,7 @@ import (
 )
 
 // MdnsServer creats a server and waits for queries
-// Parameters: chnErr can be nil, others must not be
+// Parameters: chnErr can be nil, others must not
 func MdnsServer(localName string, chnStp chan struct{}, chnErr chan error) {
 	var err error
 	defer func() {
@@ -25,6 +25,7 @@ func MdnsServer(localName string, chnStp chan struct{}, chnErr chan error) {
 	if err != nil {
 		return
 	}
+	defer conn.Close()
 
 	_, err = mdns.Server(ipv4.NewPacketConn(conn), &mdns.Config{
 		LocalNames: []string{localName},
@@ -36,7 +37,9 @@ func MdnsServer(localName string, chnStp chan struct{}, chnErr chan error) {
 }
 
 // MdnsClient creats a client and queries
-// Parameters: channels can be nil
+// Parameters:
+// localName must match server
+// channels can be nil
 func MdnsClient(localName string, chnAddr chan net.Addr,
 	chnStp chan struct{}, chnErr chan error) {
 	addr, err := net.ResolveUDPAddr("udp", mdns.DefaultAddress)
@@ -51,6 +54,7 @@ func MdnsClient(localName string, chnAddr chan net.Addr,
 	if err != nil {
 		return
 	}
+	defer conn.Close()
 
 	server, err := mdns.Server(ipv4.NewPacketConn(conn), &mdns.Config{})
 	if err != nil {

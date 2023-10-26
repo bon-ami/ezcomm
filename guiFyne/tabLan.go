@@ -220,17 +220,28 @@ func lanListen() {
 		pckNt ezcomm.RoutCommStruc
 	)
 	defLanPrtInt := ezcomm.DefLanPrt()
-	defLanPrtStr := strconv.Itoa(defLanPrtInt)
-	var bonjour []byte
-	for _, c := range ezcomm.EzcName {
-		bonjour = append(bonjour, byte(c))
-	}
-	bonjourLen := len(bonjour)
-	addrBrd, err := net.ResolveUDPAddr(ezcomm.StrUDP,
-		net.JoinHostPort(ezcomm.DefBrdAdr, defLanPrtStr))
-	if err != nil || addrBrd == nil {
-		Log("bad broadcast addr", err)
-		return
+	var (
+		defLanPrtStr string
+		bonjour      []byte
+		addrBrd      *net.UDPAddr
+	)
+	for i := 0; i < 10; i++ {
+		defLanPrtStr = strconv.Itoa(defLanPrtInt)
+		for _, c := range ezcomm.EzcName {
+			bonjour = append(bonjour, byte(c))
+		}
+		var err error
+		addrBrd, err = net.ResolveUDPAddr(ezcomm.StrUDP,
+			net.JoinHostPort(ezcomm.DefBrdAdr, defLanPrtStr))
+		if err != nil || addrBrd == nil {
+			Log("bad broadcast addr", err)
+			if i == 9 {
+				return
+			}
+			defLanPrtInt++
+		} else {
+			break
+		}
 	}
 	go switchHTTP()
 	var localAddrMap, peerMap map[string]struct{}
@@ -274,6 +285,7 @@ func lanListen() {
 			eztools.Log("discovered", sk)
 		}
 	}
+	bonjourLen := len(bonjour)
 	for {
 		select {
 		case reqUI = <-chnLan:
