@@ -66,8 +66,6 @@ const (
 	FlowChnSndFil
 	// FlowChnSnt is not used by EZ Comm
 	FlowChnSnt
-	// FlowChnSntFil is FlowChnSnt for files, not used by EZ Comm
-	//FlowChnSntFil
 	// FlowChnRcv is sth received, from EZ Comm
 	FlowChnRcv
 	// FlowChnRcvFil is FlowChnRcv for files, not used by EZ Comm. For flow only, currently
