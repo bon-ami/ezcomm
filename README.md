@@ -43,7 +43,7 @@ Source code under guiFyne directory uses [Fyne](https://fyne.io/) for graphical 
  - TCP/UDP/HTTP
  - client/server. send to different clients with different text as a server.
  - flow script to automatically listen, accept, receive and send messages or files.
- - file transfer. files or pieces are encapsulated to avoid confusion with text messages.
+     - file transfer. files or pieces are encapsulated to avoid confusion with text messages.
  - peer discovery in LAN
  - incoming/outgoing message history
  - anti-flood to neglect frequent incoming traffic from same IP
@@ -61,6 +61,38 @@ source code under cmd directory. only flow mode supported.
 
  - Run it with "-h" to show command line parameters.
  - Run it with "-flow" parameter with flow file name to run with no graphical UI but the script only. Refer to sample*.xml to check how to write a flow script.
+
+## Code Building
+
+For requirement on version of Go, refer to go.mod under root directory, and guiFyne, if GUI is needed.
+
+### CMD builds
+
+Run `build.sh` or `build.bat` under cmd directory, on Linux or Windows, respectively.<BR>
+Both EZComm_cmd for Linux and EZComm_cmd.exe for Windows will be generated with `build.sh`.<BR>
+
+A parameter is version number in form of X.X.X, which defaults to 0.0.0. This is optional for `build.sh`.<BR>
+If it exists, another optional parameter is build number. It defaults to current date for `build.sh`.
+
+### GUI builds
+
+Refer to [Fyne](https://docs.fyne.io/) for more details on this GUI solution.
+
+Prequisites
+ - GCC is required. Refer to [Prerequisites of Fyne](https://docs.fyne.io/started/) for different platforms.
+ - Run `go install fyne.io/fyne/v2/cmd/fyne@latest`
+ - Run `go install github.com/fyne-io/fyne-cross@latest` if cross compiling is needed.
+
+Build script
+ - Run `build.sh` under guiFyne directory.
+
+### batch build for GUI on Windows, Liunx and Android, and CMD on Windows and Linux
+
+Run `build.sh` under root directory. If a version in form of X.X.X is provided as a parameter, it will be used and it will be retail build, otherwise, it is a debug buid by default. In case a version is provided, a build number can be provided furthermore.
+
+### WEB builds
+
+[Fyne declares to support web builds](https://docs.fyne.io/started/webapp), which I have not verified yet.
 
 ## Issues, Security & Tests
 

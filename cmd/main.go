@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"io"
 	"os"
 	"time"
 
@@ -88,7 +89,10 @@ func main() {
 	}
 
 	ezcomm.ReadCfg(paramCfg, "")
-	ezcomm.SetLog(ezcomm.EzcName+ezcomm.LogExt, nil)
+	if paramLog == "" {
+		paramLog = ezcomm.EzcName + ezcomm.LogExt
+	}
+	ezcomm.SetLog(paramLog, nil)
 
 	// db is only for app upgrade
 	db, _, err := eztools.MakeDb()
@@ -134,6 +138,12 @@ func main() {
 	// db ends
 
 	if len(paramFlw) > 0 {
+		ezcomm.FlowReaderNew = func(p string) (io.ReadCloser, error) {
+			return os.Open(p)
+		}
+		ezcomm.FlowWriterNew = func(p string) (io.WriteCloser, error) {
+			return os.Create(p)
+		}
 		if flow, err := ezcomm.ReadFlowFile(paramFlw); err != nil {
 			eztools.LogPrint(err)
 		} else {

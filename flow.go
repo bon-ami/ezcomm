@@ -5,6 +5,8 @@ import (
 	"errors"
 	"io"
 	"net"
+	"os"
+	"os/exec"
 	"reflect"
 	"strings"
 
@@ -29,6 +31,8 @@ const (
 	FlowVarPee = "peer"
 	// FlowVarFil var file
 	FlowVarFil = "file"
+	// FlowVarScr var script
+	FlowVarScr = "script"
 
 	// FlowRcvLen is the size of receive buffer
 	FlowRcvLen = 1024 * 1024 // must > FileHdr1stLen+len(EzcName)
@@ -37,6 +41,16 @@ const (
 	// FlowFilLen is the size of send buffer for files
 	FlowFilLen = 1024 * 1024
 )
+
+const (
+	// FlowParseValSimple is a string without <FlowVarSign>
+	FlowParseValSimple = iota
+	// FlowParseValSign is for <FlowVarSign><string><FlowVarSign>
+	FlowParseValSign
+	// FlowParseValVar is for <FlowVarSign><xml tag name of FlowConnStruc/FlowStepStruc><FlowVarSign><string><FlowVarSign>
+	FlowParseValVar
+)
+
 const (
 	// FlowChnLst is not used by EZ Comm
 	FlowChnLst = iota
@@ -48,12 +62,12 @@ const (
 	// FlowChnSnd is to send sth, to EZ Comm
 	//	or, sth is sent, from EZ Comm
 	FlowChnSnd
+	// FlowChnSndFil is FlowChnSnd for files
+	FlowChnSndFil
 	// FlowChnSnt is not used by EZ Comm
 	FlowChnSnt
-	// FlowChnSndFil is FlowChnSnd for files, not used by EZ Comm
-	FlowChnSndFil
 	// FlowChnSntFil is FlowChnSnt for files, not used by EZ Comm
-	FlowChnSntFil
+	//FlowChnSntFil
 	// FlowChnRcv is sth received, from EZ Comm
 	FlowChnRcv
 	// FlowChnRcvFil is FlowChnRcv for files, not used by EZ Comm. For flow only, currently
@@ -127,15 +141,6 @@ type FlowStruc struct {
 	Vals  map[string]*FlowStepStruc
 }
 
-const (
-	// FlowParseValSimple is a string without <FlowVarSign>
-	FlowParseValSimple = iota
-	// FlowParseValSign is for <FlowVarSign><string><FlowVarSign>
-	FlowParseValSign
-	// FlowParseValVar is for <FlowVarSign><xml tag name of FlowConnStruc/FlowStepStruc><FlowVarSign><string><FlowVarSign>
-	FlowParseValVar
-)
-
 // FlowWriterNew creation of a writer
 var FlowWriterNew func(string) (io.WriteCloser, error)
 
@@ -151,10 +156,9 @@ var FlowReaderNew func(string) (io.ReadCloser, error)
 // Return values:
 //
 //	1st.
-//	 The simple string
 //	 If FlowConnStruc is matched, the value of its member whose xml tag is <string>
-//	 Otherwise, <string>
-//	2nd. FlowParseVal*
+//	 Otherwise, the input <string>
+//	2nd. FlowParseVal*, that's to say, FlowParseValSimple, FlowParseValSign, or FlowParseValVar
 func (flow FlowStruc) ParseVar(str string,
 	fun func(int, string)) (string, int) {
 	//eztools.Log("parsevar enter", str)
@@ -205,22 +209,27 @@ func (flow FlowStruc) ParseVar(str string,
 // ParseData parses data in step
 // Return values:
 //
-//	1st. is one of following
-//	  data string in form of a simple string
-//	  the value of a member of FlowConnStruc or FlowStepStruc for <string> in <FlowVarSign><xml tag name of FlowConnStruc or FlowStepStruc><FlowVarSep><string><FlowVarSign>
-//	  file name for <string> in <FlowVarSign><FlowVarFil><FlowVarSep><string><FlowVarSign>
-//	2nd.
-//	 1: a file name
-//	 0: a string
+//		1st. is one of following
+//		  data string in form of a simple string
+//		  data string where substituted if possible, the value of a member of FlowConnStruc or FlowStepStruc for <string> in <FlowVarSign><xml tag name of FlowConnStruc or FlowStepStruc><FlowVarSep><string><FlowVarSign>
+//		  file name for <string> in <FlowVarSign><FlowVarFil><FlowVarSep><string><FlowVarSign>
+//		2nd.
+//		 0: a string
+//		 1(=difference from FlowChnRcv to FlowChnRcvFil): a file name
+//	         2: a script name
 func (step FlowStepStruc) ParseData(flow FlowStruc,
 	conn FlowConnStruc) (string, int) {
 	retWhole, parseRes := flow.ParseVar(step.Data, nil) // TODO: match a server
 	switch parseRes {
 	case FlowParseValSimple, FlowParseValSign:
+		const valDiff = FlowChnRcvFil - FlowChnRcv
 		switch {
 		case strings.HasPrefix(retWhole, FlowVarFil+FlowVarSign):
 			return strings.TrimPrefix(retWhole,
-				FlowVarFil+FlowVarSign), 1
+				FlowVarFil+FlowVarSign), valDiff
+		case strings.HasPrefix(retWhole, FlowVarScr+FlowVarSign):
+			return strings.TrimPrefix(retWhole,
+				FlowVarScr+FlowVarSign), valDiff + 1
 		}
 	}
 	return retWhole, 0
@@ -267,6 +276,7 @@ func (conn FlowConnStruc) Step1(flow *FlowStruc, step *FlowStepStruc) {
 		}
 		respChn := make(chan RoutCommStruc, FlowComLen)
 		var respStruc RoutCommStruc
+		receivingFile4Script := ""
 		switch step.Act {
 		case FlowActSnd:
 			dest := step.ParseDest(*flow, conn)
@@ -275,6 +285,29 @@ func (conn FlowConnStruc) Step1(flow *FlowStruc, step *FlowStepStruc) {
 					step.Act, "as", step.Dest)
 			}
 			data, fil := step.ParseData(*flow, conn)
+			if fil > (FlowChnSndFil - FlowChnSnd) {
+				if eztools.Verbose > 2 {
+					eztools.LogWtTime("exec",
+						data, "--local="+conn.Addr,
+						"--remote="+dest.String(),
+						"--file="+data+FlowVarSep+step.Act)
+				}
+				cmd := exec.Command(data, "--local="+conn.Addr,
+					"--remote="+dest.String(),
+					"--file="+data+FlowVarSep+step.Act)
+				if errors.Is(cmd.Err, exec.ErrDot) {
+					cmd.Err = nil
+				}
+				if cmd.Err != nil {
+					eztools.LogWtTime("failed to make command", data+FlowVarSep+step.Act, cmd.Err)
+				} else {
+					if err := cmd.Run(); err != nil {
+						eztools.LogWtTime("failed to exec", data+FlowVarSep+step.Act, err)
+					}
+				}
+				fil = FlowChnSndFil - FlowChnSnd
+				data += FlowVarSep + step.Act
+			}
 			conn.chanComm <- RoutCommStruc{
 				Act:     FlowChnSnd + fil,
 				PeerUDP: dest,
@@ -283,6 +316,11 @@ func (conn FlowConnStruc) Step1(flow *FlowStruc, step *FlowStepStruc) {
 			}
 		case FlowActRcv:
 			data, fil := step.ParseData(*flow, conn)
+			if fil > (FlowChnRcvFil - FlowChnRcv) {
+				receivingFile4Script = data
+				data += FlowVarSep + step.Act
+				fil = FlowChnRcvFil - FlowChnRcv
+			}
 			conn.chanComm <- RoutCommStruc{
 				Act:  FlowChnRcv + fil,
 				Data: []byte(data),
@@ -294,7 +332,6 @@ func (conn FlowConnStruc) Step1(flow *FlowStruc, step *FlowStepStruc) {
 		if respStruc.Err != nil {
 			eztools.LogWtTime(conn.Name, step.Act, respStruc.Err)
 		} else {
-			step.Data = string(respStruc.Data)
 			if respStruc.PeerUDP != nil {
 				if eztools.Verbose > 1 {
 					eztools.Log("refreshing dest of",
@@ -303,6 +340,36 @@ func (conn FlowConnStruc) Step1(flow *FlowStruc, step *FlowStepStruc) {
 						respStruc.PeerUDP.String())
 				}
 				step.Dest = respStruc.PeerUDP.String()
+			}
+			if receivingFile4Script != "" {
+				if eztools.Verbose > 2 {
+					eztools.LogWtTime("exec",
+						receivingFile4Script,
+						"--local="+conn.Addr,
+						"--remote="+step.Dest,
+						"--file="+string(respStruc.Data))
+				}
+				if data, err := os.ReadFile(string(respStruc.Data)); err != nil {
+					eztools.LogWtTime("failed to get received data", err)
+				} else {
+					step.Data = string(data)
+				}
+				cmd := exec.Command(receivingFile4Script,
+					"--local="+conn.Addr,
+					"--remote="+step.Dest,
+					"--file="+receivingFile4Script+FlowVarSep+step.Act)
+				if errors.Is(cmd.Err, exec.ErrDot) {
+					cmd.Err = nil
+				}
+				if cmd.Err != nil {
+					eztools.LogWtTime("failed to make command", receivingFile4Script, cmd.Err)
+				} else {
+					if err := cmd.Run(); err != nil {
+						eztools.LogWtTime("failed to exec", receivingFile4Script, err)
+					}
+				}
+			} else {
+				step.Data = string(respStruc.Data)
 			}
 			if len(step.Name) > 0 {
 				flow.Vals[step.Name] = step
@@ -508,6 +575,7 @@ func (conn *FlowConnStruc) sndFil(logFunc FuncLog, connUDP *net.UDPConn,
 func (conn *FlowConnStruc) rcvFil(logFunc FuncLog, com RoutCommStruc,
 	rcvFunc func([]byte, func([]byte, int) error) error) error {
 	if FlowWriterNew == nil {
+		logFunc("NO flow writer!")
 		return nil
 	}
 	fw, err := FlowWriterNew(string(com.Data))

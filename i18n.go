@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"gitee.com/bon-ami/eztools/v6"
-	"github.com/bon-ami/go-findfont"
+	"github.com/bon-ami/go-findfont" //flopp has adopted similar changes, but with another practice.
 	"gitlab.com/bon-ami/ezcomm/res"
 )
 

@@ -1,13 +1,14 @@
 # 易通信
 
 集TCP、UDP、HTTP，客户端、服务器端于一体。用图形界面或流程脚本。
+
 README in other language(-s): [English](README.md)
 
 [易项目主页](https://ezproject.sourceforge.io/default.htm)
 
 ## 开始
 
-到[Sourceforge](https://sourceforge.net/projects/ezproject/files/EZ%20Comm/) or [GitLab](https://gitlab.com/bon-ami/ezcomm/-/releases)选择预编译二进制的发行版本
+到[Sourceforge](https://sourceforge.net/projects/ezproject/files/EZ%20Comm/)或[GitLab](https://gitlab.com/bon-ami/ezcomm/-/releases)选择预编译二进制的发行版本
 
 ### 图形界面
 
@@ -62,6 +63,38 @@ README in other language(-s): [English](README.md)
  - 以"-h"运行可显示可用参数。
  - 以"-flow"加流程文件名参数运行可无图形界面运行流程脚本。流程脚本的书写参见sample*.xml。
 
+## 编译代码
+
+Go的版本要求，查看根目录和guiFyne（如果需要图形界面）下的go.mod。
+
+### 编译命令行程序
+
+在cmd目录下，对应Linux或Windows分别运行 `build.sh`或`build.bat`。<BR>
+`build.sh`会同时生成用于Linux的EZComm_cmd和用于Windows的EZComm_cmd.exe。<BR>
+
+参数版本号以X.X.X的形式，默认为0.0.0。在`build.sh`中，这可选。<BR>
+在有上一参数时，另一个可选参数是构建号。在`build.sh`中它默认为当前日期。
+
+### 编译图形界面程序
+
+详细的图形方案参考[Fyne](https://docs.fyne.io/)。
+
+先决条件
+ - 需要GCC。不同平台参考[Prerequisites of Fyne](https://docs.fyne.io/started/)
+ - 运行`go install fyne.io/fyne/v2/cmd/fyne@latest`
+ - 如果需要交叉编译，运行`go install github.com/fyne-io/fyne-cross@latest`
+
+编译脚本
+ - 在guiFyne目录下运行`build.sh`
+
+### 批量编译Windows、Liunx和Android上的图形界面应用和Windows和Linux上的命令行应用
+
+在根目录下运行`build.sh`。如果提供了形式为X.X.X的版本号参数，它将用于构建零售版本；否则，它将构建默认的调试版本。在有上一参数时，另一个可选参数是构建号。
+
+### 编译网页程序
+
+[Fyne declares to support web builds](https://docs.fyne.io/started/webapp)，我还未验证。
+
 ## 问题、安全和测试
 
 由[GitLab Issues](https://gitlab.com/bon-ami/ezcomm/-/issues)跟踪
@@ -70,7 +103,7 @@ README in other language(-s): [English](README.md)
 
 [![安全状态](https://www.murphysec.com/platform3/v31/badge/1701444498127192064.svg)](https://www.murphysec.com/console/report/1701444496843735040/1701444498127192064) （非实时）
 
-## Requirements and milestones
+## 需求与里程碑
 
 [Requirements](https://gitlab.com/bon-ami/ezcomm/-/requirements_management/requirements)
 [Milestones](https://gitlab.com/bon-ami/ezcomm/-/milestones)

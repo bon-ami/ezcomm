@@ -9,7 +9,7 @@ fail_if_err() {
 }
 
 fail_if_err "FORMAT" "[ -z $(goimports -l .) ]" "goimports -l ."
-fail_if_err "TEST" "go test ./... -v > /dev/null" "go test ./... -v"
+fail_if_err "TEST" "go test ./... -v -cover > /dev/null" "go test ./... -v -cover"
 fail_if_err "VET" "go vet ./..." "go vet ./..."
 # go install golang.org/x/lint/golint@latest
 fail_if_err "LINT" "golint -set_exit_status \$(go list ./...)" "golint -set_exit_status \$(go list ./...)"

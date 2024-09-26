@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ezcommFlow>
+        <!-- same as TestFlow. "name" is to match a "conn" or a "step". -->
+        <conn name="consumer" protocol="udp" >
+                <!-- server. "action" is either "send" or "receive". wait for incoming message and execute flow.in.bat, which saves it to flow.msg -->
+                <step action="receive" name="receiver" data="%script%sample_flow_in.bat%" block="true">
+                        <!-- echo. "dest" & "data" are either a simple string, or %A%b%, where a "conn" or a "step" node's "name" attribute is set to A, and B is, "data" for the message of that "conn" or "step", or "listen" for listening IP:port. For "data", A is "file" and B is file name, when file content is used as data; or A is "script" and B is file name, when the script file is used to get data to send or save the received data, where parameters are "-\-local=IP:port", "-\-remote=IP:port" and "-\-file=FILE" where FILE is input or output of the script, same as the script with suffix "." and action. For send action, the name of the output of the script, FILE, is appended with ".send". For receive action, the name of the input of the script, FILE, is appended with ".receive". -->
+                        <step action="send" dest="%receiver%dest%" data="%receiver%data%" block="true" />
+                        <step action="send" dest="%receiver%dest%" data="%script%sample_flow_out.bat%" block="true" />
+                </step>
+        </conn>
+        <conn protocol="udp" peer="%consumer%listen%" >
+                <!-- client, greet the server -->
+                <step action="send" dest="%peer%" data="Bonjour" block="true" >
+                        <!-- wait for echo and output it to flow.echoed.msg -->
+                        <step action="receive" data="%file%testdata/flow.echoed.msg%" block="true"/>
+                        <!-- wait for transformer and output it to flow.traced.msg -->
+                        <step action="receive" data="%file%testdata/flow.traced.msg%" block="true"/>
+                </step>
+        </conn>
+</ezcommFlow>
