@@ -1,7 +1,7 @@
 package ezcomm
 
 import (
-	"net"
+	"net/netip"
 	"testing"
 	"time"
 )
@@ -10,7 +10,7 @@ func TestMdns(t *testing.T) {
 	const localNameDef = "mdns.local"
 	Init4Tests(t)
 	var localName, remoteName string
-	if len(*TstLcl) > 0 {
+	if len(*TstLcl) > 0 && *TstLcl != Localhost+":" {
 		localName = *TstLcl
 	} else {
 		localName = localNameDef
@@ -20,11 +20,16 @@ func TestMdns(t *testing.T) {
 	} else {
 		remoteName = localNameDef
 	}
+	if *tstVerbose > 1 {
+		t.Log("mdns server=", localName,
+			";client=", remoteName,
+			";timeout=", TstTO)
+	}
 	chnSvrErr := make(chan error, 1)
 	chnSvrStp := make(chan struct{}, 1)
 	go MdnsServer(localName, chnSvrStp, chnSvrErr)
 	chnClntErr := make(chan error, 1)
-	chnClntAddr := make(chan net.Addr, 1)
+	chnClntAddr := make(chan netip.Addr, 1)
 	chnClntStp := make(chan struct{}, 1)
 	defer func() {
 		close(chnSvrErr)
@@ -42,7 +47,13 @@ func TestMdns(t *testing.T) {
 			t.Error("timeout")
 			if !timeout {
 				timeout = true
+				if *tstVerbose > 1 {
+					t.Log("ending server")
+				}
 				chnSvrStp <- struct{}{}
+				if *tstVerbose > 1 {
+					t.Log("ending client")
+				}
 				chnClntStp <- struct{}{}
 			}
 			if maxTries == 3 {
@@ -50,23 +61,27 @@ func TestMdns(t *testing.T) {
 			} else {
 				maxTries = 3
 			}
-		case err := <-chnSvrErr:
-			if err != nil {
-				t.Fatal("server failure.", err)
+		case errSvr := <-chnSvrErr:
+			if errSvr != nil {
+				t.Fatal("server failure.", errSvr)
 			}
 			t.Log("server ends")
 			if !timeout {
+				if *tstVerbose > 1 {
+					t.Log("ending client")
+				}
 				timeout = true
 				chnClntStp <- struct{}{}
 			}
-		case err := <-chnClntErr:
-			if err != nil {
-				t.Fatal("client failure.", err)
-			} else {
-				t.Log("client:", <-chnClntAddr)
+		case errClnt := <-chnClntErr:
+			if errClnt != nil {
+				t.Fatal("client failure.", errClnt)
 			}
-			t.Log("client ends")
+			t.Log("client ends from server:", <-chnClntAddr)
 			if !timeout {
+				if *tstVerbose > 1 {
+					t.Log("ending server")
+				}
 				timeout = true
 				chnSvrStp <- struct{}{}
 			}

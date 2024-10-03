@@ -82,6 +82,9 @@ func InitFlags4Tests() {
 
 // Deinit4Tests to use between multiple tests matching Init4Tests
 func Deinit4Tests() {
+	if eztools.Verbose > 1 {
+		eztools.Log("tests vars deiniting")
+	}
 	tstInitDone = false
 	TstT = nil
 	*TstProt = ""
@@ -125,6 +128,9 @@ func Init4Tests(t *testing.T) {
 	if *tstVerbose > 0 && *tstVerbose < 4 {
 		eztools.Debugging = true
 		eztools.Verbose = *tstVerbose
+	}
+	if eztools.Verbose > 1 {
+		eztools.Log("tests vars inited")
 	}
 	return
 }

@@ -7,7 +7,7 @@ require (
 	gitee.com/bon-ami/eztools/v6 v6.2.0
 	github.com/bon-ami/go-findfont v0.3.0
 	github.com/gin-gonic/gin v1.9.1
-	github.com/pion/mdns v0.0.9
+	github.com/pion/mdns/v2 v2.0.7
 	github.com/pkg/errors v0.8.1
 	golang.org/x/net v0.25.0
 )
@@ -21,7 +21,6 @@ require (
 	github.com/chenzhuoyu/base64x v0.0.0-20230717121745-296ad89f973d // indirect
 	github.com/chenzhuoyu/iasm v0.9.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/flopp/go-findfont v0.1.0 // indirect
 	github.com/fredbi/uri v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/fyne-io/gl-js v0.0.0-20230506162202-1fdaa286a934 // indirect
@@ -62,7 +61,7 @@ require (
 	github.com/shibukawa/configdir v0.0.0-20170330084843-e180dbdc8da0 // indirect
 	github.com/srwiley/oksvg v0.0.0-20221011165216-be6e8873101c // indirect
 	github.com/srwiley/rasterx v0.0.0-20220730225603-2ab79fcdd4ef // indirect
-	github.com/stretchr/testify v1.8.4 // indirect
+	github.com/stretchr/testify v1.9.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.11 // indirect
 	github.com/yuin/goldmark v1.7.1 // indirect
