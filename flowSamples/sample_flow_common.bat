@@ -65,7 +65,6 @@ for %%x in (%*) do (
     )
     echo local=%local%, remote=%remote%, file=%file%
     if "%file%"=="" goto fend
-    if "%file%"=="" goto fend
     if "%local%"=="" goto fend
     if "%direction%" == "in" (
         echo. >> %file%

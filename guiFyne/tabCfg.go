@@ -37,9 +37,10 @@ func writeCfg() {
 			Log("failed to create config file", err)
 			return
 		}
-		return
 	}
-	ezcomm.WriterCfg(cfgWriter)
+	if err = ezcomm.WriterCfg(cfgWriter); err != nil {
+		Log("failed to write config", err)
+	}
 }
 
 func writerNew(p string) (io.WriteCloser, error) {
@@ -302,9 +303,7 @@ func makeControlsCfg() *fyne.Container {
 		fontSel.Options = append(fontSel.Options, res.locale)
 	}
 	fontsNumBuiltin = len(fontSel.Options)
-	for _, font := range ezcomm.ListSystemFonts([]string{".ttf"}) {
-		fontSel.Options = append(fontSel.Options, font)
-	}
+	fontSel.Options = append(fontSel.Options, ezcomm.ListSystemFonts([]string{".otf"})...)
 
 	rowLang := container.NewCenter(widget.NewLabel(
 		ezcomm.StringTran["StrLang"]))
@@ -382,9 +381,7 @@ func makeControlsCfg() *fyne.Container {
 		//langSel.Options = append(langSel.Options, full)
 	})
 	markFont(useFontFromCfg(false, ezcomm.CfgStruc.Language))
-	for _, but := range langButs {
-		langImgs = append(langImgs, but)
-	}
+	langImgs = append(langImgs, langButs...)
 	langSel := container.NewGridWithColumns(len(langButs), langImgs...)
 
 	fontBut = widget.NewButton(ezcomm.StringTran["StrFnt4Lang"], func() {

@@ -99,7 +99,9 @@ TSTHTTPLOOP:
 				tstReadHTTP(t, chnRead)
 				loopCnt = *ezcomm.TstTimeout
 			case false:
-				stpHTTP()
+				if minorErr := stpHTTP(); minorErr != nil && err == nil {
+					err = minorErr
+				}
 			}
 		}
 	}

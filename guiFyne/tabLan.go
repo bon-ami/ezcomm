@@ -103,7 +103,9 @@ func switchHTTP() {
 		case true:
 			runHTTP()
 		case false:
-			stpHTTP()
+			if err := stpHTTP(); err != nil {
+				Log("stop http", err)
+			}
 			return
 		}
 	}

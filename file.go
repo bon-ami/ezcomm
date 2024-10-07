@@ -174,7 +174,7 @@ func makeFileID() (ret int) {
 	fileIDLock.Lock()
 	switch fileID {
 	case 0:
-		rand.Seed(time.Now().UnixNano())
+		//rand.Seed(time.Now().UnixNano())
 		fileID = rand.Intn(FileIDMax-FileIDMin) + FileIDMin
 	case FileIDMax:
 		fileID = FileIDMin

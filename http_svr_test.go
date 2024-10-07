@@ -233,6 +233,9 @@ func TestHTTPSvrPst(t *testing.T) {
 		err = tstHTTPSvrShutdown(t, svr)
 	case err = <-ch:
 	}
+	if err != nil {
+		t.Fatal(err)
+	}
 	/*if n := runtime.NumGoroutine(); n > 2 {
 		<-time.After(time.Second * 5)
 		if n := runtime.NumGoroutine(); n > 2 {
@@ -357,6 +360,9 @@ func TestHTTPSvrHdr(t *testing.T) {
 		}
 		err = tstHTTPSvrShutdown(t, svr)
 	case err = <-ch:
+	}
+	if err != nil {
+		t.Fatal(err)
 	}
 	/*if n := runtime.NumGoroutine(); n > 2 {
 		<-time.After(time.Second * 5)

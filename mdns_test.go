@@ -27,7 +27,13 @@ func TestMdns(t *testing.T) {
 	}
 	chnSvrErr := make(chan error, 1)
 	chnSvrStp := make(chan struct{}, 1)
-	go MdnsServer(localName, chnSvrStp, chnSvrErr)
+	go func() {
+		_, err := MdnsServer(localName, chnSvrStp, chnSvrErr)
+		if err != nil {
+			// to pass errcheck, I duplicate it here to Fatal
+			t.Error(err)
+		}
+	}()
 	chnClntErr := make(chan error, 1)
 	chnClntAddr := make(chan netip.Addr, 1)
 	chnClntStp := make(chan struct{}, 1)
@@ -38,7 +44,7 @@ func TestMdns(t *testing.T) {
 		close(chnClntAddr)
 		close(chnClntStp)
 	}()
-	go MdnsClient(remoteName, chnClntAddr, chnClntStp, chnClntErr)
+	go MdnsClient(remoteName, chnClntAddr, chnClntStp, chnClntErr, TstTO)
 	var timeout bool
 	maxTries := 2 // wait for client and server
 	for i := 0; i < maxTries; i++ {

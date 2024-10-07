@@ -34,7 +34,9 @@ func initLog() error {
 		wr, err := appStorage.Create(fn)
 		errMv = err
 		if err == nil {
-			cpFile(rd, wr)
+			if err = cpFile(rd, wr); err != nil {
+				Log("failed to copy", nm, "to", fn, err)
+			}
 			/*if eztools.Debugging && eztools.Verbose > 1 {
 				eztools.LogPrint(
 					"copied", nm, "to", fn, "err", err)

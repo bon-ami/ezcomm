@@ -15,7 +15,7 @@ type Entry struct {
 // NewMultiLineEntry make an Entry
 func NewMultiLineEntry() *Entry {
 	//e := &widget.Entry{MultiLine: true, Wrapping: fyne.TextTruncate}
-	ret := &Entry{widget.Entry{MultiLine: true, Wrapping: fyne.TextTruncate}, nil}
+	ret := &Entry{widget.Entry{MultiLine: true, Wrapping: fyne.TextWrapWord}, nil}
 	ret.ExtendBaseWidget(ret)
 	return ret
 }
@@ -30,12 +30,12 @@ func (e *Entry) Hide() {
 }
 
 // selectAll cannot work
-func (e *Entry) selectAll() {
+/*func (e *Entry) selectAll() {
 	//if e.textProvider().len() == 0 {
 	if e.Text == "" {
 		return
 	}
-	/*e.setFieldsAndRefresh(func() {
+	[>e.setFieldsAndRefresh(func() {
 		e.selectRow = 0
 		e.selectColumn = 0
 
@@ -43,9 +43,9 @@ func (e *Entry) selectAll() {
 		e.CursorColumn = e.textProvider().rowLength(lastRow)
 		e.CursorRow = lastRow
 		e.selecting = true
-	})*/
+	})<]
 	e.Refresh()
-}
+}*/
 
 func (e *Entry) clearAll() {
 	e.SetText("")

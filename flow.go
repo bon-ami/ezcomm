@@ -94,7 +94,7 @@ type FlowStepStruc struct {
 	// Steps: sub steps triggered
 	Steps []FlowStepStruc `xml:"step"`
 	// curr: current sub step
-	curr int
+	//curr int
 }
 
 // FlowConnStruc a connection in a flow
@@ -256,7 +256,7 @@ func (step FlowStepStruc) ParseDest(flow FlowStruc,
 			}
 			//eztools.Log("parsedest by var", ret, conn)
 		}
-	} else {
+		//} else {
 		//eztools.Log("parsedest by server", ret)
 	}
 	addr, err := net.ResolveUDPAddr(conn.Protocol, ret)
@@ -624,7 +624,6 @@ func (conn *FlowConnStruc) ParsePeer(flow FlowStruc) {
 				flow.Conns[svrInd].chanStrs =
 					make(chan string, curr+1)
 			}
-			break
 		}
 	})
 }

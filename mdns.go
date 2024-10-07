@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/netip"
 	"sync"
+	"time"
 
 	"gitee.com/bon-ami/eztools/v6"
 	"github.com/pion/mdns/v2"
@@ -86,7 +87,7 @@ func MdnsServer(localName string, chnStp chan struct{},
 // localName must match server
 // channels can be nil
 func MdnsClient(localName string, chnAddr chan netip.Addr,
-	chnStp chan struct{}, chnErr chan error) {
+	chnStp chan struct{}, chnErr chan error, timeout time.Duration) {
 	var src netip.Addr
 	var err error
 	defer func() {
@@ -100,7 +101,7 @@ func MdnsClient(localName string, chnAddr chan netip.Addr,
 	if err != nil {
 		return
 	}
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	var (
 		cancelled bool
 		lock      sync.Mutex

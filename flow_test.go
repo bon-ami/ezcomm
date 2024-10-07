@@ -3,6 +3,7 @@ package ezcomm
 import (
 	"io"
 	"os"
+	"runtime"
 	"testing"
 
 	"gitee.com/bon-ami/eztools/v6"
@@ -18,7 +19,7 @@ func TestFlow(t *testing.T) {
 			eztools.FileCreatePermission)
 	}
 	Init4Tests(t)
-	fl, err := ReadFlowFile("sample_desktop.xml")
+	fl, err := ReadFlowFile("flowSamples/sample_flow_" + runtime.GOOS + ".xml")
 	if err != nil {
 		t.Fatal(err)
 	}

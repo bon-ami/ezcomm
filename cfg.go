@@ -85,7 +85,7 @@ func (c ezcommCfg) EzpName() string {
 	return eztools.EzpName
 }
 
-func (c ezcommCfg) SetFont(f string) {
+func (c *ezcommCfg) SetFont(f string) {
 	c.font = f
 }
 
@@ -132,7 +132,11 @@ func WriterCfg(wrt io.WriteCloser) error {
 func ReaderCfg(rdr io.ReadCloser, fallbackLang string) error {
 	if rdr != nil {
 		setDefCfg()
-		eztools.XMLReader(rdr, &CfgStruc)
+		if err := eztools.XMLReader(rdr, &CfgStruc); err != nil {
+			if eztools.Debugging && eztools.Verbose > 1 {
+				eztools.Log("failed to read config", err)
+			}
+		}
 		rdr.Close()
 	}
 	return procCfg(fallbackLang)
@@ -207,7 +211,6 @@ func MatchFontFromCurrLanguageCfg() {
 		}
 	}
 	CfgStruc.font = ""
-	return
 }
 
 // SetLog sets a writer or file as log

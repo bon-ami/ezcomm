@@ -47,7 +47,11 @@ func main() {
 	// keep consistent with guiFyne
 	ezcomm.Vendor = "fyne"
 	ezcomm.AdditionalCfgPath = "Documents"
-	ezcomm.ReadCfg(argCfgStr, "")
+	if err := ezcomm.ReadCfg(argCfgStr, ""); err != nil {
+		if eztools.Verbose > 0 {
+			eztools.Log("failed to load", argCfgStr, err)
+		}
+	}
 	// all possible language settings got. parse all params again.
 
 	flag.BoolVar(&paramVer, "version", false, ezcomm.StringTran["StrVer"])
@@ -88,11 +92,19 @@ func main() {
 		eztools.Verbose = 3
 	}
 
-	ezcomm.ReadCfg(paramCfg, "")
+	if err := ezcomm.ReadCfg(paramCfg, ""); err != nil {
+		if eztools.Debugging && eztools.Verbose > 1 {
+			eztools.Log("failed to load config", err)
+		}
+	}
 	if paramLog == "" {
 		paramLog = ezcomm.EzcName + ezcomm.LogExt
 	}
-	ezcomm.SetLog(paramLog, nil)
+	if err := ezcomm.SetLog(paramLog, nil); err != nil {
+		if eztools.Debugging && eztools.Verbose > 0 {
+			eztools.Log("failed to set log", err)
+		}
+	}
 
 	// db is only for app upgrade
 	db, _, err := eztools.MakeDb()

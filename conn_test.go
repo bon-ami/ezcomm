@@ -156,7 +156,6 @@ ClientLoop:
 	chn[0] <- RoutCommStruc{Act: FlowChnEnd}
 	// wait for End
 	<-chn[1]
-	return
 }
 
 // TestClient uses Connected1Peer
@@ -176,7 +175,7 @@ func TestClient(t *testing.T) {
 		return
 	}
 	if conn == nil {
-		panic(conn)
+		panic("no connections created")
 	}
 	// wait for init
 	<-chnFromClnt

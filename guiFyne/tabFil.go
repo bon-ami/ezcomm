@@ -90,7 +90,9 @@ func filLclChk(rc fyne.URIReadCloser, fil string) (err error) {
 func filButLcl() {
 	dialog.ShowFileOpen(func(uri fyne.URIReadCloser, err error) {
 		if err == nil && uri != nil {
-			filLclChk(uri, "")
+			if err = filLclChk(uri, ""); err != nil {
+				Log(uri, "open", err)
+			}
 		}
 	}, ezcWin)
 }

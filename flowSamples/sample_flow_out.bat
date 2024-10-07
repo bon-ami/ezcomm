@@ -9,4 +9,4 @@ shift
 goto loopIn
 
 :endloopIn
-call sample_flow_common.bat out %paramsIn%
+call flowSamples\sample_flow_common.bat out %paramsIn%

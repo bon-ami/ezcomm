@@ -132,5 +132,4 @@ func Init4Tests(t *testing.T) {
 	if eztools.Verbose > 1 {
 		eztools.Log("tests vars inited")
 	}
-	return
 }

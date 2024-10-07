@@ -30,7 +30,9 @@ before_script:
   - apt-get --quiet update --yes
   - apt-get --quiet install --yes golang gcc libgl1-mesa-dev xorg-dev xz-utils gcc-mingw-w64-x86-64 unzip apksigner
   - go install fyne.io/fyne/v2/cmd/fyne@latest
-  - go install golang.org/x/lint/golint@latest
+  #- go install golang.org/x/lint/golint@latest
+  - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.61.0
+  - golangci-lint --version
   - go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
   - wget https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
   #- wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
@@ -64,15 +66,16 @@ unit-test-job:   # This job runs in the test stage.
   stage: test    # It only starts when the job in the build stage completes successfully.
   script:
     - echo "Running unit tests..."
-    - go test ./...
-    - go test -cover
+    - go test -cover ./...
+    #- go test -cover
 
 lint-test-job:   # This job also runs in the test stage.
   stage: test    # It can run at the same time as unit-test-job (in parallel).
   script:
     - echo "Linting code... "
-    - go vet ./...
-    - golint -set_exit_status $(go list ./...)
+    #- go vet ./...
+    #- golint -set_exit_status $(go list ./...)
+    - golangci-lint run
     - gocyclo -over 30 .
 
 #deploy-job:      # This job runs in the deploy stage.

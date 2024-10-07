@@ -479,7 +479,9 @@ func Snd() {
 		wrapperFunc = ezcomm.SplitFile
 	}
 	if !isSndFile(wrapperFunc, sndFunc) {
-		sndFunc([]byte(cntLcl.Text))
+		if err := sndFunc([]byte(cntLcl.Text)); err != nil {
+			Log(ezcomm.StringTran["StrFl2Snd"], err)
+		}
 	}
 }
 
@@ -637,7 +639,9 @@ func makeControlsSocks() {
 		if len(str) < 1 {
 			protRd.SetSelected("udp")
 		}
-		filLclChk(nil, "")
+		if err := filLclChk(nil, ""); err != nil {
+			Log(err)
+		}
 		butSndByProt(str)
 	}
 	recSnd = widget.NewSelect(nil, func(str string) {
