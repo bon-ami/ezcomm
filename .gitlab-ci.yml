@@ -1,7 +1,3 @@
-image: golang:latest
-
-# docker run -it golang
-
 # This file is a template, and might need editing before it works on your project.
 # This is a sample GitLab CI/CD configuration file that should run without any modifications.
 # It demonstrates a basic 3 stage CI/CD pipeline. Instead of real tests or scripts,
@@ -20,6 +16,15 @@ image: golang:latest
 # This specific template is located at:
 # https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Getting-Started.gitlab-ci.yml
 
+image: golang:latest
+
+# docker run -it golang
+
+#include:
+  #- template: Jobs/Dependency-Scanning.latest.gitlab-ci.yml
+  #- template: Jobs/SAST.latest.gitlab-ci.yml
+  #- template: Jobs/SAST.gitlab-ci.yml
+
 stages:          # List of stages for jobs, and their order of execution
   - test
   - build
@@ -31,8 +36,8 @@ before_script:
   - apt-get --quiet install --yes golang gcc libgl1-mesa-dev xorg-dev xz-utils gcc-mingw-w64-x86-64 unzip apksigner
   - go install fyne.io/fyne/v2/cmd/fyne@latest
   #- go install golang.org/x/lint/golint@latest
-  - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.61.0
-  - golangci-lint --version
+  #- curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.61.0
+  #- golangci-lint --version
   - go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
   - wget https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
   #- wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
@@ -44,13 +49,13 @@ before_script:
 build-job:       # This job runs in the build stage, which runs first.
   stage: build
   variables:
-    SECURE_FILES_DOWNLOAD_PATH: './'
+    SECURE_FILES_DOWNLOAD_PATH: "./"
   script:
     - echo "Getting secure files..."
     - curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
 #    - ls -a
     - echo "Compiling the code..."
-    - ./build.sh ${CI_COMMIT_TAG}
+    - "./build.sh ${CI_COMMIT_TAG}"
   artifacts:
     paths:
     - EZComm_cmd
@@ -72,11 +77,34 @@ unit-test-job:   # This job runs in the test stage.
 lint-test-job:   # This job also runs in the test stage.
   stage: test    # It can run at the same time as unit-test-job (in parallel).
   script:
-    - echo "Linting code... "
+    - echo "Cycloning code... "
     #- go vet ./...
     #- golint -set_exit_status $(go list ./...)
-    - golangci-lint run
+    #- golangci-lint run
     - gocyclo -over 30 .
+
+variables:
+  GOLANGCI_LINT_VERSION: 'v1.61.0'
+  #GOLANGCI_LINT_VERSION: 'v1.56.2'
+lint:
+  image: golangci/golangci-lint:$GOLANGCI_LINT_VERSION
+  stage: test
+  script:
+    # Write the code coverage report to gl-code-quality-report.json
+    # and print linting issues to stdout in the format: path/to/file:line description
+    # remove `--issues-exit-code 0` or set to non-zero to fail the job if linting issues are detected
+    - echo "Linting code... "
+    - golangci-lint run --issues-exit-code 1 --print-issued-lines=false --out-format code-climate:gl-code-quality-report.json,line-number
+  artifacts:
+    reports:
+      codequality: gl-code-quality-report.json
+    paths:
+      - gl-code-quality-report.json
+
+sast:
+  stage: test
+include:
+- template: Security/SAST.gitlab-ci.yml
 
 #deploy-job:      # This job runs in the deploy stage.
 #  stage: deploy  # It only runs when *both* jobs in the test stage complete successfully.
