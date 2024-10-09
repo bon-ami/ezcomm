@@ -74,6 +74,7 @@ lint-test-job:
     #- go vet ./...
     #- go install golang.org/x/lint/golint@latest
     #- golint -set_exit_status $(go list ./...)
+    - go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
     #- golangci-lint run
     - gocyclo -over 30 .
 
@@ -95,8 +96,8 @@ lint:
     paths:
       - gl-code-quality-report.json
 
-sast:
-  stage: test
+#sast:
+  #stage: test
 include:
   - template: Jobs/Dependency-Scanning.latest.gitlab-ci.yml
   - template: Jobs/SAST.latest.gitlab-ci.yml
