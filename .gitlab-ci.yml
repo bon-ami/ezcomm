@@ -20,37 +20,30 @@ image: golang:latest
 
 # docker run -it golang
 
-#include:
-  #- template: Jobs/Dependency-Scanning.latest.gitlab-ci.yml
-  #- template: Jobs/SAST.latest.gitlab-ci.yml
-  #- template: Jobs/SAST.gitlab-ci.yml
-
 stages:          # List of stages for jobs, and their order of execution
   - test
   - build
 #  - deploy
 
 before_script:
-  - echo "Preparing the tools..."
+  - echo "Preparing tools..."
   - apt-get --quiet update --yes
   - apt-get --quiet install --yes golang gcc libgl1-mesa-dev xorg-dev xz-utils gcc-mingw-w64-x86-64 unzip apksigner
-  - go install fyne.io/fyne/v2/cmd/fyne@latest
-  #- go install golang.org/x/lint/golint@latest
-  #- curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.61.0
-  #- golangci-lint --version
-  - go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
-  - wget https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
-  #- wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-  - unzip android-ndk-r25c-linux.zip
-  #- unzip commandlinetools-linux-9477386_latest.zip
-  #- pwd; ls android-ndk-r25c #; ls commandlinetools-linux-9477386_latest
-  - export ANDROID_NDK_HOME="${PWD}/android-ndk-r25c"
 
-build-job:       # This job runs in the build stage, which runs first.
+build-job:
   stage: build
   variables:
     SECURE_FILES_DOWNLOAD_PATH: "./"
   script:
+    - echo "Preparing tools..."
+    - go install fyne.io/fyne/v2/cmd/fyne@latest
+    - go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
+    - wget https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
+    #- wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+    - unzip android-ndk-r25c-linux.zip
+    #- unzip commandlinetools-linux-9477386_latest.zip
+    #- pwd; ls android-ndk-r25c #; ls commandlinetools-linux-9477386_latest
+    - export ANDROID_NDK_HOME="${PWD}/android-ndk-r25c"
     - echo "Getting secure files..."
     - curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
 #    - ls -a
@@ -67,18 +60,19 @@ build-job:       # This job runs in the build stage, which runs first.
     - EZComm.apk
     - EZComm_debug.apk
 
-unit-test-job:   # This job runs in the test stage.
-  stage: test    # It only starts when the job in the build stage completes successfully.
+unit-test-job:
+  stage: test
   script:
     - echo "Running unit tests..."
     - go test -cover ./...
     #- go test -cover
 
-lint-test-job:   # This job also runs in the test stage.
-  stage: test    # It can run at the same time as unit-test-job (in parallel).
+lint-test-job:
+  stage: test
   script:
     - echo "Cycloning code... "
     #- go vet ./...
+    #- go install golang.org/x/lint/golint@latest
     #- golint -set_exit_status $(go list ./...)
     #- golangci-lint run
     - gocyclo -over 30 .
@@ -94,7 +88,7 @@ lint:
     # and print linting issues to stdout in the format: path/to/file:line description
     # remove `--issues-exit-code 0` or set to non-zero to fail the job if linting issues are detected
     - echo "Linting code... "
-    - golangci-lint run --issues-exit-code 1 --print-issued-lines=false --out-format code-climate:gl-code-quality-report.json,line-number
+    - golangci-lint run --timeout 10m --issues-exit-code 1 --print-issued-lines=false --out-format code-climate:gl-code-quality-report.json,line-number
   artifacts:
     reports:
       codequality: gl-code-quality-report.json
@@ -104,9 +98,12 @@ lint:
 sast:
   stage: test
 include:
-- template: Security/SAST.gitlab-ci.yml
+  - template: Jobs/Dependency-Scanning.latest.gitlab-ci.yml
+  - template: Jobs/SAST.latest.gitlab-ci.yml
+  #- template: Jobs/SAST.gitlab-ci.yml
+  #- template: Security/SAST.gitlab-ci.yml
 
-#deploy-job:      # This job runs in the deploy stage.
+#deploy-job:
 #  stage: deploy  # It only runs when *both* jobs in the test stage complete successfully.
 #  environment: production
 #  script:
