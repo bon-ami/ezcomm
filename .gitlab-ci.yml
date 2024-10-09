@@ -25,10 +25,10 @@ stages:          # List of stages for jobs, and their order of execution
   - build
 #  - deploy
 
-before_script:
-  - echo "Preparing tools..."
-  - apt-get --quiet update --yes
-  - apt-get --quiet install --yes golang gcc libgl1-mesa-dev xorg-dev xz-utils gcc-mingw-w64-x86-64 unzip apksigner
+#before_script:
+  #- echo "Preparing tools..."
+  #- apt-get --quiet update --yes
+  #- apt-get --quiet install --yes golang gcc libgl1-mesa-dev xorg-dev xz-utils gcc-mingw-w64-x86-64 unzip apksigner
 
 build-job:
   stage: build
@@ -36,6 +36,8 @@ build-job:
     SECURE_FILES_DOWNLOAD_PATH: "./"
   script:
     - echo "Preparing tools..."
+    - apt-get --quiet update --yes
+    - apt-get --quiet install --yes golang gcc libgl1-mesa-dev xorg-dev xz-utils gcc-mingw-w64-x86-64 unzip apksigner
     - go install fyne.io/fyne/v2/cmd/fyne@latest
     - go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
     - wget https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
@@ -75,7 +77,6 @@ lint-test-job:
     #- go install golang.org/x/lint/golint@latest
     #- golint -set_exit_status $(go list ./...)
     - go install github.com/fzipp/gocyclo/cmd/gocyclo@latest
-    #- golangci-lint run
     - gocyclo -over 30 .
 
 variables:
