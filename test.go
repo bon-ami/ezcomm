@@ -44,11 +44,9 @@ var (
 	// TstT direct pointer to tests. better not to be used
 	TstT *testing.T
 
-	tstVerbose   *int
-	tstClntRdMsg chan struct{}
-	tstSvrChan   chan struct{}
-	tstInitDone  bool
-	tstClntID    int
+	tstVerbose  *int
+	tstInitDone bool
+	tstClntID   int
 )
 
 // InitFlags4Tests needs to be included in init() from a test file,

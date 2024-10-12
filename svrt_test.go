@@ -85,7 +85,9 @@ func TestSvrTcp(t *testing.T) {
 	tstSvrT.ActFunc = tstSvrTAct
 	tstSvrT.LogFunc = t.Log
 	tstSvrT.ConnFunc = tstSvrTConn
-	//t.Log("listen", *tstProt, *tstLcl)
+	if *tstVerbose > 1 {
+		t.Log("listen", *TstProt, *TstLcl)
+	}
 	err := tstSvrT.Listen(*TstProt, *TstLcl)
 	if err != nil {
 		t.Fatal(err)

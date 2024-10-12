@@ -2,6 +2,7 @@ package ezcomm
 
 import (
 	"net"
+	"sync"
 
 	"gitee.com/bon-ami/eztools/v6"
 )
@@ -43,42 +44,42 @@ ChnConn[1]
 type SvrTCP struct {
 	// chnErr is from EZ Comm when server stops
 	chnErr chan error
-	// chnSvr is the channel SvrTcp--FlowChnEnd->server
-	//chnSvr chan RoutCommStruc
 	// chnLstn is the channel for,
 	//	conn--FlowChnRcv->SvrTcp, or,
 	//	connected--FlowChnLst->SvrTcp
-	chnLstn chan RoutCommStruc
-	lstnr   net.Listener
+	chnLstn  chan RoutCommStruc
+	lockLstn sync.Mutex
+	lstnr    net.Listener
 	// chnStp [0/1] when server/clients stopped
 	chnStp [2]chan struct{}
 
 	// LogFunc is not routine safe, for logging
 	// behavior undefined if not set
 	LogFunc FuncLog
-	// ActFunc is invoked in one routine, to user.
-	//	including FlowChnRcv, FlowChnEnd, FlowChnSnd
+	// ActFunc is for FlowChnRcv, FlowChnEnd, FlowChnSnd to user.
 	// behavior undefined if not set
 	ActFunc func(RoutCommStruc)
-	// ConnFunc runs in the routine for an incoming connection
+	// ConnFunc runs upon an incoming connection
 	//   It must not block
-	// also run on listening, to tell user of the actual address
+	// also runs on listening, to tell user of the actual address
 	// behavior undefined if not set
 	ConnFunc func([4]string)
 }
 
 // listening is routine for channels from EZ Comm
-func (s SvrTCP) listening() {
+func (s *SvrTCP) listening() {
 	peerMpO := make(map[string]chan RoutCommStruc)
 	if eztools.Debugging && eztools.Verbose > 1 {
 		s.LogFunc("entering TCP server listening routine")
-		defer func() {
-			//s.chnStp <- struct{}{}
-			close(s.chnLstn)
-			s.chnLstn = nil
-			s.LogFunc("exiting TCP server listening routine")
-		}()
+		defer s.LogFunc("exiting TCP server listening routine")
 	}
+	defer func() {
+		//s.chnStp <- struct{}{}
+		s.lockLstn.Lock()
+		close(s.chnLstn)
+		s.chnLstn = nil
+		s.lockLstn.Unlock()
+	}()
 	svrDone := false
 	chkDone := func() (noClients, allDone bool) {
 		//s.LogFunc("chkDone", peerMpO)
@@ -110,7 +111,7 @@ func (s SvrTCP) listening() {
 			})*/
 		case comm := <-s.chnLstn:
 			//s.LogFunc("user requesting", comm)
-			act1Conn := func(addr string) { //bool {
+			act1Conn := func( /*addr*/ string) { //bool {
 				chn, ok := peerMpO[comm.ReqAddr]
 				if !ok {
 					return
@@ -140,10 +141,14 @@ func (s SvrTCP) listening() {
 			case FlowChnEnd:
 				if len(comm.ReqAddr) > 0 {
 					act1Conn(comm.ReqAddr)
+					if chn, ok := peerMpO[comm.ReqAddr]; ok {
+						close(chn)
+					}
 					delete(peerMpO, comm.ReqAddr)
 				} else {
 					for p, c := range peerMpO {
 						c <- comm
+						close(c)
 						delete(peerMpO, p)
 					}
 				}
@@ -173,12 +178,20 @@ func (s SvrTCP) listening() {
 	}
 }
 
-// connected runs when a client comes in
-func (s SvrTCP) connected(addr [4]string, chn [2]chan RoutCommStruc) {
+// connected runs when a client comes in or blocked by anti-flood
+func (s *SvrTCP) connected(addr [4]string, chn [2]chan RoutCommStruc) {
+	defer close(chn[1])
 	if s.chnLstn == nil {
 		s.LogFunc("NO listening channel!")
 		// should we panic?
 		return
+	}
+	for _, c := range chn {
+		if c == nil {
+			s.LogFunc("probably flooding, no channel for", addr)
+			close(chn[0])
+			return
+		}
 	}
 	// to record this address-channel pair
 	s.chnLstn <- RoutCommStruc{
@@ -187,38 +200,36 @@ func (s SvrTCP) connected(addr [4]string, chn [2]chan RoutCommStruc) {
 		Resp:    chn[0],
 	}
 	s.ConnFunc(addr)
-
-	go func(chnLstn, chnComm chan RoutCommStruc, addr string) {
-		if eztools.Debugging && eztools.Verbose > 1 {
-			s.LogFunc("entering TCP server connection routine")
-			defer s.LogFunc("exiting TCP server connection routine")
+	if eztools.Debugging && eztools.Verbose > 1 {
+		s.LogFunc("entering TCP server connection routine")
+		defer s.LogFunc("exiting TCP server connection routine")
+	}
+	for {
+		comm := <-chn[1]
+		//s.LogFunc("connection got", addr[1], comm)
+		comm.ReqAddr = addr[1]
+		switch comm.Act {
+		case FlowChnSnd:
+			comm.Act = FlowChnSnt
+		/*case FlowChnSndFil:
+		comm.Act = FlowChnSntFil*/
+		case FlowChnEnd:
+			comm.Act = FlowChnDie
 		}
-		for {
-			comm := <-chnComm
-			//s.LogFunc("connection got", addr, comm)
-			comm.ReqAddr = addr
-			switch comm.Act {
-			case FlowChnSnd:
-				comm.Act = FlowChnSnt
-			/*case FlowChnSndFil:
-			comm.Act = FlowChnSntFil*/
-			case FlowChnEnd:
-				comm.Act = FlowChnDie
-			}
-			chnLstn <- comm
-			if comm.Act == FlowChnEnd || comm.Act == FlowChnDie {
-				s.LogFunc("connection dieing",
-					addr, chnLstn, comm)
-				break
-			}
+		s.chnLstn <- comm
+		if comm.Act == FlowChnDie {
+			s.LogFunc("connection ending",
+				addr[1], s.chnLstn, comm)
+			break
 		}
-	}(s.chnLstn, chn[1], addr[1])
+	}
 }
 
 // Send is routine safe
 //
 //	act should be FlowChnSnd
-func (s SvrTCP) Send(addr string, data []byte) {
+func (s *SvrTCP) Send(addr string, data []byte) {
+	s.lockLstn.Lock()
 	if s.chnLstn != nil {
 		s.chnLstn <- RoutCommStruc{
 			Act:     FlowChnSnd,
@@ -226,10 +237,11 @@ func (s SvrTCP) Send(addr string, data []byte) {
 			Data:    data,
 		}
 	}
+	s.lockLstn.Unlock()
 }
 
 // HasStopped whether SvrTCP has Stop-ped
-func (s SvrTCP) HasStopped() bool {
+func (s *SvrTCP) HasStopped() bool {
 	for _, ch := range s.chnStp {
 		if ch != nil {
 			return false
@@ -294,12 +306,14 @@ func (s *SvrTCP) Wait(clients bool) {
 //
 //	routine safe
 func (s *SvrTCP) Disconnect(addr string) {
+	s.lockLstn.Lock()
 	if s.chnLstn != nil {
 		s.chnLstn <- RoutCommStruc{
 			Act:     FlowChnEnd,
 			ReqAddr: addr,
 		}
 	}
+	s.lockLstn.Unlock()
 }
 
 // Stop stops listening

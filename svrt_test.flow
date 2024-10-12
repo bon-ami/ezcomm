@@ -1,0 +1,38 @@
+                       |-------------------SvrTCP---------------------|     *
+tstSvrTConn tstSvrTAct connected chnErr chnLstn chnStp Listen listening TestSvrTcp tstSvrTD tstSvrTP ListenTCP Connected1Peer rcvFrom1Peer chn[0] chn[1]
+                                                          <-----------------
+                                                          ---------------------------------------------->
+      <---------------------------------------------------                                           net.Listen
+                                                          go=====>                                   go listener.Accept
+                                                                                                     go==============>
+                                                                                                                 floodChk
+                           <======================================go=================================================
+                       return if flooding
+      <--------------------                                                                                          go============>
+                        -FlowChnLst-chn[0]->                                                                                  conn.Read
+                                                                                                                              floodChk
+                                    ----------------------------->                                                            FlowChnRcv/FlowChnEnd->
+                                                   <-------------|                                                   <------------------------
+                                             <--------------close| and return                                        |=FlowChnSnd: conn.Write and -->
+      set------------------------------------------------------------------------------------->                      |=FlowChnEnd: return
+                             <-----------------------------------------------------------------------------------------------------------------------
+                 =FlowChnSnd:|FlowChnSnt ->
+       =FlowChnEnd:return,and|FlowChnDie ->close---------------------------------------------------------------------------------------------------->
+                             |=*: -------->
+                                           -------------------->
+                 |if err got from now, report fatal, --------------------------------->
+                                                                |=FlowChnLst: set chn[0] in peerMpO
+                 <----------------------------------------------|=FlowChnRcv:
+                 SvrTCP.Send--FlowChnSnd--->                    |=FlowChnSnd/FlowChnEnd: ---------------------------------------------------->
+                 <----------------------------------------------|=FlowChnSnt: FlowChnSnd
+                 |=bye: SvrTCP.Stop, close(listner), --------------------------------->
+                 |=bye/FlowChnEnd: SvrTCP.Disconnect,
+                               ,FlowChnEnd->del---------------------------------------------->
+                 <----------FlowChnEnd-------------<------------|=FlowChnDie: return,
+                                             <------------------close------------------------------------------------------------------------>
+
+                                                                           | timeout or
+                                                                           <-  wait   -
+                                                     -> SvrTCP.Wait<-false-|
+                                                     -> SvrTCP.Wait<-true--|
+                                                                           close--->

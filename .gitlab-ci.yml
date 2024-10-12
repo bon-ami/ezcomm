@@ -68,8 +68,7 @@ unit-test-job:
     - apt-get --quiet update --yes
     - apt-get --quiet install --yes golang gcc libgl1-mesa-dev xorg-dev xz-utils
     - echo "Running unit tests..."
-    - go test -cover ./...
-    #- go test -cover
+    - go test -v -cover ./...
 
 lint-test-job:
   stage: test
@@ -88,9 +87,8 @@ lint:
   stage: test
   script:
     - echo "Preparing tools..."
-    - go mod tidy
-    #- apt-get --quiet update --yes
-    #- apt-get --quiet install --yes golang gcc libgl1-mesa-dev xorg-dev xz-utils
+    - apt-get --quiet update --yes
+    - apt-get --quiet install --yes golang gcc libgl1-mesa-dev xorg-dev xz-utils
     # Write the code coverage report to gl-code-quality-report.json
     # and print linting issues to stdout in the format: path/to/file:line description
     # remove `--issues-exit-code 0` or set to non-zero to fail the job if linting issues are detected
