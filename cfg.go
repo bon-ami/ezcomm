@@ -195,6 +195,32 @@ func procCfg(fallbackLang string) error {
 	return err
 }
 
+// DelFontByLocale delete a font by locale
+func DelFontByLocale(locale string) {
+	for i := range CfgStruc.Fonts {
+		if CfgStruc.Fonts[i].Locale == locale {
+			l := len(CfgStruc.Fonts) - 1
+			CfgStruc.Fonts[i] = CfgStruc.Fonts[l]
+			CfgStruc.Fonts = CfgStruc.Fonts[:l]
+			return
+		}
+	}
+}
+
+// AddFontByLocale adds a font by locale or set it if in existence
+func AddFontByLocale(locale, font string) {
+	for i := range CfgStruc.Fonts {
+		if CfgStruc.Fonts[i].Locale == locale {
+			if len(CfgStruc.Fonts[i].Font) > 0 {
+				CfgStruc.Fonts[i].Font = font
+				return
+			}
+		}
+	}
+	CfgStruc.Fonts = append(CfgStruc.Fonts,
+		Fonts{Locale: locale, Font: font})
+}
+
 // MatchFontFromCurrLanguageCfg matches font for current language in config
 func MatchFontFromCurrLanguageCfg() {
 	if len(CfgStruc.Language) < 1 {

@@ -2,8 +2,11 @@ package main
 
 import (
 	"errors"
+	"fmt"
+	"image/color"
 	"io"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -13,6 +16,7 @@ import (
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
+
 	"gitee.com/bon-ami/eztools/v6"
 	"gitlab.com/bon-ami/ezcomm"
 )
@@ -222,8 +226,24 @@ func makeControlsCfg() *fyne.Container {
 	floodLblLmt := container.NewCenter(
 		widget.NewLabel(ezcomm.StringTran["StrLmt"]))
 	floodInpLmt := widget.NewEntry()
-	floodInpLmt.SetText(strconv.FormatInt(
-		ezcomm.CfgStruc.AntiFlood.Limit, 10))
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				if _, ok := r.(runtime.Error); ok {
+					// revert it to default
+					/*markFont(*/
+					useFont(true, "", ezcomm.CfgStruc.Language) //)
+					makeWindow()
+					// save cfg
+					//saveFontFromIndx(ezcomm.CfgStruc.Language)
+					//useFontFromCfg(true, ezcomm.CfgStruc.Language)
+				}
+				fmt.Println("Recovered in f", r)
+			}
+		}()
+		floodInpLmt.SetText(strconv.FormatInt(
+			ezcomm.CfgStruc.AntiFlood.Limit, 10))
+	}()
 	floodInpLmt.Validator = validateInt64
 	floodInpLmt.OnChanged = func(str string) {
 		if validateInt64(str) != nil {
@@ -286,12 +306,64 @@ func makeControlsCfg() *fyne.Container {
 
 	rowFont := container.NewCenter(widget.NewLabel(ezcomm.StringTran["StrFnt"]))
 	fontSel = widget.NewSelect(nil, func(font string) {
+		/*go*/ func() {
+			defer func() {
+				if r := recover(); r != nil {
+					if _, ok := r.(runtime.Error); ok {
+						// remove font setting for this lang
+						ezcomm.DelFontByLocale(currLang)
+						thm.SetFontByRes(nil)
+						ezcApp.Settings().SetTheme(&thm)
+						fmt.Println("theme reset")
+						// revert it to default
+						/*markFont(*/
+						//useFont(true, "", ezcomm.CfgStruc.Language) //)
+						//makeWindow()
+						// save cfg
+						//saveFontFromIndx(ezcomm.CfgStruc.Language)
+						//useFontFromCfg(true, ezcomm.CfgStruc.Language)
+					}
+					fmt.Println("Recovered from crash", r)
+				}
+			}()
+			fmt.Println("sel=", fontSel.SelectedIndex())
+			if fontSel.SelectedIndex() <= 0 {
+				return
+			}
+			/*if true {
+				saveFontFromIndx(currLang)
+				ezcomm.MatchFontFromCurrLanguageCfg()
+				useFontFromCfg(true, currLang)
+			} else {
+				ezcomm.DelFontByLocale(currLang)
+				thm.SetFontByRes(nil)
+			}*/
+			text := canvas.NewText("Test", color.NRGBA{0, 0, 0, 0xff})
+			rsrc, err := fyne.LoadResourceFromPath(ezcomm.MatchSystemFontsFromIndex(fontSel.SelectedIndex()))
+			if err != nil {
+				fmt.Println("load font err", err)
+			} else {
+				text.FontSource = rsrc
+			}
+			//w := ezcApp.NewWindow("test")
+			//w.SetContent(text)
+			//fmt.Println("theme window")
+			//w.Canvas().Capture()
+
+			/*ezcApp.Settings().SetTheme(&thm)
+			ezcin := ezcApp.NewWindow("ff")
+			fmt.Println("theme window")
+			//defer ezcin.Close()
+			dialog.ShowInformation(ezcomm.StringTran["StrLang"],
+				ezcomm.StringTran["StrReboot4Change"], ezcin)*/
+		}()
+		/*fmt.Println("font sel")
 		suggestion, builtin := chkFontBltIn()
 		if builtin && len(suggestion) > 0 {
 			dialog.ShowInformation(ezcomm.StringTran["StrLang"],
 				ezcomm.StringTran["StrFnt4LangBuiltin"]+
 					" "+suggestion, ezcWin)
-		}
+		}*/
 	})
 	fontSel.PlaceHolder = ezcomm.StringTran["StrFnt"]
 	langResMap = make(map[string]int)
@@ -303,7 +375,39 @@ func makeControlsCfg() *fyne.Container {
 		fontSel.Options = append(fontSel.Options, res.locale)
 	}
 	fontsNumBuiltin = len(fontSel.Options)
-	fontSel.Options = append(fontSel.Options, ezcomm.ListSystemFonts([]string{".otf"})...)
+	fonts := ezcomm.ListSystemFonts([]string{".ttc", ".otf"}, func(listI []string) (listO []string) {
+		w := ezcApp.NewWindow("test")
+		for _, v := range listI {
+			if v != "C:\\WINDOWS\\Fonts\\SitkaZ.ttc" {
+				listO = append(listO, v)
+				continue
+			}
+			text := canvas.NewText(v, color.NRGBA{100, 150, 200, 0xff})
+			rsrc, err := fyne.LoadResourceFromPath(v)
+			if err != nil {
+				fmt.Println("load font err", err)
+			} else {
+				text.FontSource = rsrc
+			}
+			func() {
+				defer func() {
+					if r := recover(); r != nil {
+						if err, ok := r.(runtime.Error); ok {
+							fmt.Println("recover font err", err)
+						}
+					}
+				}()
+				w.SetContent(text)
+				fmt.Println("theme window", v)
+				w.Canvas().Capture()
+				w.Show()
+				fmt.Println("loading font", v)
+			}()
+			break
+		}
+		return
+	})
+	fontSel.Options = append(fontSel.Options, fonts...) //ezcomm.ListSystemFonts([]string{".ttc", ".otf"})...)
 
 	rowLang := container.NewCenter(widget.NewLabel(
 		ezcomm.StringTran["StrLang"]))
@@ -402,7 +506,7 @@ func makeControlsCfg() *fyne.Container {
 }
 
 // saveFontFromIndx
-// Parameter: local
+// Parameter: locale
 func saveFontFromIndx(lang string) {
 	var font string
 	indx := fontSel.SelectedIndex()
@@ -415,24 +519,7 @@ func saveFontFromIndx(lang string) {
 		Log("NO font found!", lang)
 		return
 	}
-	// check whether already in config file
-	found := false
-	for i := range ezcomm.CfgStruc.Fonts {
-		if ezcomm.CfgStruc.Fonts[i].Locale == lang {
-			if len(ezcomm.CfgStruc.Fonts[i].Font) > 0 {
-				if ezcomm.CfgStruc.Fonts[i].Font != font {
-					ezcomm.CfgStruc.Fonts[i].Font = font
-				}
-				found = true
-				break
-			}
-		}
-	}
-	if !found {
-		ezcomm.CfgStruc.Fonts = append(ezcomm.CfgStruc.Fonts,
-			ezcomm.Fonts{Locale: lang, Font: font})
-
-	}
+	ezcomm.AddFontByLocale(lang, font)
 	writeCfg()
 }
 
@@ -448,23 +535,19 @@ func chkFontBltIn() (suggestion string, builtin bool) {
 	return LangsBuiltin[i].locale, true
 }
 
-func useFontFromCfg(setTheme bool, lang string) (fontPath string,
-	fontStaticIndx int) {
-	fontStaticIndx = eztools.InvalidID
-	cfg := ezcomm.CfgStruc.GetFont()
-	if len(lang) < 1 && len(cfg) < 1 {
-		return
-	}
-	//Log("setting font=", cfg, ", lang=", lang)
+// useFont uses a font from cfg or built-in
+func useFont(setTheme bool, cfg, lang string) (fontPath string, fontStaticIndx int) {
+	Log("setting font=", cfg, ", lang=", lang)
 	i := 0
 	for _, res := range LangsBuiltin {
-		//Log("checking built-in", fontBuiltin.locale)
+		//Log("checking built-in", res.locale)
 		if res.fnt == nil {
 			continue
 		}
 		if len(cfg) < 1 {
 			if lang == res.locale {
 				ezcomm.CfgStruc.SetFont(lang)
+				Log("setting font2=", cfg, ", lang=", lang)
 				thm.SetFontByRes(res.fnt)
 				return "", i
 			}
@@ -494,6 +577,16 @@ func useFontFromCfg(setTheme bool, lang string) (fontPath string,
 		}
 	}
 	return
+}
+
+func useFontFromCfg(setTheme bool, lang string) (fontPath string,
+	fontStaticIndx int) {
+	fontStaticIndx = eztools.InvalidID
+	cfg := ezcomm.CfgStruc.GetFont()
+	if len(lang) < 1 && len(cfg) < 1 {
+		return
+	}
+	return useFont(setTheme, cfg, lang)
 }
 
 func markFont(dir string, indx int) {

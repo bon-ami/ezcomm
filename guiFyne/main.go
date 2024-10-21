@@ -18,6 +18,7 @@ import (
 	"fyne.io/fyne/v2/driver/desktop"
 	"fyne.io/fyne/v2/storage"
 	"fyne.io/fyne/v2/widget"
+
 	"gitee.com/bon-ami/eztools/v6"
 	"gitlab.com/bon-ami/ezcomm"
 )
@@ -224,6 +225,13 @@ func cp2Clip(str string) {
 	go toast("StrCopied", str)
 }
 
+func makeWindow() {
+	if ezcWin != nil {
+		ezcWin.Close()
+	}
+	ezcWin = ezcApp.NewWindow(ezcomm.EzcName)
+}
+
 func main() {
 	ezcApp = app.NewWithID(ezcomm.EzcName)
 	run(nil)
@@ -267,13 +275,13 @@ func run(chnHTTP chan bool) {
 	}
 	ezcApp.SetIcon(Icon)
 	ezcApp.Settings().SetTheme(&thm)
-	ezcWin = ezcApp.NewWindow(ezcomm.EzcName)
+	makeWindow()
 
 	makeControlsSocks()
+	tabCfg := makeTabCfg()
 	tabLog := makeTabLog()
 	tabMsg := makeTabMsg()
 	tabFil = makeTabFil()
-	tabCfg := makeTabCfg()
 	if chnHTTP == nil {
 		chnHTTP = make(chan bool, 1)
 		defer close(chnHTTP)

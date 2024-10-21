@@ -7,7 +7,8 @@ README in other language(-s): [简体中文](README_zhCN.md)
 
 ## Getting started
 
-Go to [Sourceforge](https://sourceforge.net/projects/ezproject/files/EZ%20Comm/) or [GitLab](https://gitlab.com/bon-ami/ezcomm/-/releases) for releases of prebuilt binaries.
+ - Go to [Sourceforge](https://sourceforge.net/projects/ezproject/files/EZ%20Comm/) for releases of prebuilt binaries.
+ - Go to [GitLab](https://gitlab.com/bon-ami/ezcomm/-/releases) for releases of source code.
 
 ### GUI
 
@@ -92,7 +93,7 @@ Run `build.sh` under root directory. If a version in form of X.X.X is provided a
 
 ### WEB builds
 
-[Fyne declares to support web builds](https://docs.fyne.io/started/webapp), which I have not verified yet.
+Though it does not function, it can also run in a browser with `fyne serve` or `fyne package -os web`. Details are in [Fyne declares to support web builds](https://docs.fyne.io/started/webapp).
 
 ## Issues, Security & Tests
 
@@ -109,9 +110,9 @@ Tested and auto-built on [GitLab](https://gitlab.com/bon-ami/ezcomm/-/pipelines)
 
 ## EULA, License
 
-Refer to [COPYRIGHT](COPYRIGHT) for Explicit Distribution Declaration in addition to [Apache V2.0](LICENSE-2.0.txt).
+Refer to [COPYRIGHT](COPYRIGHT) for Explicit Distribution Declaration in addition to [Apache V2.0](LICENSE.txt).
 
-Most translations by [Bing](https://bing.com)
+Most translations by [Bing](https://www.bing.com/translator)
 
 Built-in fonts are from following sites.
 

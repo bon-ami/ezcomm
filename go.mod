@@ -1,9 +1,9 @@
 module gitlab.com/bon-ami/ezcomm
 
-go 1.20
+go 1.23
 
 require (
-	fyne.io/fyne/v2 v2.5.1
+	fyne.io/fyne/v2 v2.5.2
 	gitee.com/bon-ami/eztools/v6 v6.2.0
 	github.com/bon-ami/go-findfont v0.3.0
 	github.com/gin-gonic/gin v1.9.1
@@ -23,9 +23,9 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fredbi/uri v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
-	github.com/fyne-io/gl-js v0.0.0-20230506162202-1fdaa286a934 // indirect
+	github.com/fyne-io/gl-js v0.0.0-20220119005834-d2da28d9ccfe // indirect
 	github.com/fyne-io/glfw-js v0.0.0-20240101223322-6e1efdc71b7a // indirect
-	github.com/fyne-io/image v0.0.0-20230811065323-ed435dc8bca6 // indirect
+	github.com/fyne-io/image v0.0.0-20220602074514-4956b0afb3d2 // indirect
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.4 // indirect
@@ -36,15 +36,15 @@ require (
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.15.3 // indirect
 	github.com/go-sql-driver/mysql v1.7.1 // indirect
-	github.com/go-text/render v0.1.1-0.20240418202334-dd62631dae9b // indirect
-	github.com/go-text/typesetting v0.1.0 // indirect
+	github.com/go-text/render v0.2.0 // indirect
+	github.com/go-text/typesetting v0.2.0 // indirect
 	github.com/goccy/go-json v0.10.2 // indirect
 	github.com/godbus/dbus/v5 v5.1.0 // indirect
 	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/jeandeaual/go-locale v0.0.0-20240223122105-ce5225dcaa49 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/jsummers/gobmp v0.0.0-20230614200233-a9de23ed2e25 // indirect
+	github.com/jsummers/gobmp v0.0.0-20151104160322-e2ba15ffa76e // indirect
 	github.com/klauspost/cpuid/v2 v2.2.5 // indirect
 	github.com/kr/binarydist v0.1.0 // indirect
 	github.com/leodido/go-urn v1.2.4 // indirect
@@ -76,3 +76,5 @@ require (
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+//replace fyne.io/fyne/v2 => bon-ami/fyne/v2

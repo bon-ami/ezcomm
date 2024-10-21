@@ -12,6 +12,7 @@ import (
 	"fyne.io/fyne/v2/container"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/widget"
+
 	"gitee.com/bon-ami/eztools/v6"
 	"gitlab.com/bon-ami/ezcomm"
 )
@@ -192,7 +193,9 @@ func makeTabLog() *container.TabItem {
 	verboseSel.Options = []string{
 		ezcomm.StringTran["StrHgh"], ezcomm.StringTran["StrMdm"], ezcomm.StringTran["StrLow"], ezcomm.StringTran["StrNon"],
 	}
-	verboseSel.SetSelected(verbose2Str())
+	if s := verbose2Str(); len(s) > 0 {
+		verboseSel.SetSelected(s)
+	}
 	fyneRowLog = /*widget.*/ NewMultiLineEntry() //.NewList.NewTextGrid()
 	fyneRowLog.Wrapping = fyne.TextWrapWord
 	fyneRowLog.Disable()

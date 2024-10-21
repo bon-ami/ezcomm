@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"gitee.com/bon-ami/eztools/v6"
-	"github.com/bon-ami/go-findfont" //flopp has adopted similar changes, but with another practice.
+	"github.com/bon-ami/go-findfont"
 	"gitlab.com/bon-ami/ezcomm/res"
 )
 
@@ -158,8 +158,11 @@ var (
 )
 
 // ListSystemFonts get all system fonts with extensions
-func ListSystemFonts(exts []string) []string {
-	fontList[0] = findfont.ListWtSuffixes(exts)
+func ListSystemFonts(exts []string, filterFunc func([]string) []string) []string {
+	fontList[0] = findfont.ListWithSuffixes(exts)
+	if filterFunc != nil {
+		fontList[0] = filterFunc(fontList[0])
+	}
 	if len(fontList[0]) < 1 {
 		return nil
 	}
