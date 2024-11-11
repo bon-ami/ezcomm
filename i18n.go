@@ -159,7 +159,7 @@ var (
 
 // ListSystemFonts get all system fonts with extensions
 func ListSystemFonts(exts []string) []string {
-	fontList[0] = findfont.ListWtSuffixes(exts)
+	fontList[0] = findfont.ListWithSuffixes(exts)
 	if len(fontList[0]) < 1 {
 		return nil
 	}
