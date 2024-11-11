@@ -8,7 +8,8 @@ README in other language(-s): [English](README.md)
 
 ## 开始
 
-到[Sourceforge](https://sourceforge.net/projects/ezproject/files/EZ%20Comm/)或[GitLab](https://gitlab.com/bon-ami/ezcomm/-/releases)选择预编译二进制的发行版本
+ - 到[Sourceforge](https://sourceforge.net/projects/ezproject/files/EZ%20Comm/)选择预编译二进制的发行版本
+ - 到[GitLab](https://gitlab.com/bon-ami/ezcomm/-/releases)选择发行版本的源代码
 
 ### 图形界面
 
@@ -93,7 +94,9 @@ Go的版本要求，查看根目录和guiFyne（如果需要图形界面）下�
 
 ### 编译网页程序
 
-[Fyne declares to support web builds](https://docs.fyne.io/started/webapp)，我还未验证。
+虽然无法工作，但是用`fyne server`或`fyne package -os web`能生成浏览器中的网页。详情见[Fyne declares to support web builds](https://docs.fyne.io/started/webapp)
+
+此编译需要bon-ami/go-findfonts，所以我在模块设置中"replace"了flopp/go-findfonts。这两个库在其它各方面相同。
 
 ## 问题、安全和测试
 
@@ -110,9 +113,9 @@ Go的版本要求，查看根目录和guiFyne（如果需要图形界面）下�
 
 ## 授权
 
-参见[COPYRIGHT](COPYRIGHT_zhCN)为[Apache V2.0](LICENSE-2.0.txt)（英文）基础上的明确发布说明.
+参见[COPYRIGHT](COPYRIGHT_zhCN)为[Apache V2.0](LICENSE.txt)（英文）基础上的明确发布说明.
 
-大部分翻译来自[Bing](https://bing.com)
+大部分翻译来自[Bing](https://www.bing.com/translator)
 
 内置字体来自以下网站：
 

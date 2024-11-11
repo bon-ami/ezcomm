@@ -54,6 +54,7 @@ function bld1() {
 			;;
 	esac
 	echo ${A}${SUFF}: fyne package -os ${OS1} ${VAR1} -appVersion $V
+	#"fyne release" signs android app using bundletool, but outputs aab instead of apk
 	fyne package -os ${OS1} ${VAR1} -appVersion $V
 	local ret=$?
 	case ${OS1} in
@@ -138,7 +139,7 @@ function bld1() {
 				ls "$K" "$P"
 				return 3
 			fi
-			#fyne release -os android -appID io.sourceforge.ezproject.ezcomm -appVersion $V -appBuild 1 -keyStore $K
+			#fyne release -os android -appVersion $V -keyStore $K -keyName $L -keyStorePass `cat $P`
 			;;
 	esac
 	return 0
