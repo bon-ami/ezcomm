@@ -33,7 +33,7 @@ jobs:
           wget https://dl.google.com/android/repository/android-ndk-r25c-linux.zip
           unzip android-ndk-r25c-linux.zip
           echo "Getting secure files..."
-          curl --silent "https://gitlab.com/gitlab-org/incubation-engineering/mobile-devops/download-secure-files/-/raw/main/installer" | bash
+          git clone https://bon-ami:${{ secrets.GITEE }}@gitee.com/bon-ami/keys.git && mv keys/* .
 
       - name: Compile the code
         run: |
