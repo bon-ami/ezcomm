@@ -35,10 +35,21 @@ jobs:
           echo "Getting secure files..."
           git clone https://bon-ami:${{ secrets.GITEE }}@gitee.com/bon-ami/keys.git && mv keys/* .
 
+
+      - name: If no tags
+        if: startsWith(github.ref, 'refs/heads/')
+        run: echo "TAG_NAME=v0.0.0" >> $GITHUB_ENV
+
+      - name: If tags
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+
       - name: Compile the code
         run: |
-          echo building ${{ github.ref_name }}
-          ./build.sh ${{ github.ref_name }}
+          echo building $TAG_NAME
+          ./build.sh $TAG_NAME
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
